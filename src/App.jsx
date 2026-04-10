@@ -7,6 +7,14 @@ import { mRatio } from './engine/equity.js';
 import Card from './components/Card.jsx';
 import Controls from './tournament/Controls.jsx';
 import TournamentDashboard from './tournament/TournamentDashboard.jsx';
+import DrillMenu from './drills/DrillMenu.jsx';
+import RFIDrill from './drills/RFIDrill.jsx';
+import ThreeBetDrill from './drills/ThreeBetDrill.jsx';
+import BBDefenseDrill from './drills/BBDefenseDrill.jsx';
+import PushFoldDrill from './drills/PushFoldDrill.jsx';
+import PostflopDrill from './drills/PostflopDrill.jsx';
+import SizingDrill from './drills/SizingDrill.jsx';
+import PotOddsDrill from './drills/PotOddsDrill.jsx';
 
 // ──── STYLES ────
 const S = {
@@ -50,7 +58,7 @@ function fmt(n) {
 // ────────────────────────────────────
 // LOBBY
 // ────────────────────────────────────
-function Lobby({ onStart }) {
+function Lobby({ onStart, onDrills }) {
   const [format, setFormat] = useState('WSOP_Main');
   const [name, setName] = useState('');
 
@@ -90,6 +98,11 @@ function Lobby({ onStart }) {
           border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 800, fontSize: '18px',
           cursor: 'pointer', marginTop: '8px',
         }}>START TOURNAMENT</button>
+        <button onClick={onDrills} style={{
+          width: '100%', padding: '14px', background: 'linear-gradient(135deg, #1a3a5c, #2980b9)',
+          border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 700, fontSize: '16px',
+          cursor: 'pointer', marginTop: '10px',
+        }}>TRAINING DRILLS</button>
       </div>
     </div>
   );
@@ -458,12 +471,45 @@ function Game({ director, onExit }) {
 // ────────────────────────────────────
 // ROOT
 // ────────────────────────────────────
-export default function App() {
-  const [director, setDirector] = useState(null);
+const DRILL_MAP = {
+  rfi: RFIDrill,
+  '3bet': ThreeBetDrill,
+  bbdef: BBDefenseDrill,
+  pushfold: PushFoldDrill,
+  postflop: PostflopDrill,
+  sizing: SizingDrill,
+  potodds: PotOddsDrill,
+};
 
-  if (!director) {
-    return <Lobby onStart={(fmt, name) => setDirector(new TournamentDirector(fmt, name))} />;
+export default function App() {
+  const [screen, setScreen] = useState('lobby'); // lobby | tournament | drills | drill
+  const [director, setDirector] = useState(null);
+  const [activeDrill, setActiveDrill] = useState(null);
+
+  if (screen === 'drill' && activeDrill) {
+    const DrillComp = DRILL_MAP[activeDrill];
+    if (DrillComp) return <div style={S.app}><DrillComp onBack={() => setScreen('drills')} /></div>;
   }
 
-  return <Game director={director} onExit={() => setDirector(null)} />;
+  if (screen === 'drills') {
+    return (
+      <div style={S.app}>
+        <DrillMenu
+          onSelect={(id) => { setActiveDrill(id); setScreen('drill'); }}
+          onBack={() => setScreen('lobby')}
+        />
+      </div>
+    );
+  }
+
+  if (screen === 'tournament' && director) {
+    return <Game director={director} onExit={() => { setDirector(null); setScreen('lobby'); }} />;
+  }
+
+  return (
+    <Lobby
+      onStart={(fmt, name) => { setDirector(new TournamentDirector(fmt, name)); setScreen('tournament'); }}
+      onDrills={() => setScreen('drills')}
+    />
+  );
 }

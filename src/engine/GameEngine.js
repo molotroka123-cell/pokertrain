@@ -87,11 +87,25 @@ export class GameEngine {
     this.aiBots = aiBots || {};
     this.positions = getPositions(this.players.length, this.dealerIdx);
 
-    // Deal cards
+    // Deal cards from ONE fresh shuffled deck (52 unique cards)
     this.deck = freshDeck();
+    this.holeCards = {};
     for (const p of this.players) {
       this.holeCards[p.id] = deal(this.deck, 2);
       this.bets[p.id] = 0;
+    }
+
+    // Integrity check: no duplicate cards
+    const allDealt = [];
+    for (const cards of Object.values(this.holeCards)) allDealt.push(...cards);
+    if (new Set(allDealt).size !== allDealt.length) {
+      console.error('DUPLICATE CARDS DETECTED IN DEAL!', allDealt);
+      // Force re-deal
+      this.deck = freshDeck();
+      this.holeCards = {};
+      for (const p of this.players) {
+        this.holeCards[p.id] = deal(this.deck, 2);
+      }
     }
 
     // Post antes
