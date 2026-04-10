@@ -1,15 +1,19 @@
 // sounds.js — Sound effects (using Web Audio API, no external files needed)
 
 let audioCtx = null;
+let _enabled = true;
 
 function getCtx() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
+  // Resume if suspended (iOS Safari requires user gesture)
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
 
 function playTone(freq, duration, type = 'sine', volume = 0.15) {
+  if (!_enabled) return;
   try {
     const ctx = getCtx();
     const osc = ctx.createOscillator();
@@ -26,6 +30,7 @@ function playTone(freq, duration, type = 'sine', volume = 0.15) {
 }
 
 function playNoise(duration, volume = 0.08) {
+  if (!_enabled) return;
   try {
     const ctx = getCtx();
     const bufferSize = ctx.sampleRate * duration;
@@ -57,6 +62,6 @@ export const Sounds = {
   win: () => { playTone(523, 0.15); setTimeout(() => playTone(659, 0.15), 150); setTimeout(() => playTone(784, 0.2), 300); },
   allIn: () => { playTone(440, 0.2, 'sawtooth', 0.08); setTimeout(() => playTone(880, 0.3, 'sawtooth', 0.06), 200); },
   timer: () => playTone(1000, 0.05, 'square', 0.04),
-  enabled: true,
-  toggle() { this.enabled = !this.enabled; },
+  get enabled() { return _enabled; },
+  toggle() { _enabled = !_enabled; return _enabled; },
 };

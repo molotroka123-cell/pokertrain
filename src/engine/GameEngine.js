@@ -564,7 +564,7 @@ export class GameEngine {
     }
 
     // Wait for player to see showdown
-    await this._delay(2500);
+    await this._delay(4000); // Longer showdown for card viewing
     this.phase = PHASE.HAND_OVER;
     onUpdate(this.getState());
   }

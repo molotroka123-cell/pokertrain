@@ -550,13 +550,17 @@ function HUDBar({ heroChips, pot, mVal, position, rank, blinds, theme, level, pl
           )}
           {playersRemaining && <span style={{ color: '#5a6a7a' }}> · {playersRemaining}/{totalPlayers}</span>}
         </div>
-        {/* Right: Rank + M */}
-        <div style={{ textAlign: 'right', fontSize: '11px' }}>
+        {/* Right: Rank + M + Sound toggle */}
+        <div style={{ textAlign: 'right', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ color: '#7a8a9a' }}>#{rank}</span>
           <span style={{
-            marginLeft: '8px', fontWeight: 700,
+            fontWeight: 700,
             color: mVal < 10 ? '#dc3545' : mVal < 20 ? '#d4af37' : '#28a745',
           }}>M{mVal.toFixed(0)}</span>
+          <span onClick={() => { Sounds.toggle(); }} style={{
+            cursor: 'pointer', fontSize: '16px', opacity: 0.6,
+            WebkitTapHighlightColor: 'transparent',
+          }}>{Sounds.enabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'}</span>
         </div>
       </div>
     </div>
@@ -657,6 +661,7 @@ function Game({ director, onExit }) {
     const dealer = tState.heroTable.dealer % tablePlayers.length;
     if (handCount === 0) ClaudeBossBot.resetCalls(); // Reset API counter for new game
     if (!engine.startHand(tablePlayers, dealer, blinds, aiBotsRef.current)) { setHandActive(false); return; }
+    Sounds.deal(); // Deal sound on new hand
     setGs(engine.getState());
     await engine.runHand((state) => setGs({ ...state }));
     for (const p of tablePlayers) {
@@ -674,8 +679,14 @@ function Game({ director, onExit }) {
   }, [handActive]);
 
   const handleAction = useCallback((action, amount) => {
+    // Play sound for hero action
+    if (action === 'fold') Sounds.fold();
+    else if (action === 'check') Sounds.check();
+    else if (action === 'call') Sounds.call();
+    else if (action === 'raise' && amount >= (gs?.heroChips || 0)) { Sounds.allIn(); navigator.vibrate?.(200); }
+    else if (action === 'raise') Sounds.raise();
     engineRef.current.submitHeroAction(action, amount);
-  }, []);
+  }, [gs]);
 
   // Record hero decisions after each hand completes
   useEffect(() => {
@@ -746,8 +757,15 @@ function Game({ director, onExit }) {
       });
     }
 
-    // Update ALL records for this hand (not just last one)
+    // Sound + vibration on hand result
     const heroWon = gs.winner?.isHero;
+    if (heroWon) { Sounds.win(); Sounds.chips(); navigator.vibrate?.([100, 50, 100]); }
+    else if (gs.winner) Sounds.chips();
+
+    // Check for all-in vibration (any player all-in during the hand)
+    if (gs.players?.some(p => p.allIn)) navigator.vibrate?.(150);
+
+    // Update ALL records for this hand (not just last one)
     const allRecs = getRecords().filter(r => r.handNumber === handCount + 1);
     for (const rec of allRecs) {
       rec.handResult = heroWon ? 'won' : 'lost';
