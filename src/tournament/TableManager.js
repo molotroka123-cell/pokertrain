@@ -108,6 +108,38 @@ export class TableManager {
       t.players.some(p => p.isHero && !p.eliminated)
     );
 
+    // Keep hero table full (7-8 players) — like a real live tournament
+    // Move players from other tables to hero's table until it has enough
+    const heroTable = this.tables[this.heroTableIndex];
+    if (heroTable && !heroTable.isFinalTable) {
+      const targetSize = Math.min(this.playersPerTable, 8);
+      let heroAlive = heroTable.players.filter(p => !p.eliminated).length;
+      const otherTables = this.tables.filter((t, i) => i !== this.heroTableIndex);
+
+      while (heroAlive < targetSize) {
+        // Find the largest other table with > 2 active players
+        let bestTable = null;
+        let bestCount = 0;
+        for (const t of otherTables) {
+          const count = t.players.filter(p => !p.eliminated).length;
+          if (count > 2 && count > bestCount) {
+            bestTable = t;
+            bestCount = count;
+          }
+        }
+        if (!bestTable) break;
+
+        // Move a non-hero player from that table
+        const movable = bestTable.players.find(p => !p.eliminated && !p.isHero);
+        if (!movable) break;
+
+        bestTable.players = bestTable.players.filter(p => p.id !== movable.id);
+        heroTable.players.push(movable);
+        heroAlive++;
+        moves.push({ player: movable.name, from: bestTable.id, to: heroTable.id });
+      }
+    }
+
     return moves;
   }
 
