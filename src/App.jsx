@@ -8,7 +8,7 @@ import Card from './components/Card.jsx';
 import Controls from './tournament/Controls.jsx';
 import TournamentDashboard from './tournament/TournamentDashboard.jsx';
 import DebriefScreen from './stats/DebriefScreen.jsx';
-import { startSession, recordDecision, updateHandResult, saveSession, exportSession, getRecords } from './recorder/ActionRecorder.js';
+import { startSession, recordDecision, recordHandHistory, updateHandResult, saveSession, exportSession, getRecords } from './recorder/ActionRecorder.js';
 import { generateDebrief } from './recorder/autoDebrief.js';
 import DrillMenu from './drills/DrillMenu.jsx';
 import RFIDrill from './drills/RFIDrill.jsx';
@@ -675,7 +675,19 @@ function Game({ director, onExit }) {
     }
 
     // Record each hero action with DECISION-TIME snapshots from GameEngine meta
+    const allActions = gs.actionLog || [];
     for (const ha of heroActions) {
+      // Extract what opponent action hero was facing
+      const haIdx = allActions.indexOf(ha);
+      let facingAction = null;
+      for (let i = haIdx - 1; i >= 0; i--) {
+        const prev = allActions[i];
+        if (!prev.isHero && prev.action && prev.action !== 'win' && prev.action !== '') {
+          facingAction = { action: prev.action, position: prev.position, amount: prev.amount, name: prev.name };
+          break;
+        }
+      }
+
       recordDecision({
         handNumber: handCount + 1,
         blindLevel: tState.blindLevel, blinds: tState.blinds,
@@ -699,6 +711,7 @@ function Game({ director, onExit }) {
         raiseAmount: ha.action === 'raise' ? ha.amount : null,
         decisionTimeMs: ha._decisionTimeMs || 0,
         tournamentFormat: tState.formatKey || null,
+        facingAction,
       });
     }
 
@@ -716,6 +729,21 @@ function Game({ director, onExit }) {
         }
       }
     }
+
+    // Record full hand history (action chain for pattern analysis)
+    recordHandHistory(handCount + 1, {
+      heroCards: gs.heroCards,
+      community: gs.community,
+      heroPosition: gs.heroPosition,
+      blinds: tState.blinds,
+      actionLog: allActions.filter(a => a.action && a.action !== 'win' && a.action !== '').map(a => ({
+        action: a.action, position: a.position, name: a.name,
+        amount: a.amount, isHero: a.isHero,
+      })),
+      result: heroWon ? 'won' : 'lost',
+      potWon: heroWon ? gs.potWon : 0,
+      allHoleCards: gs.allHoleCards || null,
+    });
 
     // Save session after every hand
     saveSession();

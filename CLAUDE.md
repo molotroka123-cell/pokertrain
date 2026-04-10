@@ -193,6 +193,29 @@ IDLE → PREFLOP → FLOP → TURN → RIVER → SHOWDOWN → HAND_OVER → (nex
 ### Modifying mistake detection / EV analysis
 
 - All logic in `src/recorder/ActionRecorder.js`
+- Equity: Monte Carlo via `calculateEquity()` (3000 iter postflop, 2000 preflop) accounting for opponent count
 - EV formula: `evOfCall = equity * (pot + toCall) - (1 - equity) * toCall`
 - Mistake thresholds use stack-relative fractions (>2% of stack or >3bb)
 - SPR thresholds for passivity: <3 SPR → 0.55, <8 SPR → 0.62, else 0.70
+- GTO checks both opening ranges AND defense/3-bet ranges (via `isIn3BetRange`)
+- Draw detection: flush draw, OESD, gutshot, combo, backdoor flush with estimated outs
+
+### Decision record fields
+
+Each `recordDecision` call produces a record with:
+- `equity` — Monte Carlo equity vs N opponents
+- `numOpponents` — active opponents in the hand
+- `evOfCall`, `commitRatio` — stack-aware EV math
+- `draws` — `{ drawType, hasFlushDraw, hasStraightDraw, hasGutshot, outs }`
+- `effectiveStack`, `effectiveStackBB` — min(hero, smallest opponent)
+- `betSizePotFraction` — opponent's bet as fraction of pot
+- `facingAction` — `{ action, position, amount, name }` of last opponent action before hero
+- `gtoAction`, `gtoMatch`, `mistakeType`, `mistakeSeverity`, `evLost`
+
+### Debrief system
+
+- `autoDebrief.js` generates post-session analysis
+- `positionStats` — profit/winrate by position (BTN, CO, etc.)
+- `sessionStats` — VPIP, PFR, AF, WTSD%, c-bet%, fold-to-cbet
+- Pattern detection uses deduped records (first preflop record per hand)
+- All debrief text is in Russian

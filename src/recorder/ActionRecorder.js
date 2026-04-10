@@ -1,10 +1,54 @@
 // ActionRecorder.js — Records every decision with full context
 // Per MASTER spec: every user action creates a complete record for AI analysis
 
-import { getHandValue, handString, isInOpenRange } from '../engine/ranges.js';
+import { getHandValue, handString, isInOpenRange, isIn3BetRange } from '../engine/ranges.js';
 import { potOdds, mRatio, calculateEquity } from '../engine/equity.js';
 import { classifyTexture } from '../engine/evEngine.js';
 import { evaluateHand } from '../engine/evaluator.js';
+import { rankValue } from '../engine/deck.js';
+
+// Draw detection: flush draw, OESD, gutshot, combo, backdoor
+function detectDraws(hCards, board) {
+  if (board.length < 3 || hCards.length < 2) return null;
+  const allCards = [...hCards, ...board];
+
+  // Flush draw: 4 of same suit (hero must contribute at least 1)
+  const suitCounts = {};
+  allCards.forEach(c => { suitCounts[c[1]] = (suitCounts[c[1]] || 0) + 1; });
+  const heroSuits = hCards.map(c => c[1]);
+  const hasFlushDraw = Object.entries(suitCounts).some(
+    ([suit, count]) => count === 4 && heroSuits.includes(suit)
+  );
+  const hasBackdoorFlush = !hasFlushDraw && board.length === 3 && Object.entries(suitCounts).some(
+    ([suit, count]) => count === 3 && heroSuits.includes(suit)
+  );
+
+  // Straight draws: check all unique rank values
+  const vals = [...new Set(allCards.map(c => rankValue(c[0])))].sort((a, b) => a - b);
+  // Also check with Ace as 1 for wheel draws
+  const valsWithLowAce = vals.includes(14) ? [1, ...vals].sort((a, b) => a - b) : vals;
+
+  let hasStraightDraw = false; // OESD: 4 consecutive
+  let hasGutshot = false;      // 4 within span of 5 (one gap)
+  for (const v of [vals, valsWithLowAce]) {
+    for (let i = 0; i <= v.length - 4; i++) {
+      const span = v[i + 3] - v[i];
+      if (span === 3) { hasStraightDraw = true; break; }
+      if (span === 4 && !hasStraightDraw) { hasGutshot = true; }
+    }
+    if (hasStraightDraw) break;
+  }
+
+  const isCombo = hasFlushDraw && (hasStraightDraw || hasGutshot);
+  const drawType = isCombo ? 'combo' :
+    hasFlushDraw ? 'flush' :
+    hasStraightDraw ? 'oesd' :
+    hasGutshot ? 'gutshot' :
+    hasBackdoorFlush ? 'backdoor_flush' : 'none';
+  const outs = (hasFlushDraw ? 9 : 0) + (hasStraightDraw ? 8 : hasGutshot ? 4 : 0) - (isCombo ? 2 : 0);
+
+  return { drawType, hasFlushDraw, hasStraightDraw, hasGutshot, hasBackdoorFlush, isCombo, outs };
+}
 
 let sessionId = null;
 let records = [];
@@ -30,6 +74,7 @@ export function recordDecision({
   averageStack, isBubble, isFinalTable, tableId, playersAtTable,
   stage, position, holeCards, community, potSize, currentBet, toCall,
   myChips, myBet, opponents, action, raiseAmount, decisionTimeMs, tournamentFormat,
+  facingAction,
 }) {
   const hCards = holeCards || [];
   const board = community || [];
@@ -49,6 +94,17 @@ export function recordDecision({
   const sprVal = potSize > 0 ? myChips / potSize : Infinity;
   const m = mRatio(myChips, blinds?.sb || 0, blinds?.bb || 0, blinds?.ante || 0, playersAtTable || 9);
   const boardTexture = board.length >= 3 ? classifyTexture(board) : null;
+  const draws = detectDraws(hCards, board);
+
+  // Effective stack: min(hero, smallest opponent) — the real stack depth in play
+  const oppChips = (opponents || []).filter(o => o.chips > 0).map(o => o.chips);
+  const effectiveStack = oppChips.length > 0 ? Math.min(myChips, Math.min(...oppChips)) : myChips;
+  const effectiveStackBB = Math.round(effectiveStack / Math.max(blinds?.bb || 1, 1));
+
+  // Opponent sizing as fraction of pot (before their bet was added)
+  const betSizePotFraction = potSize > 0 && toCall > 0
+    ? Math.round((toCall / (potSize - toCall)) * 100) / 100 // pot before the bet
+    : null;
 
   // Is this +EV?
   const evOfCall = toCall > 0 ? (equity * (potSize + toCall)) - ((1 - equity) * toCall) : 0;
@@ -66,9 +122,22 @@ export function recordDecision({
   let evLost = 0;
 
   if (stage === 'preflop' && hCards.length === 2) {
-    const shouldOpen = isInOpenRange(hCards[0], hCards[1], position);
-    if (toCall <= (blinds?.bb || 0)) {
+    const bb = blinds?.bb || 0;
+    if (toCall <= bb) {
+      // Unopened pot — open or fold
+      const shouldOpen = isInOpenRange(hCards[0], hCards[1], position);
       gtoAction = shouldOpen ? 'raise' : 'fold';
+    } else {
+      // Facing a raise — 3-bet, call, or fold
+      const should3Bet = isIn3BetRange(hCards[0], hCards[1], position);
+      const shouldDefend = isInOpenRange(hCards[0], hCards[1], position);
+      if (should3Bet) {
+        gtoAction = 'raise';
+      } else if (shouldDefend) {
+        gtoAction = 'call';
+      } else {
+        gtoAction = 'fold';
+      }
     }
   }
 
@@ -168,6 +237,11 @@ export function recordDecision({
     commitRatio: Math.round(commitRatio * 100) / 100,
     isEVPositive,
     boardTexture,
+    draws,
+    effectiveStack,
+    effectiveStackBB,
+    betSizePotFraction,
+    facingAction: facingAction || null,
     opponents: opponents || [],
     opponentCards: null, // Filled after showdown — all cards for AI analysis
     action,

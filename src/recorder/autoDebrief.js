@@ -36,6 +36,8 @@ export function generateDebrief(records) {
 
   // Detect patterns
   const patterns = detectPatterns(records);
+  const positionStats = computePositionStats(records);
+  const sessionStats = computeSessionStats(records);
 
   return {
     totalMistakes: mistakes.length,
@@ -45,6 +47,8 @@ export function generateDebrief(records) {
     allMistakes: mistakes,
     estimatedEVLost: totalEVLost,
     patterns,
+    positionStats,
+    sessionStats,
     summary: generateSummary(mistakes),
   };
 }
@@ -53,12 +57,14 @@ export function generateDebrief(records) {
 function explainMistake(d) {
   return {
     // Layer 1: What happened
-    what: `Hand #${d.handNumber}: You ${d.action}ed ${d.holeCards} on ${d.position} ${d.stage !== 'preflop' ? `on ${d.community}` : ''} ${d.toCall > 0 ? `facing a bet of ${d.toCall}` : ''}.`,
+    what: `Рука #${d.handNumber}: ${d.action} с ${d.holeCards} на ${d.position}${d.stage !== 'preflop' ? ` на борде ${d.community}` : ''}${d.facingAction ? ` (фейсинг ${d.facingAction.action} ${d.facingAction.amount || ''} от ${d.facingAction.position || '?'})` : d.toCall > 0 ? ` фейсинг ставку ${d.toCall}` : ''}${d.draws?.drawType && d.draws.drawType !== 'none' ? ` [${d.draws.drawType}, ~${d.draws.outs} аутов]` : ''}.`,
 
-    // Layer 2: Villain range context
-    villainRange: d.opponents?.length > 0
-      ? `Villain on ${d.opponents[0].position || '?'} with style ${d.opponents[0].style || '?'}. Against their range your ${d.holeCards} has ~${Math.round(d.equity * 100)}% equity.`
-      : `Against a typical range your ${d.holeCards} has ~${Math.round(d.equity * 100)}% equity.`,
+    // Layer 2: Villain range context + what hero was facing
+    villainRange: d.facingAction
+      ? `Фейсишь ${d.facingAction.action} ${d.facingAction.amount || ''} от ${d.facingAction.position || '?'} (${d.opponents?.[0]?.style || '?'}). ${d.holeCards} имеет ~${Math.round(d.equity * 100)}% equity vs ${d.numOpponents || 1} оппонент(ов).`
+      : d.opponents?.length > 0
+        ? `Против ${d.opponents[0].position || '?'} (${d.opponents[0].style || '?'}) ${d.holeCards} имеет ~${Math.round(d.equity * 100)}% equity.`
+        : `Против типичного диапазона ${d.holeCards} имеет ~${Math.round(d.equity * 100)}% equity.`,
 
     // Layer 3: Why it's wrong
     why: generateWhyExplanation(d),
@@ -94,15 +100,15 @@ function generateWhyExplanation(d) {
 function describeAlternative(d) {
   switch (d.mistakeType) {
     case 'bad_fold':
-      return `Calling wins ${Math.round(d.equity * 100)}% of the time — profitable at these odds.`;
+      return `Колл выигрывает ~${Math.round(d.equity * 100)}% — прибыльно при этих шансах.`;
     case 'bad_call':
-      return `Folding saves ${d.toCall} chips in a -EV spot.`;
+      return `Фолд сохраняет ${d.toCall} фишек в -EV споте.`;
     case 'too_passive':
-      return `Raising builds the pot when ahead and charges draws.`;
+      return `Рейз наращивает банк в позиции силы и забирает вэлью с худших рук.`;
     case 'push_fold_error':
-      return `All-in puts maximum pressure and captures dead money in blinds/antes.`;
+      return `Олл-ин создаёт максимальное давление и забирает мёртвые деньги в блайндах.`;
     case 'icm_error':
-      return `Folding preserves tournament life and prize pool equity near the money.`;
+      return `Фолд сохраняет турнирную жизнь и долю в призовом фонде у баббла.`;
     default:
       return '';
   }
@@ -121,55 +127,63 @@ function recommendDrill(mistakeType) {
 
 function detectPatterns(records) {
   const patterns = [];
-  const pf = records.filter(r => r.stage === 'preflop');
 
-  // Pattern: too tight in late position
-  const latePosFolds = pf.filter(r => (r.position === 'BTN' || r.position === 'CO') && r.action === 'fold');
-  if (pf.filter(r => r.position === 'BTN' || r.position === 'CO').length > 10) {
-    const lateFoldRate = latePosFolds.length / pf.filter(r => r.position === 'BTN' || r.position === 'CO').length;
+  // Deduplicate: first preflop record per hand (avoid inflated counts)
+  const pfByHand = new Map();
+  for (const r of records) {
+    if (r.stage === 'preflop' && !pfByHand.has(r.handNumber)) {
+      pfByHand.set(r.handNumber, r);
+    }
+  }
+  const pf = [...pfByHand.values()];
+
+  // Паттерн: слишком тайтовый на поздних позициях
+  const latePosHands = pf.filter(r => r.position === 'BTN' || r.position === 'CO');
+  if (latePosHands.length > 10) {
+    const lateFoldRate = latePosHands.filter(r => r.action === 'fold').length / latePosHands.length;
     if (lateFoldRate > 0.65) {
       patterns.push({
         type: 'too_tight_late_position',
-        message: `You fold ${Math.round(lateFoldRate * 100)}% on BTN/CO. Open wider — these are the most profitable positions.`,
+        message: `Ты фолдишь ${Math.round(lateFoldRate * 100)}% на BTN/CO. Открывай шире — это самые прибыльные позиции.`,
         severity: 'medium',
       });
     }
   }
 
-  // Pattern: never raises postflop
+  // Паттерн: пассивность на постфлопе
   const postflop = records.filter(r => r.stage !== 'preflop');
   if (postflop.length > 15) {
     const raises = postflop.filter(r => r.action === 'raise').length;
     if (raises / postflop.length < 0.10) {
       patterns.push({
         type: 'passive_postflop',
-        message: `You only raise ${Math.round(raises / postflop.length * 100)}% postflop. You\'re missing value bets and bluff opportunities.`,
+        message: `Ты рейзишь только ${Math.round(raises / postflop.length * 100)}% постфлопа. Упускаешь вэлью-беты и блеф-споты.`,
         severity: 'high',
       });
     }
   }
 
-  // Pattern: folds to aggression
+  // Паттерн: фолдишь на агрессию
   const facingBet = records.filter(r => r.toCall > 0);
   if (facingBet.length > 15) {
     const foldRate = facingBet.filter(r => r.action === 'fold').length / facingBet.length;
     if (foldRate > 0.65) {
       patterns.push({
         type: 'fear_of_aggression',
-        message: `You fold ${Math.round(foldRate * 100)}% when facing bets. Opponents will exploit this by bluffing more.`,
+        message: `Ты фолдишь ${Math.round(foldRate * 100)}% при фейсинге ставок. Оппоненты будут блефовать чаще.`,
         severity: 'high',
       });
     }
   }
 
-  // Pattern: river give-up
+  // Паттерн: сдаёшься на ривере
   const riverCheck = records.filter(r => r.stage === 'river' && r.toCall === 0);
   if (riverCheck.length > 5) {
     const checkRate = riverCheck.filter(r => r.action === 'check').length / riverCheck.length;
     if (checkRate > 0.80) {
       patterns.push({
         type: 'river_give_up',
-        message: `You check ${Math.round(checkRate * 100)}% of river spots. You\'re leaving money on the table — bet for value and bluff occasionally.`,
+        message: `Ты чекаешь ${Math.round(checkRate * 100)}% ривер-спотов. Оставляешь деньги на столе — бетай для вэлью и блефуй.`,
         severity: 'medium',
       });
     }
@@ -197,4 +211,94 @@ function generateSummary(mistakes) {
   };
 
   return messages[biggest?.[0]] || 'Работай над точностью решений.';
+}
+
+// Winrate / profit by position
+function computePositionStats(records) {
+  // Group hands by position (use first preflop record per hand for position)
+  const handsByPos = {};
+  const handsSeen = new Set();
+  for (const r of records) {
+    if (handsSeen.has(r.handNumber)) continue;
+    handsSeen.add(r.handNumber);
+    const pos = r.position || 'Unknown';
+    if (!handsByPos[pos]) handsByPos[pos] = [];
+    handsByPos[pos].push(r);
+  }
+
+  const stats = {};
+  for (const [pos, hands] of Object.entries(handsByPos)) {
+    // Use last record per hand for chipsAfter, first for myChips
+    const handsWithResult = hands.filter(h => h.chipsAfter != null);
+    let totalProfit = 0;
+    for (const h of handsWithResult) {
+      // Find all records for this hand to get first myChips and last chipsAfter
+      const handRecs = records.filter(r => r.handNumber === h.handNumber);
+      const firstRec = handRecs[0];
+      const lastRec = handRecs[handRecs.length - 1];
+      if (firstRec && lastRec?.chipsAfter != null) {
+        totalProfit += lastRec.chipsAfter - firstRec.myChips;
+      }
+    }
+    stats[pos] = {
+      hands: hands.length,
+      profit: Math.round(totalProfit),
+      avgProfit: hands.length > 0 ? Math.round(totalProfit / hands.length) : 0,
+    };
+  }
+  return stats;
+}
+
+// Session-wide HUD stats
+function computeSessionStats(records) {
+  if (records.length === 0) return null;
+
+  // Dedup preflop by hand
+  const pfByHand = new Map();
+  for (const r of records) {
+    if (r.stage === 'preflop' && !pfByHand.has(r.handNumber)) {
+      pfByHand.set(r.handNumber, r);
+    }
+  }
+  const pfUnique = [...pfByHand.values()];
+  const totalHands = pfUnique.length;
+  if (totalHands === 0) return null;
+
+  // VPIP: voluntarily put $ in pot (call or raise preflop, not BB walk)
+  const vpipCount = pfUnique.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length;
+  const vpip = Math.round((vpipCount / totalHands) * 100);
+
+  // PFR: preflop raise
+  const pfrCount = pfUnique.filter(r => r.action === 'raise').length;
+  const pfr = Math.round((pfrCount / totalHands) * 100);
+
+  // AF: aggression factor = (raises) / (calls) across all streets
+  const allCalls = records.filter(r => r.action === 'call').length;
+  const allRaises = records.filter(r => r.action === 'raise').length;
+  const af = allCalls > 0 ? Math.round((allRaises / allCalls) * 10) / 10 : allRaises > 0 ? 99 : 0;
+
+  // WTSD%: went to showdown (hands with handResult set and player saw flop)
+  const handsSeenFlop = new Set();
+  for (const r of records) {
+    if (r.stage !== 'preflop' && r.action !== 'fold') handsSeenFlop.add(r.handNumber);
+  }
+  const handsWithShowdown = new Set();
+  for (const r of records) {
+    if (handsSeenFlop.has(r.handNumber) && r.handResult) handsWithShowdown.add(r.handNumber);
+  }
+  const wtsd = handsSeenFlop.size > 0 ? Math.round((handsWithShowdown.size / handsSeenFlop.size) * 100) : 0;
+
+  // C-bet%: bet flop when was preflop raiser
+  const pfRaisers = new Set(pfUnique.filter(r => r.action === 'raise').map(r => r.handNumber));
+  const flopActionsAsRaiser = records.filter(r => r.stage === 'flop' && pfRaisers.has(r.handNumber));
+  const cbetCount = flopActionsAsRaiser.filter(r => r.action === 'raise').length;
+  const cbet = flopActionsAsRaiser.length > 0 ? Math.round((cbetCount / flopActionsAsRaiser.length) * 100) : 0;
+
+  // Fold to c-bet%: folded on flop when facing a bet and didn't raise preflop
+  const pfCallers = new Set(pfUnique.filter(r => r.action === 'call').map(r => r.handNumber));
+  const flopFacingBet = records.filter(r => r.stage === 'flop' && pfCallers.has(r.handNumber) && r.toCall > 0);
+  const foldToCbetCount = flopFacingBet.filter(r => r.action === 'fold').length;
+  const foldToCbet = flopFacingBet.length > 0 ? Math.round((foldToCbetCount / flopFacingBet.length) * 100) : 0;
+
+  return { vpip, pfr, af, wtsd, cbet, foldToCbet, totalHands };
 }
