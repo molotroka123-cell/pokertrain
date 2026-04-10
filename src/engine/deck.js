@@ -13,14 +13,11 @@ export function createDeck() {
   return deck;
 }
 
-// Fisher-Yates shuffle with crypto-secure randomness
+// Fisher-Yates shuffle with crypto-secure randomness (rejection sampling, no modulo bias)
 export function shuffle(deck) {
   const arr = [...deck];
-  const rand = new Uint32Array(arr.length);
-  crypto.getRandomValues(rand);
-
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = rand[i] % (i + 1);
+    const j = cryptoRandom(i + 1);
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
