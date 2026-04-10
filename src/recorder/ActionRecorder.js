@@ -79,52 +79,32 @@ export function recordDecision({
   const hCards = holeCards || [];
   const board = community || [];
 
-  // Computed fields — Monte Carlo equity vs actual number of opponents
+  // Computed fields
   const handVal = hCards.length === 2 ? getHandValue(hCards[0], hCards[1]) : 0.5;
   const numOpponents = Math.max(1, (opponents || []).length);
-  let equity;
-  if (hCards.length === 2) {
-    // Monte Carlo equity: accounts for board, kickers, draws, AND opponent count
-    const mcResult = calculateEquity(hCards, board, numOpponents, board.length >= 3 ? 3000 : 2000);
-    equity = mcResult.equity;
-  } else {
-    equity = 0.5;
-  }
-  const odds = toCall > 0 ? potOdds(toCall, potSize) : 0;
-  const sprVal = potSize > 0 ? myChips / potSize : Infinity;
-  const m = mRatio(myChips, blinds?.sb || 0, blinds?.bb || 0, blinds?.ante || 0, playersAtTable || 9);
-  const boardTexture = board.length >= 3 ? classifyTexture(board) : null;
-  const draws = detectDraws(hCards, board);
 
-  // Effective stack: min(hero, smallest opponent) — the real stack depth in play
-  const oppChips = (opponents || []).filter(o => o.chips > 0).map(o => o.chips);
-  const effectiveStack = oppChips.length > 0 ? Math.min(myChips, Math.min(...oppChips)) : myChips;
-  const effectiveStackBB = Math.round(effectiveStack / Math.max(blinds?.bb || 1, 1));
+  // Build villain profile for range-weighted equity
+  const villainProfile = (opponents || []).length > 0 ? {
+    vpip: opponents[0].observedVpip || 0.25,
+    style: opponents[0].style || 'TAG',
+    position: opponents[0].position,
+    foldToCbet: 0.45,
+    af: 2.0,
+  } : {};
 
-  // Opponent sizing as fraction of pot (before their bet was added)
-  const betSizePotFraction = potSize > 0 && toCall > 0
-    ? Math.round((toCall / (potSize - toCall)) * 100) / 100 // pot before the bet
-    : null;
-
-  // Is this +EV?
-  const evOfCall = toCall > 0 ? (equity * (potSize + toCall)) - ((1 - equity) * toCall) : 0;
-  const commitRatio = myChips > 0 ? toCall / myChips : 0;  // How much of stack this costs
-
-  // Multi-branch raise EV via evEngine (includes fold equity + call + reraise branches)
+  // Range-weighted equity via evEngine (like real poker software)
+  // Falls back to raw Monte Carlo if evEngine fails
+  let equity = 0.5;
   let raiseEV = null;
   let bestActionEV = null;
+  let equitySource = 'fallback';
+
   if (hCards.length === 2) {
     try {
-      const villainProfile = (opponents || []).length > 0 ? {
-        vpip: opponents[0].observedVpip || 0.25,
-        style: opponents[0].style || 'TAG',
-        position: opponents[0].position,
-        foldToCbet: 0.45,
-        af: 2.0,
-      } : {};
       const evResult = calculateQuickEV(hCards, board, potSize, toCall, villainProfile, position, [], myChips);
+      equity = evResult.equity; // Range-weighted equity vs villain's likely hands
+      equitySource = 'range';
       bestActionEV = { action: evResult.bestAction, ev: evResult.bestEV, confidence: evResult.bestConfidence };
-      // Extract raise EV (best raise sizing available)
       const raiseKeys = Object.keys(evResult.actions).filter(k => k.startsWith('raise_'));
       if (raiseKeys.length > 0) {
         const bestRaise = raiseKeys.reduce((best, k) =>
@@ -132,9 +112,32 @@ export function recordDecision({
         raiseEV = evResult.actions[bestRaise].ev;
       }
     } catch (e) {
-      // evEngine may fail on edge cases — fallback silently
+      // Fallback to raw Monte Carlo vs random hands
+      const mcResult = calculateEquity(hCards, board, numOpponents, board.length >= 3 ? 2000 : 1000);
+      equity = mcResult.equity;
+      equitySource = 'montecarlo';
     }
   }
+
+  const odds = toCall > 0 ? potOdds(toCall, potSize) : 0;
+  const sprVal = potSize > 0 ? myChips / potSize : Infinity;
+  const m = mRatio(myChips, blinds?.sb || 0, blinds?.bb || 0, blinds?.ante || 0, playersAtTable || 9);
+  const boardTexture = board.length >= 3 ? classifyTexture(board) : null;
+  const draws = detectDraws(hCards, board);
+
+  // Effective stack: min(hero, smallest opponent)
+  const oppChips = (opponents || []).filter(o => o.chips > 0).map(o => o.chips);
+  const effectiveStack = oppChips.length > 0 ? Math.min(myChips, Math.min(...oppChips)) : myChips;
+  const effectiveStackBB = Math.round(effectiveStack / Math.max(blinds?.bb || 1, 1));
+
+  // Opponent sizing as fraction of pot
+  const betSizePotFraction = potSize > 0 && toCall > 0
+    ? Math.round((toCall / (potSize - toCall)) * 100) / 100
+    : null;
+
+  // EV calculations using range-weighted equity
+  const evOfCall = toCall > 0 ? (equity * (potSize + toCall)) - ((1 - equity) * toCall) : 0;
+  const commitRatio = myChips > 0 ? toCall / myChips : 0;
 
   const isEVPositive = action === 'fold' ? false :
     action === 'call' ? evOfCall > 0 :
@@ -284,6 +287,7 @@ export function recordDecision({
     myChips,
     myBet,
     equity: Math.round(equity * 100) / 100,
+    equitySource,
     potOdds: Math.round(odds * 100) / 100,
     spr: Math.round(sprVal * 10) / 10,
     mRatio: Math.round(m * 10) / 10,
