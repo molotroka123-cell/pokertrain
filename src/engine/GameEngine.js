@@ -66,6 +66,7 @@ export class GameEngine {
     this.showdownResults = null;
     this.winner = null;
     this.potWon = 0;
+    this._heroFolded = false; // 2x speed after hero folds
 
     // Action queue for sequential resolution
     this._actionQueue = [];
@@ -387,6 +388,7 @@ export class GameEngine {
     switch (action.action) {
       case 'fold':
         this.folded.add(player.id);
+        if (player.isHero) this._heroFolded = true;
         this._log(`[${position}] ${player.isHero ? 'Hero' : player.name} folds`, player, 0, heroMeta);
         break;
 
@@ -623,7 +625,8 @@ export class GameEngine {
   }
 
   _delay(ms) {
-    return new Promise(r => setTimeout(r, ms));
+    const actual = this._heroFolded ? Math.floor(ms / 2) : ms;
+    return new Promise(r => setTimeout(r, actual));
   }
 }
 

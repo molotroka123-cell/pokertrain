@@ -608,10 +608,10 @@ function Game({ director, onExit }) {
 
   useEffect(() => {
     const iv = setInterval(() => {
-      dirRef.current.simulateBackgroundTick(3);
+      dirRef.current.simulateBackgroundTick(6);
       dirRef.current.checkBlindLevel();
       setTourn(dirRef.current.getState());
-    }, 5000); // Background sim every 5s
+    }, 3000); // Background sim every 3s — ~10 min to final table
     return () => clearInterval(iv);
   }, []);
 

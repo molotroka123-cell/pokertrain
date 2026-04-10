@@ -18,11 +18,11 @@ const CHIP_FLOW = {
     { range: [51, 150], prob: 0.05 },
   ],
   eliminationRate: {
-    early: 0.004,
-    middle: 0.006,
-    bubble: 0.003,
-    postBubble: 0.015,
-    finalTable: 0.008,
+    early: 0.008,
+    middle: 0.012,
+    bubble: 0.006,
+    postBubble: 0.025,
+    finalTable: 0.012,
   },
 };
 
@@ -152,9 +152,9 @@ export class TournamentDirector {
       const loser = active[loserIdx];
       // Key fix: cap loss at 25% of loser's stack (prevents instant bust)
       // Full bust only happens ~5% of postflop hands (realistic all-in frequency)
-      const maxLoss = cryptoRandomFloat() < 0.05
-        ? loser.chips // Rare all-in bust
-        : Math.floor(loser.chips * (0.05 + cryptoRandomFloat() * 0.20)); // Lose 5-25% of stack
+      const maxLoss = cryptoRandomFloat() < 0.12
+        ? loser.chips // All-in bust (~12% of postflop hands)
+        : Math.floor(loser.chips * (0.08 + cryptoRandomFloat() * 0.25)); // Lose 8-33% of stack
       const amount = Math.min(potSize, maxLoss);
       loser.chips -= amount;
       winner.chips += amount;
@@ -189,8 +189,8 @@ export class TournamentDirector {
   }
 
   // Simulate all background tables (called periodically)
-  // 2 hands per tick — balanced pace (~5-10 min to final table)
-  simulateBackgroundTick(handsPerTable = 2) {
+  // ~10 min to final table target
+  simulateBackgroundTick(handsPerTable = 5) {
     const nonHeroTables = this.tableManager.getNonHeroTables();
     const results = { eliminations: [], moves: [] };
 
