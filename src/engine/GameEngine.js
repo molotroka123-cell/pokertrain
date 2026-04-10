@@ -270,6 +270,11 @@ export class GameEngine {
         action = this._getAIAction(p, toCall, pos);
       }
 
+      // FIX: Never fold when toCall is 0 (free check)
+      if (toCall <= 0 && action.action === 'fold') {
+        action = { action: 'check' };
+      }
+
       // Apply action
       this._applyAction(p, action, pos);
       acted.add(p.id);

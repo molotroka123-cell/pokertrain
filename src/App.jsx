@@ -170,6 +170,51 @@ const SEATS_9 = [
   { x: 90, y: 75 },  // 8
 ];
 
+// Chip stack visual component
+function ChipStack({ amount, x, y, animate = false }) {
+  if (!amount || amount <= 0) return null;
+  // Determine chip colors by amount
+  const colors = amount >= 10000 ? ['#e74c3c','#c0392b'] : amount >= 1000 ? ['#2980b9','#2471a3'] : amount >= 100 ? ['#27ae60','#1e8449'] : ['#95a5a6','#7f8c8d'];
+  const numChips = Math.min(5, Math.ceil(Math.log10(Math.max(amount, 2))));
+
+  return (
+    <div style={{
+      position: 'absolute', left: x, top: y, transform: 'translate(-50%,-50%)',
+      zIndex: 18, display: 'flex', flexDirection: 'column-reverse', alignItems: 'center',
+      animation: animate ? 'chipSlide 0.5s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
+    }}>
+      {Array.from({ length: numChips }).map((_, i) => (
+        <div key={i} style={{
+          width: 22, height: 6, borderRadius: '50%',
+          background: `linear-gradient(90deg, ${colors[0]}, ${colors[1]})`,
+          border: '1px solid rgba(255,255,255,0.2)',
+          marginTop: i === 0 ? 0 : -3,
+          boxShadow: i === numChips - 1 ? '0 2px 6px rgba(0,0,0,0.4)' : 'none',
+        }} />
+      ))}
+      <div style={{
+        fontSize: '10px', fontWeight: 700, color: '#ffd700',
+        background: 'rgba(0,0,0,0.65)', padding: '1px 6px', borderRadius: '8px',
+        marginTop: '2px', whiteSpace: 'nowrap', backdropFilter: 'blur(4px)',
+        border: '1px solid rgba(255,215,0,0.15)',
+      }}>{fmt(amount)}</div>
+    </div>
+  );
+}
+
+// Bet position relative to seat (towards center of table)
+const BET_OFFSETS = [
+  { dx: 0, dy: -45 },   // 0: hero → up
+  { dx: 35, dy: -25 },  // 1
+  { dx: 40, dy: 0 },    // 2
+  { dx: 35, dy: 20 },   // 3
+  { dx: 20, dy: 30 },   // 4
+  { dx: -20, dy: 30 },  // 5
+  { dx: -35, dy: 20 },  // 6
+  { dx: -40, dy: 0 },   // 7
+  { dx: -35, dy: -25 }, // 8
+];
+
 function PremiumTable({ gs }) {
   if (!gs || !gs.players) return null;
   const heroIdx = gs.heroIndex;
@@ -186,51 +231,79 @@ function PremiumTable({ gs }) {
 
   return (
     <div style={{
-      position: 'relative', width: '100%', maxWidth: '700px', height: '420px',
+      position: 'relative', width: '100%', maxWidth: '750px', height: '440px',
       margin: '0 auto', overflow: 'hidden',
     }}>
+      {/* Ambient glow under table */}
+      <div style={{
+        position: 'absolute', top: '50%', left: '50%', width: '60%', height: '40%',
+        transform: 'translate(-50%,-50%)',
+        background: 'radial-gradient(ellipse, rgba(26,92,58,0.15) 0%, transparent 70%)',
+        filter: 'blur(40px)', pointerEvents: 'none',
+      }} />
+
       {/* Table shadow */}
       <div style={{
-        position: 'absolute', top: '52%', left: '50%', width: '78%', height: '30%',
-        transform: 'translate(-50%, -50%)',
-        background: 'rgba(0,0,0,0.4)', borderRadius: '50%', filter: 'blur(30px)',
+        position: 'absolute', top: '54%', left: '50%', width: '76%', height: '28%',
+        transform: 'translate(-50%,-50%)',
+        background: 'rgba(0,0,0,0.35)', borderRadius: '50%', filter: 'blur(25px)',
+      }} />
+
+      {/* Wood rail */}
+      <div style={{
+        position: 'absolute', top: '11%', left: '7%', width: '86%', height: '68%',
+        borderRadius: '50%/42%',
+        background: 'linear-gradient(180deg, #3a2a15 0%, #2a1c0e 50%, #1a1208 100%)',
+        boxShadow: '0 6px 30px rgba(0,0,0,0.6), inset 0 2px 0 rgba(255,255,255,0.03)',
+        border: '1px solid #4a3a20',
       }} />
 
       {/* Felt */}
       <div style={{
-        position: 'absolute', top: '12%', left: '8%', width: '84%', height: '66%',
-        background: 'radial-gradient(ellipse at 50% 45%, #1b6b3f 0%, #145a32 40%, #0e4225 70%, #0a3019 100%)',
-        borderRadius: '50%/40%',
-        border: '6px solid #2a2015',
-        boxShadow: `
-          inset 0 0 60px rgba(0,0,0,0.4),
-          inset 0 0 20px rgba(0,0,0,0.2),
-          0 0 0 3px #1a1508,
-          0 0 0 8px #352a15,
-          0 8px 32px rgba(0,0,0,0.6)
+        position: 'absolute', top: '13.5%', left: '9%', width: '82%', height: '63%',
+        background: `
+          radial-gradient(ellipse at 50% 40%, #1f7a48 0%, #17663a 30%, #106030 55%, #0b4a22 80%, #08381a 100%)
         `,
+        borderRadius: '50%/42%',
+        boxShadow: 'inset 0 0 80px rgba(0,0,0,0.35), inset 0 0 20px rgba(0,0,0,0.2)',
       }}>
-        {/* Table line */}
+        {/* Inner gold line */}
         <div style={{
-          position: 'absolute', top: '8%', left: '6%', width: '88%', height: '84%',
-          borderRadius: '50%/40%', border: '1.5px solid rgba(255,215,0,0.08)',
+          position: 'absolute', top: '7%', left: '5%', width: '90%', height: '86%',
+          borderRadius: '50%/42%',
+          border: '1px solid rgba(255,215,0,0.06)',
+        }} />
+        {/* Felt texture overlay */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+          borderRadius: '50%/42%', opacity: 0.03,
+          background: `url("data:image/svg+xml,%3Csvg width='4' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1' height='1' fill='%23fff'/%3E%3C/svg%3E")`,
         }} />
       </div>
 
-      {/* Pot */}
+      {/* Pot with chip visual */}
       {gs.pot > 0 && (
         <div style={{
-          position: 'absolute', top: '32%', left: '50%', transform: 'translate(-50%,-50%)',
+          position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%,-50%)',
           textAlign: 'center', zIndex: 20,
-          animation: 'fadeInUp 0.3s ease',
         }}>
+          {/* Mini chip stack icon */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
+            {[0,1,2].map(i => (
+              <div key={i} style={{
+                width: 18, height: 5, borderRadius: '50%', marginTop: i === 0 ? 0 : -3,
+                background: i === 0 ? 'linear-gradient(90deg, #e74c3c, #c0392b)' : i === 1 ? 'linear-gradient(90deg, #2980b9, #2471a3)' : 'linear-gradient(90deg, #27ae60, #1e8449)',
+                border: '1px solid rgba(255,255,255,0.15)',
+              }} />
+            ))}
+          </div>
           <div style={{
-            display: 'inline-block', padding: '6px 18px', borderRadius: '20px',
-            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,215,0,0.15)',
+            display: 'inline-block', padding: '4px 16px', borderRadius: '16px',
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(255,215,0,0.12)',
           }}>
-            <span style={{ fontSize: '11px', color: '#8ca88c', letterSpacing: '1px' }}>POT </span>
-            <span style={{ fontSize: '20px', fontWeight: 800, color: '#ffd700' }}>{fmt(gs.pot)}</span>
+            <span style={{ fontSize: '10px', color: '#8ca88c', letterSpacing: '1px' }}>POT </span>
+            <span style={{ fontSize: '18px', fontWeight: 800, color: '#ffd700', letterSpacing: '0.5px' }}>{fmt(gs.pot)}</span>
           </div>
         </div>
       )}
@@ -239,9 +312,9 @@ function PremiumTable({ gs }) {
       {gs.community.length > 0 && (
         <div style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          display: 'flex', gap: '5px', zIndex: 15,
+          display: 'flex', gap: '6px', zIndex: 15,
         }}>
-          {gs.community.map((c, i) => <Card key={c + i} card={c} mini delay={i * 180} />)}
+          {gs.community.map((c, i) => <Card key={c + i} card={c} mini delay={i * 220} />)}
         </div>
       )}
 
@@ -253,129 +326,127 @@ function PremiumTable({ gs }) {
         const sd = sdMap[p.id];
         const isWinner = gs.winner?.id === p.id;
         const isDealer = gs.players.indexOf(p) === gs.dealerIdx;
+        const betOff = BET_OFFSETS[si % BET_OFFSETS.length];
 
         return (
-          <div key={p.id} style={{
-            position: 'absolute', left: pos.x + '%', top: pos.y + '%',
-            transform: 'translate(-50%,-50%)', textAlign: 'center', zIndex: 10,
-            width: isHero ? '90px' : '78px',
-            transition: 'all 0.4s ease',
-            opacity: p.folded ? 0.35 : 1,
-          }}>
-            {/* Avatar circle */}
-            <div style={{
-              width: isHero ? 44 : 36, height: isHero ? 44 : 36, borderRadius: '50%',
-              margin: '0 auto 3px',
-              background: isWinner ? 'linear-gradient(135deg, #ffd700, #ff8c00)' :
-                         isHero ? 'linear-gradient(135deg, #1a5c3a, #27ae60)' :
-                         'linear-gradient(135deg, #1a2a4a, #2a3a5a)',
-              border: `2px solid ${isWinner ? '#ffd700' : isHero ? '#27ae60' : '#2a3a5a'}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: isHero ? '18px' : '14px',
-              boxShadow: isWinner ? '0 0 20px rgba(255,215,0,0.4)' : isHero ? '0 0 12px rgba(39,174,96,0.3)' : '0 2px 8px rgba(0,0,0,0.3)',
-              transition: 'all 0.3s ease',
-            }}>
-              {p.emoji || (isHero ? '👤' : '🤖')}
-            </div>
-
-            {/* Position label */}
-            <div style={{
-              fontSize: '9px', fontWeight: 700, color: '#5a7a8a', letterSpacing: '0.5px',
-              marginBottom: '1px',
-            }}>{p.position}</div>
-
-            {/* Name */}
-            <div style={{
-              fontSize: isHero ? '11px' : '10px', fontWeight: 600,
-              color: isHero ? '#ffd700' : '#8899aa',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              maxWidth: isHero ? '88px' : '76px',
-            }}>
-              {isHero ? 'HERO' : p.name}
-            </div>
-
-            {/* Cards */}
-            <div style={{ display: 'flex', justifyContent: 'center', margin: '3px 0', minHeight: '32px' }}>
-              {isHero && gs.heroCards?.length > 0 ? (
-                gs.heroCards.map((c, ci) => <Card key={c} card={c} mini glow delay={ci * 250} />)
-              ) : showdown && sd?.cards ? (
-                sd.cards.map((c, ci) => <Card key={c} card={c} mini delay={ci * 150} />)
-              ) : !isHero && !p.folded ? (
-                <><Card card="Xx" faceDown mini delay={0} /><Card card="Xx" faceDown mini delay={80} /></>
-              ) : null}
-            </div>
-
-            {/* Hand name at showdown */}
-            {showdown && sd?.hand && (
-              <div style={{
-                fontSize: '9px', fontWeight: 700,
-                color: isWinner ? '#ffd700' : '#6b8fa3',
-                background: isWinner ? 'rgba(255,215,0,0.1)' : 'rgba(0,0,0,0.3)',
-                padding: '1px 6px', borderRadius: '8px', display: 'inline-block',
-              }}>{sd.hand.name}</div>
-            )}
-
-            {/* Chips */}
-            <div style={{
-              fontSize: '11px', fontWeight: 700, color: '#e8d48b',
-              background: 'rgba(0,0,0,0.4)', padding: '2px 8px', borderRadius: '10px',
-              display: 'inline-block', marginTop: '2px',
-            }}>{fmt(p.chips)}</div>
-
-            {/* Bet chip */}
+          <React.Fragment key={p.id}>
+            {/* Bet chips (separate from seat, positioned between seat and center) */}
             {p.bet > 0 && (
-              <div style={{
-                position: 'absolute',
-                left: si === 0 ? '50%' : si < 5 ? '110%' : '-10%',
-                top: si === 0 ? '-10%' : '50%',
-                transform: 'translate(-50%,-50%)',
-                fontSize: '10px', fontWeight: 700, color: '#ffd700',
-                background: 'rgba(0,0,0,0.7)', padding: '3px 8px', borderRadius: '12px',
-                border: '1px solid rgba(255,215,0,0.2)',
-                whiteSpace: 'nowrap',
-              }}>{fmt(p.bet)}</div>
+              <ChipStack
+                amount={p.bet}
+                x={`calc(${pos.x}% + ${betOff.dx}px)`}
+                y={`calc(${pos.y}% + ${betOff.dy}px)`}
+                animate
+              />
             )}
 
-            {/* All-in badge */}
-            {p.allIn && (
+            <div style={{
+              position: 'absolute', left: pos.x + '%', top: pos.y + '%',
+              transform: 'translate(-50%,-50%)', textAlign: 'center', zIndex: 10,
+              width: isHero ? '92px' : '80px',
+              transition: 'opacity 0.4s ease',
+              opacity: p.folded ? 0.3 : 1,
+            }}>
+              {/* Avatar */}
               <div style={{
-                fontSize: '9px', fontWeight: 800, color: '#fff',
-                background: '#e74c3c', padding: '1px 6px', borderRadius: '8px',
-                display: 'inline-block', marginTop: '2px',
-                animation: 'pulse 1.5s infinite',
-              }}>ALL-IN</div>
-            )}
-
-            {/* Dealer button */}
-            {isDealer && (
-              <div style={{
-                position: 'absolute', top: '-2px', right: '-2px',
-                width: '20px', height: '20px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, #ffd700, #ff8c00)',
-                color: '#000', fontSize: '10px', fontWeight: 900,
+                width: isHero ? 46 : 38, height: isHero ? 46 : 38, borderRadius: '50%',
+                margin: '0 auto 2px',
+                background: isWinner ? 'linear-gradient(135deg, #ffd700, #ff8c00)' :
+                           isHero ? 'linear-gradient(135deg, #1a6a3a, #2ecc71)' :
+                           'linear-gradient(135deg, #1a2a4a, #2a3a5a)',
+                border: `2.5px solid ${isWinner ? '#ffd700' : isHero ? '#2ecc71' : '#2a3a5a55'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 2px 6px rgba(255,215,0,0.4)',
-                border: '1px solid #fff3',
-              }}>D</div>
-            )}
-          </div>
+                fontSize: isHero ? '18px' : '14px',
+                boxShadow: isWinner
+                  ? '0 0 24px rgba(255,215,0,0.5), 0 0 48px rgba(255,215,0,0.2)'
+                  : isHero ? '0 0 16px rgba(46,204,113,0.25)' : '0 3px 10px rgba(0,0,0,0.4)',
+                transition: 'box-shadow 0.5s ease',
+              }}>
+                {p.emoji || (isHero ? '👤' : '🤖')}
+              </div>
+
+              {/* Position */}
+              <div style={{ fontSize: '9px', fontWeight: 700, color: '#4a6a7a', letterSpacing: '0.5px' }}>{p.position}</div>
+
+              {/* Name */}
+              <div style={{
+                fontSize: isHero ? '11px' : '10px', fontWeight: 600,
+                color: isHero ? '#ffd700' : '#7a8a9a',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px',
+              }}>{isHero ? 'HERO' : p.name}</div>
+
+              {/* Cards */}
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '3px 0', minHeight: '34px' }}>
+                {isHero && gs.heroCards?.length > 0 ? (
+                  gs.heroCards.map((c, ci) => <Card key={c} card={c} mini glow delay={ci * 300} />)
+                ) : showdown && sd?.cards ? (
+                  sd.cards.map((c, ci) => <Card key={c} card={c} mini delay={200 + ci * 200} />)
+                ) : !isHero && !p.folded ? (
+                  <><Card card="Xx" faceDown mini delay={si * 60} /><Card card="Xx" faceDown mini delay={si * 60 + 80} /></>
+                ) : null}
+              </div>
+
+              {/* Showdown hand name */}
+              {showdown && sd?.hand && (
+                <div style={{
+                  fontSize: '9px', fontWeight: 700,
+                  color: isWinner ? '#ffd700' : '#5a7a8a',
+                  background: isWinner ? 'rgba(255,215,0,0.12)' : 'rgba(0,0,0,0.35)',
+                  padding: '2px 8px', borderRadius: '10px', display: 'inline-block',
+                  border: isWinner ? '1px solid rgba(255,215,0,0.2)' : 'none',
+                }}>{sd.hand.name}</div>
+              )}
+
+              {/* Chip count */}
+              <div style={{
+                fontSize: '11px', fontWeight: 700, color: '#e8d48b',
+                background: 'rgba(0,0,0,0.5)', padding: '2px 10px', borderRadius: '12px',
+                display: 'inline-block', marginTop: '2px',
+                backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.04)',
+              }}>{fmt(p.chips)}</div>
+
+              {/* All-in */}
+              {p.allIn && (
+                <div style={{
+                  fontSize: '9px', fontWeight: 800, color: '#fff',
+                  background: 'linear-gradient(90deg, #e74c3c, #c0392b)',
+                  padding: '2px 8px', borderRadius: '10px', display: 'inline-block', marginTop: '2px',
+                  animation: 'pulse 1.5s infinite',
+                  boxShadow: '0 0 8px rgba(231,76,60,0.4)',
+                }}>ALL-IN</div>
+              )}
+
+              {/* Dealer */}
+              {isDealer && (
+                <div style={{
+                  position: 'absolute', top: '-3px', right: '-3px',
+                  width: '22px', height: '22px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #ffd700, #ffaa00)',
+                  color: '#1a1a00', fontSize: '11px', fontWeight: 900,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(255,215,0,0.5)',
+                  border: '1.5px solid rgba(255,255,255,0.2)',
+                }}>D</div>
+              )}
+            </div>
+          </React.Fragment>
         );
       })}
 
       {/* Winner popup */}
       {gs.phase === 'showdown' && gs.winner && (
         <div style={{
-          position: 'absolute', bottom: '1%', left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
-          padding: '10px 28px', borderRadius: '24px', zIndex: 30,
-          border: '1.5px solid rgba(255,215,0,0.3)',
-          boxShadow: '0 4px 20px rgba(255,215,0,0.15)',
-          animation: 'fadeInUp 0.4s ease',
+          position: 'absolute', bottom: '2%', left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+          padding: '10px 30px', borderRadius: '24px', zIndex: 30,
+          border: '1.5px solid rgba(255,215,0,0.25)',
+          boxShadow: '0 4px 24px rgba(255,215,0,0.2), 0 0 60px rgba(255,215,0,0.08)',
+          animation: 'winPopup 0.5s cubic-bezier(0.34,1.56,0.64,1)',
         }}>
-          <span style={{ fontSize: '15px', fontWeight: 800, color: '#ffd700' }}>
+          <span style={{ fontSize: '16px', fontWeight: 800, color: '#ffd700' }}>
             {gs.winner.isHero ? '🏆 You win ' : `${gs.winner.name} wins `}
           </span>
-          <span style={{ fontSize: '15px', fontWeight: 800, color: '#27ae60' }}>{fmt(gs.potWon)}</span>
+          <span style={{ fontSize: '16px', fontWeight: 800, color: '#2ecc71' }}>{fmt(gs.potWon)}</span>
         </div>
       )}
     </div>
@@ -520,6 +591,21 @@ function Game({ director, onExit }) {
       <style>{`
         @keyframes fadeInUp { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
         @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+        @keyframes chipSlide {
+          0% { opacity:0; transform:translate(-50%,-50%) scale(0.3) translateY(20px); }
+          60% { opacity:1; transform:translate(-50%,-50%) scale(1.1) translateY(-3px); }
+          100% { transform:translate(-50%,-50%) scale(1) translateY(0); }
+        }
+        @keyframes winPopup {
+          0% { opacity:0; transform:translateX(-50%) scale(0.5) translateY(15px); }
+          60% { transform:translateX(-50%) scale(1.08) translateY(-2px); }
+          100% { opacity:1; transform:translateX(-50%) scale(1) translateY(0); }
+        }
+        @keyframes dealCard {
+          0% { opacity:0; transform:translateY(-50px) rotate(-15deg) scale(0.3); }
+          70% { opacity:1; transform:translateY(-3px) rotate(1deg) scale(1.03); }
+          100% { transform:translateY(0) rotate(0) scale(1); }
+        }
       `}</style>
 
       {/* Header */}

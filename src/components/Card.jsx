@@ -1,20 +1,18 @@
-// Card.jsx — Premium card with 3D flip + deal animation
-import React, { useState, useEffect } from 'react';
+// Card.jsx — Premium card: 3D flip + deal fly-in animation
+import React, { useState, useEffect, useRef } from 'react';
 
 const SUIT_SYM = { s: '\u2660', h: '\u2665', d: '\u2666', c: '\u2663' };
-const SUIT_CLR = { s: '#c8d6e5', h: '#ff6b6b', d: '#48dbfb', c: '#c8d6e5' };
-const SUIT_BG = { s: '#1a1d23', h: '#2a1520', d: '#15202a', c: '#1a1d23' };
 const RANK_DISP = { T: '10', J: 'J', Q: 'Q', K: 'K', A: 'A' };
 
-export default function Card({ card, faceDown = false, mini = false, delay = 0, glow = false }) {
-  const [visible, setVisible] = useState(false);
-  const [flipped, setFlipped] = useState(faceDown);
+export default function Card({ card, faceDown = false, mini = false, delay = 0, glow = false, dealFrom = null }) {
+  const [phase, setPhase] = useState('hidden'); // hidden → dealing → revealed
+  const ref = useRef(null);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setVisible(true), delay);
-    const t2 = setTimeout(() => setFlipped(faceDown), delay + 100);
+    const t1 = setTimeout(() => setPhase('dealing'), delay);
+    const t2 = setTimeout(() => setPhase('revealed'), delay + 350);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [faceDown, delay]);
+  }, [delay, card]);
 
   if (!card || card === 'Xx') {
     // Face-down card
@@ -22,19 +20,22 @@ export default function Card({ card, faceDown = false, mini = false, delay = 0, 
     const h = mini ? 48 : 74;
     return (
       <div style={{
-        width: w, height: h, borderRadius: mini ? 4 : 6, margin: '0 2px',
+        width: w, height: h, borderRadius: mini ? 5 : 7, margin: '0 2px',
         background: 'linear-gradient(145deg, #1a3a6c, #0d2240)',
         border: '1.5px solid #2a5a9a',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0) scale(1)' : 'translateY(-20px) scale(0.8)',
-        transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        opacity: phase === 'hidden' ? 0 : 1,
+        transform: phase === 'hidden' ? 'translateY(-30px) rotate(-10deg) scale(0.5)' : 'translateY(0) rotate(0deg) scale(1)',
+        transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}>
         <div style={{
-          width: '60%', height: '70%', borderRadius: 3,
-          border: '1px solid #3a6aaa', opacity: 0.4,
-          background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, #2a5a8a22 3px, #2a5a8a22 6px)',
+          width: '55%', height: '65%', borderRadius: 3,
+          background: `
+            repeating-linear-gradient(45deg, #2a5a8a15, #2a5a8a15 2px, transparent 2px, transparent 6px),
+            repeating-linear-gradient(-45deg, #2a5a8a15, #2a5a8a15 2px, transparent 2px, transparent 6px)
+          `,
+          border: '1px solid #3a6aaa44',
         }} />
       </div>
     );
@@ -42,81 +43,105 @@ export default function Card({ card, faceDown = false, mini = false, delay = 0, 
 
   const rank = card[0];
   const suit = card[1];
-  const color = SUIT_CLR[suit] || '#ccc';
-  const bg = SUIT_BG[suit] || '#1a1d23';
+  const isRed = suit === 'h' || suit === 'd';
+  const suitColor = isRed ? '#e74c3c' : '#2c3e50';
   const sym = SUIT_SYM[suit] || '';
   const disp = RANK_DISP[rank] || rank;
-  const isRed = suit === 'h' || suit === 'd';
 
   const w = mini ? 34 : 52;
   const h = mini ? 48 : 74;
 
+  // Deal animation transform
+  let transform = 'translateY(0) rotate(0deg) scale(1)';
+  let opacity = 1;
+  let filter = 'none';
+
+  if (phase === 'hidden') {
+    transform = 'translateY(-60px) rotate(-15deg) scale(0.3)';
+    opacity = 0;
+    filter = 'blur(4px)';
+  } else if (phase === 'dealing') {
+    transform = 'translateY(-5px) rotate(2deg) scale(1.05)';
+    opacity = 0.9;
+  }
+
   return (
-    <div style={{
-      perspective: 600, display: 'inline-block', margin: '0 2px',
-      width: w, height: h,
+    <div ref={ref} style={{
+      width: w, height: h, margin: '0 2px',
+      perspective: '800px', display: 'inline-block',
     }}>
       <div style={{
         width: '100%', height: '100%', position: 'relative',
         transformStyle: 'preserve-3d',
-        transform: flipped ? 'rotateY(0deg)' : 'rotateY(180deg)',
-        transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        opacity: visible ? 1 : 0,
-        filter: visible ? 'none' : 'blur(4px)',
+        transform: `${transform} ${faceDown ? '' : 'rotateY(180deg)'}`,
+        opacity, filter,
+        transition: phase === 'hidden' ? 'none' : 'all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}>
-        {/* Back */}
+        {/* Back face */}
         <div style={{
           position: 'absolute', width: '100%', height: '100%',
-          backfaceVisibility: 'hidden', borderRadius: mini ? 4 : 6,
-          background: 'linear-gradient(145deg, #1a3a6c, #0d2240)',
-          border: '1.5px solid #2a5a9a',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          backfaceVisibility: 'hidden', borderRadius: mini ? 5 : 7,
+          background: 'linear-gradient(145deg, #1e4080, #0e2850)',
+          border: '1.5px solid #3060a0',
+          boxShadow: '0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <div style={{
-            width: '60%', height: '70%', borderRadius: 3,
-            border: '1px solid #3a6aaa', opacity: 0.4,
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 3px, #2a5a8a22 3px, #2a5a8a22 6px)',
+            width: '60%', height: '70%', borderRadius: 4,
+            background: `
+              repeating-linear-gradient(45deg, #3060a015, #3060a015 2px, transparent 2px, transparent 5px),
+              repeating-linear-gradient(-45deg, #3060a015, #3060a015 2px, transparent 2px, transparent 5px)
+            `,
+            border: '1.5px solid #4070b044',
           }} />
         </div>
-        {/* Front */}
+
+        {/* Front face */}
         <div style={{
           position: 'absolute', width: '100%', height: '100%',
-          backfaceVisibility: 'hidden', borderRadius: mini ? 4 : 6,
+          backfaceVisibility: 'hidden', borderRadius: mini ? 5 : 7,
           transform: 'rotateY(180deg)',
-          background: `linear-gradient(160deg, #f8f9fa 0%, #e9ecef 100%)`,
-          border: `1.5px solid ${isRed ? '#ffaaaa55' : '#aaaacc55'}`,
+          background: 'linear-gradient(165deg, #ffffff 0%, #f0f0f0 50%, #e8e8e8 100%)',
+          border: `1.5px solid ${isRed ? '#ff888844' : '#88aabb44'}`,
           boxShadow: glow
-            ? `0 0 16px ${isRed ? 'rgba(255,100,100,0.4)' : 'rgba(100,150,255,0.4)'}, 0 2px 8px rgba(0,0,0,0.3)`
-            : '0 2px 8px rgba(0,0,0,0.3)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          color,
+            ? `0 0 20px ${isRed ? 'rgba(231,76,60,0.35)' : 'rgba(52,152,219,0.3)'}, 0 4px 16px rgba(0,0,0,0.4)`
+            : '0 3px 12px rgba(0,0,0,0.35)',
           overflow: 'hidden',
         }}>
-          {/* Top-left rank+suit */}
+          {/* Subtle gradient overlay */}
+          <div style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.03) 100%)',
+            borderRadius: mini ? 5 : 7,
+          }} />
+
+          {/* Top-left */}
           <div style={{
             position: 'absolute', top: mini ? 2 : 4, left: mini ? 3 : 5,
-            fontSize: mini ? 9 : 11, fontWeight: 800, lineHeight: 1, color: isRed ? '#c0392b' : '#2c3e50',
+            lineHeight: 1, color: suitColor,
           }}>
-            <div>{disp}</div>
-            <div style={{ fontSize: mini ? 8 : 10 }}>{sym}</div>
+            <div style={{ fontSize: mini ? 10 : 13, fontWeight: 900 }}>{disp}</div>
+            <div style={{ fontSize: mini ? 8 : 11, marginTop: -1 }}>{sym}</div>
           </div>
-          {/* Center suit */}
+
+          {/* Center suit — large */}
           <div style={{
-            fontSize: mini ? 18 : 28, color: isRed ? '#e74c3c' : '#34495e',
-            textShadow: isRed ? '0 0 8px rgba(231,76,60,0.3)' : '0 0 8px rgba(52,73,94,0.2)',
-            marginTop: mini ? 4 : 0,
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            fontSize: mini ? 20 : 30, color: suitColor,
+            opacity: 0.9,
+            textShadow: isRed ? '0 0 12px rgba(231,76,60,0.15)' : 'none',
           }}>
             {sym}
           </div>
-          {/* Bottom-right rank+suit */}
+
+          {/* Bottom-right (rotated) */}
           <div style={{
             position: 'absolute', bottom: mini ? 2 : 4, right: mini ? 3 : 5,
-            fontSize: mini ? 9 : 11, fontWeight: 800, lineHeight: 1, color: isRed ? '#c0392b' : '#2c3e50',
-            transform: 'rotate(180deg)',
+            lineHeight: 1, color: suitColor, transform: 'rotate(180deg)',
           }}>
-            <div>{disp}</div>
-            <div style={{ fontSize: mini ? 8 : 10 }}>{sym}</div>
+            <div style={{ fontSize: mini ? 10 : 13, fontWeight: 900 }}>{disp}</div>
+            <div style={{ fontSize: mini ? 8 : 11, marginTop: -1 }}>{sym}</div>
           </div>
         </div>
       </div>
