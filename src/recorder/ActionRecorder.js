@@ -9,7 +9,7 @@ import { rankValue } from '../engine/deck.js';
 
 // Draw detection: flush draw, OESD, gutshot, combo, backdoor
 function detectDraws(hCards, board) {
-  if (board.length < 3 || hCards.length < 2) return null;
+  if (board.length < 3 || board.length >= 5 || hCards.length < 2) return null; // No draws on river
   const allCards = [...hCards, ...board];
 
   // Flush draw: 4 of same suit (hero must contribute at least 1)
