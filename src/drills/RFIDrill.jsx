@@ -7,8 +7,14 @@ import { isInOpenRange, handString, getHandValue, getPositionRange, POSITION_THR
 import { cryptoRandom } from '../engine/deck.js';
 
 const POSITIONS = ['UTG', 'UTG+1', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
+let _lastPos = '';
 
-function randomPosition() { return POSITIONS[cryptoRandom(POSITIONS.length)]; }
+function randomPosition() {
+  let pos;
+  do { pos = POSITIONS[cryptoRandom(POSITIONS.length)]; } while (pos === _lastPos && POSITIONS.length > 1);
+  _lastPos = pos;
+  return pos;
+}
 
 export default function RFIDrill({ onBack }) {
   const [correct, setCorrect] = useState(0);

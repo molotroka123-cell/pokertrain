@@ -96,13 +96,29 @@ export const POSTFLOP_SPOTS = [
     confidence: 'heuristic+' },
 ];
 
-// Get random spot, optionally filtered
+// Anti-repeat tracking
+let _recentSpotIds = [];
+
+// Get random spot, optionally filtered — avoids repeats
 export function getRandomSpot(filter) {
   let spots = POSTFLOP_SPOTS;
   if (filter?.stage) spots = spots.filter(s => s.stage === filter.stage);
   if (filter?.isBubble) spots = spots.filter(s => s.isBubble);
-  if (spots.length === 0) return POSTFLOP_SPOTS[cryptoRandom(POSTFLOP_SPOTS.length)];
-  return spots[cryptoRandom(spots.length)];
+  if (spots.length === 0) spots = POSTFLOP_SPOTS;
+
+  // Filter out recently seen spots
+  let available = spots.filter(s => !_recentSpotIds.includes(s.id));
+  if (available.length === 0) {
+    _recentSpotIds = []; // Reset if we've seen them all
+    available = spots;
+  }
+
+  const spot = available[cryptoRandom(available.length)];
+  _recentSpotIds.push(spot.id);
+  if (_recentSpotIds.length > Math.floor(spots.length * 0.7)) {
+    _recentSpotIds.shift(); // Keep last 70% in memory
+  }
+  return spot;
 }
 
 export function getSpotById(id) {

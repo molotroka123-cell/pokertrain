@@ -123,6 +123,7 @@ export function recordDecision({
     isEVPositive,
     boardTexture,
     opponents: opponents || [],
+    opponentCards: null, // Filled after showdown — all cards for AI analysis
     action,
     raiseAmount: raiseAmount || null,
     decisionTimeMs: decisionTimeMs || 0,
@@ -142,13 +143,22 @@ export function recordDecision({
   return record;
 }
 
-// Update record with hand result
-export function updateHandResult(handNumber, result, potWon, chipsAfter) {
+// Update record with hand result + opponent cards
+export function updateHandResult(handNumber, result, potWon, chipsAfter, allHoleCards) {
   const rec = records.findLast(r => r.handNumber === handNumber);
   if (rec) {
     rec.handResult = result;
     rec.potWon = potWon;
     rec.chipsAfter = chipsAfter;
+    // Record ALL opponent cards for AI debrief
+    if (allHoleCards) {
+      rec.opponentCards = {};
+      for (const [id, cards] of Object.entries(allHoleCards)) {
+        if (cards && cards.length === 2) {
+          rec.opponentCards[id] = cards.join(' ');
+        }
+      }
+    }
   }
 }
 

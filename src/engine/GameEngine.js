@@ -404,7 +404,7 @@ export class GameEngine {
       this.winner.chips += this.pot;
       this.showdownResults = [{
         player: this.winner,
-        cards: this.winner.isHero ? this.holeCards[this.winner.id] : null,
+        cards: this.holeCards[this.winner.id], // Always record for AI debrief
         hand: null,
         won: this.pot,
       }];
@@ -444,7 +444,11 @@ export class GameEngine {
 
       this.winner = winners[0].player;
       this.potWon = this.pot;
-      this.showdownResults = results;
+      // Include folded players' cards too (for AI debrief)
+      const foldedResults = this.players
+        .filter(p => this.folded.has(p.id) && this.holeCards[p.id])
+        .map(p => ({ player: p, cards: this.holeCards[p.id], hand: null, won: 0, folded: true }));
+      this.showdownResults = [...results, ...foldedResults];
 
       for (const r of results) {
         const name = r.player.isHero ? 'Hero' : r.player.name;
@@ -498,6 +502,10 @@ export class GameEngine {
       potWon: this.potWon,
       actionLog: [...this.actionLog],
       blinds: this.blinds,
+      // All hole cards — exposed at showdown/hand_over for AI debrief
+      allHoleCards: (this.phase === PHASE.SHOWDOWN || this.phase === PHASE.HAND_OVER)
+        ? { ...this.holeCards }
+        : null,
     };
   }
 

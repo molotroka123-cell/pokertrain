@@ -61,10 +61,14 @@ export function suitColor(suit) {
   return suit === 'h' || suit === 'd' ? '#e74c3c' : '#e0e0e0';
 }
 
-// Crypto-secure random int [0, max)
+// Crypto-secure random int [0, max) — rejection sampling to avoid modulo bias
 export function cryptoRandom(max) {
+  if (max <= 1) return 0;
   const arr = new Uint32Array(1);
-  crypto.getRandomValues(arr);
+  const limit = Math.floor(4294967296 / max) * max; // Largest multiple of max that fits in uint32
+  do {
+    crypto.getRandomValues(arr);
+  } while (arr[0] >= limit); // Reject values that would cause bias
   return arr[0] % max;
 }
 
