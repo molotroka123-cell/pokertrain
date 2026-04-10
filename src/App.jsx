@@ -233,7 +233,7 @@ function PremiumTable({ gs, theme: T }) {
 
   return (
     <div style={{
-      position: 'relative', width: '100%', maxWidth: '750px', height: '440px',
+      position: 'relative', width: '100%', maxWidth: '750px', height: 'min(440px, 55vh)',
       margin: '0 auto', overflow: 'hidden',
     }}>
       {/* Ambient light from above */}
@@ -687,7 +687,7 @@ function Game({ director, onExit }) {
       {gs?.waitingForHero && (
         <Controls canCheck={gs.canCheck} canCall={gs.toCall > 0} toCall={gs.toCall}
           pot={gs.pot} myChips={gs.heroChips} minRaise={gs.minRaise} maxRaise={gs.maxRaise}
-          onAction={handleAction} />
+          bigBlind={bl.bb} onAction={handleAction} />
       )}
 
       {/* Deal button */}
