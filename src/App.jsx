@@ -884,10 +884,16 @@ function Game({ director, onExit }) {
       {/* Alerts */}
       {tournState.isBubble && (
         <div style={{
-          textAlign: 'center', padding: '6px', fontSize: '12px', fontWeight: 700,
-          background: 'linear-gradient(90deg, #2a101000, #2a1010, #2a101000)', color: '#e74c3c',
+          textAlign: 'center', padding: '8px 12px', fontSize: '13px', fontWeight: 700,
+          background: 'linear-gradient(90deg, rgba(220,53,69,0), rgba(220,53,69,0.15), rgba(220,53,69,0))',
+          borderTop: '1px solid rgba(220,53,69,0.2)', borderBottom: '1px solid rgba(220,53,69,0.2)',
           animation: 'pulse 2s infinite',
-        }}>BUBBLE — {tournState.playersRemaining - tournState.payout.paidPlaces} from the money</div>
+        }}>
+          <div style={{ color: '#e74c3c', fontSize: '14px' }}>BUBBLE — Survival {'>'} Chips</div>
+          <div style={{ color: '#a08060', fontSize: '11px', marginTop: '2px' }}>
+            {tournState.playersRemaining - tournState.payout.paidPlaces} to cash | Chips worth ~1.5x | Min cash: ${fmt(tournState.payout?.payouts?.[tournState.payout.paidPlaces - 1] || 0)}
+          </div>
+        </div>
       )}
       {tournState.isFinalTable && (
         <div style={{
