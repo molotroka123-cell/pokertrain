@@ -7,6 +7,9 @@ import { mRatio } from './engine/equity.js';
 import Card from './components/Card.jsx';
 import Controls from './tournament/Controls.jsx';
 import TournamentDashboard from './tournament/TournamentDashboard.jsx';
+import DebriefScreen from './stats/DebriefScreen.jsx';
+import { startSession, recordDecision, saveSession, exportSession, getRecords } from './recorder/ActionRecorder.js';
+import { generateDebrief } from './recorder/autoDebrief.js';
 import DrillMenu from './drills/DrillMenu.jsx';
 import RFIDrill from './drills/RFIDrill.jsx';
 import ThreeBetDrill from './drills/ThreeBetDrill.jsx';
@@ -482,9 +485,10 @@ const DRILL_MAP = {
 };
 
 export default function App() {
-  const [screen, setScreen] = useState('lobby'); // lobby | tournament | drills | drill
+  const [screen, setScreen] = useState('lobby'); // lobby | tournament | drills | drill | debrief
   const [director, setDirector] = useState(null);
   const [activeDrill, setActiveDrill] = useState(null);
+  const [debriefData, setDebriefData] = useState(null);
 
   if (screen === 'drill' && activeDrill) {
     const DrillComp = DRILL_MAP[activeDrill];
@@ -502,13 +506,47 @@ export default function App() {
     );
   }
 
+  if (screen === 'debrief' && debriefData) {
+    return (
+      <div style={S.app}>
+        <DebriefScreen
+          debrief={debriefData.debrief}
+          finish={debriefData.finish}
+          records={debriefData.records}
+          onClose={() => { setDebriefData(null); setScreen('lobby'); }}
+          onExport={() => {
+            const data = exportSession();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `session_${Date.now()}.json`; a.click();
+          }}
+        />
+      </div>
+    );
+  }
+
   if (screen === 'tournament' && director) {
-    return <Game director={director} onExit={() => { setDirector(null); setScreen('lobby'); }} />;
+    return <Game director={director} onExit={(finish) => {
+      const records = getRecords();
+      if (records.length > 0) {
+        saveSession();
+        const debrief = generateDebrief(records);
+        setDebriefData({ debrief, finish: finish || {}, records });
+        setScreen('debrief');
+      } else {
+        setDirector(null);
+        setScreen('lobby');
+      }
+    }} />;
   }
 
   return (
     <Lobby
-      onStart={(fmt, name) => { setDirector(new TournamentDirector(fmt, name)); setScreen('tournament'); }}
+      onStart={(fmt, name) => {
+        startSession(fmt);
+        setDirector(new TournamentDirector(fmt, name));
+        setScreen('tournament');
+      }}
       onDrills={() => setScreen('drills')}
     />
   );
