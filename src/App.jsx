@@ -639,6 +639,22 @@ function Game({ director, onExit }) {
     // Update hand result
     const heroWon = gs.winner?.isHero;
     updateHandResult(handCount, heroWon ? 'won' : 'lost', heroWon ? gs.potWon : 0, hero.chips, gs.allHoleCards);
+
+    // Auto-save session after every hand (so data is never lost)
+    saveSession();
+
+    // If hero eliminated — auto-show debrief
+    const tStateNow = dirRef.current.getState();
+    if (tStateNow.heroEliminated) {
+      setTimeout(() => {
+        const recs = getRecords();
+        if (recs.length > 0) {
+          const deb = generateDebrief(recs);
+          // Trigger exit with debrief
+          window.__autoDebrief = { debrief: deb, finish: { position: tStateNow.heroRank, total: tStateNow.totalPlayers }, records: recs };
+        }
+      }, 3000); // Wait for showdown animation
+    }
   }, [gs?.phase, handCount]);
 
   if (view === 'dashboard') {
@@ -735,22 +751,29 @@ function Game({ director, onExit }) {
           bigBlind={bl.bb} onAction={handleAction} />
       )}
 
-      {/* Deal button */}
+      {/* Deal / Eliminated button */}
       {!handActive && (!gs || gs.phase === 'hand_over' || gs.phase === 'idle') && (
         <div style={{ padding: '14px 16px', textAlign: 'center' }}>
-          <button onClick={playHand} disabled={tournState.heroEliminated} style={{
-            width: '100%', padding: '18px', border: 'none', borderRadius: '14px', cursor: 'pointer',
-            background: tournState.heroEliminated
-              ? 'linear-gradient(135deg, #2a1010, #3a1515)'
-              : 'linear-gradient(135deg, #1a6a3a, #27ae60)',
-            color: '#fff', fontWeight: 800, fontSize: '17px', letterSpacing: '0.5px',
-            boxShadow: tournState.heroEliminated ? 'none' : '0 4px 20px rgba(39,174,96,0.25)',
-            opacity: tournState.heroEliminated ? 0.6 : 1,
-            transition: 'transform 0.15s',
-          }}
-          onMouseDown={e => { if (!tournState.heroEliminated) e.target.style.transform = 'scale(0.97)'; }}
-          onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
-          >{tournState.heroEliminated ? `ELIMINATED #${tournState.heroRank}` : 'DEAL'}</button>
+          {tournState.heroEliminated ? (
+            <>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#e74c3c', marginBottom: '10px' }}>
+                ELIMINATED #{tournState.heroRank} / {tournState.totalPlayers}
+              </div>
+              <button className="btn-action" onClick={() => onExit({ position: tournState.heroRank, total: tournState.totalPlayers })} style={{
+                width: '100%', padding: '18px', border: 'none', borderRadius: '14px',
+                background: 'linear-gradient(135deg, #1a3a6c, #2980b9)',
+                color: '#fff', fontWeight: 800, fontSize: '16px', cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(41,128,185,0.3)',
+              }}>VIEW RESULTS</button>
+            </>
+          ) : (
+            <button className="btn-action" onClick={playHand} style={{
+              width: '100%', padding: '18px', border: 'none', borderRadius: '14px',
+              background: 'linear-gradient(135deg, #1a6a3a, #27ae60)',
+              color: '#fff', fontWeight: 800, fontSize: '17px', letterSpacing: '0.5px',
+              boxShadow: '0 4px 20px rgba(39,174,96,0.25)',
+            }}>DEAL</button>
+          )}
         </div>
       )}
 
