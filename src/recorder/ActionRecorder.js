@@ -2,7 +2,7 @@
 // Per MASTER spec: every user action creates a complete record for AI analysis
 
 import { getHandValue, handString, isInOpenRange } from '../engine/ranges.js';
-import { potOdds, mRatio } from '../engine/equity.js';
+import { potOdds, mRatio, calculateEquity } from '../engine/equity.js';
 import { classifyTexture } from '../engine/evEngine.js';
 import { evaluateHand } from '../engine/evaluator.js';
 
@@ -34,17 +34,16 @@ export function recordDecision({
   const hCards = holeCards || [];
   const board = community || [];
 
-  // Computed fields — use proper equity based on street
+  // Computed fields — Monte Carlo equity vs actual number of opponents
   const handVal = hCards.length === 2 ? getHandValue(hCards[0], hCards[1]) : 0.5;
+  const numOpponents = Math.max(1, (opponents || []).length);
   let equity;
-  if (board.length >= 3 && hCards.length === 2) {
-    // Postflop: use actual hand evaluation
-    const evalResult = evaluateHand(hCards, board);
-    const strengthMap = [0, 0.15, 0.45, 0.60, 0.70, 0.78, 0.83, 0.88, 0.93, 0.97, 1.0];
-    equity = evalResult ? (strengthMap[evalResult.rank] || 0.15) + Math.min(0.1, (evalResult.value % 1e6) / 1e7) : 0.3;
+  if (hCards.length === 2) {
+    // Monte Carlo equity: accounts for board, kickers, draws, AND opponent count
+    const mcResult = calculateEquity(hCards, board, numOpponents, board.length >= 3 ? 3000 : 2000);
+    equity = mcResult.equity;
   } else {
-    // Preflop: range-based estimate
-    equity = 1 - handVal;
+    equity = 0.5;
   }
   const odds = toCall > 0 ? potOdds(toCall, potSize) : 0;
   const sprVal = potSize > 0 ? myChips / potSize : Infinity;
@@ -164,6 +163,7 @@ export function recordDecision({
     potOdds: Math.round(odds * 100) / 100,
     spr: Math.round(sprVal * 10) / 10,
     mRatio: Math.round(m * 10) / 10,
+    numOpponents,
     evOfCall: Math.round(evOfCall),
     commitRatio: Math.round(commitRatio * 100) / 100,
     isEVPositive,
