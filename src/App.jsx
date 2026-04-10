@@ -21,6 +21,7 @@ import PotOddsDrill from './drills/PotOddsDrill.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
 import CoachScreen from './coach/Coach.jsx';
 import { Sounds } from './lib/sounds.js';
+import { getTheme } from './lib/themes.js';
 
 function fmt(n) {
   if (!n && n !== 0) return '0';
@@ -215,8 +216,9 @@ const BET_OFFSETS = [
   { dx: -35, dy: -25 }, // 8
 ];
 
-function PremiumTable({ gs }) {
+function PremiumTable({ gs, theme: T }) {
   if (!gs || !gs.players) return null;
+  if (!T) T = getTheme('WSOP_Main');
   const heroIdx = gs.heroIndex;
   const showdown = gs.phase === 'showdown';
   const sdMap = {};
@@ -238,7 +240,7 @@ function PremiumTable({ gs }) {
       <div style={{
         position: 'absolute', top: '20%', left: '50%', width: '50%', height: '30%',
         transform: 'translate(-50%,-30%)',
-        background: 'radial-gradient(ellipse, rgba(212,175,55,0.04) 0%, transparent 70%)',
+        background: `radial-gradient(ellipse, ${T.ambientColor} 0%, transparent 70%)`,
         filter: 'blur(30px)', pointerEvents: 'none',
       }} />
 
@@ -253,45 +255,48 @@ function PremiumTable({ gs }) {
       <div style={{
         position: 'absolute', top: '10%', left: '6%', width: '88%', height: '70%',
         borderRadius: '50%/42%',
-        background: 'linear-gradient(180deg, #1a1510 0%, #0d0a06 50%, #050404 100%)',
-        boxShadow: `
-          0 0 25px rgba(212,175,55,0.12),
-          0 0 50px rgba(212,175,55,0.05),
-          0 8px 40px rgba(0,0,0,0.7),
-          inset 0 2px 0 rgba(212,175,55,0.08)
-        `,
-        border: '1px solid rgba(212,175,55,0.15)',
+        background: T.rimBg,
+        boxShadow: T.rimGlow + ', inset 0 2px 0 ' + T.rimEdge,
+        border: '1px solid ' + T.rimBorder,
       }} />
 
-      {/* Gold edge glow */}
+      {/* Edge glow line */}
       <div style={{
         position: 'absolute', top: '10.5%', left: '6.5%', width: '87%', height: '69%',
         borderRadius: '50%/42%',
-        border: '1px solid rgba(212,175,55,0.1)',
-        boxShadow: 'inset 0 0 15px rgba(212,175,55,0.06)',
+        border: '1px solid ' + T.rimEdge,
+        boxShadow: 'inset 0 0 15px ' + T.ambientColor,
         pointerEvents: 'none',
       }} />
 
       {/* Felt */}
       <div style={{
         position: 'absolute', top: '13%', left: '9%', width: '82%', height: '64%',
-        background: 'radial-gradient(ellipse at 50% 38%, #1a6a3f 0%, #145a32 25%, #0e4828 50%, #0a3820 75%, #072a18 100%)',
+        background: T.feltBg,
         borderRadius: '50%/42%',
         boxShadow: 'inset 0 0 100px rgba(0,0,0,0.4), inset 0 -10px 40px rgba(0,0,0,0.15)',
       }}>
-        {/* Radial light spot on felt */}
+        {/* Light spot */}
         <div style={{
           position: 'absolute', top: '25%', left: '50%', width: '40%', height: '30%',
           transform: 'translate(-50%, 0)',
-          background: 'radial-gradient(ellipse, rgba(255,255,255,0.035) 0%, transparent 70%)',
+          background: `radial-gradient(ellipse, ${T.feltLight} 0%, transparent 70%)`,
           borderRadius: '50%', pointerEvents: 'none',
         }} />
-        {/* Inner gold line */}
+        {/* Inner line */}
         <div style={{
           position: 'absolute', top: '6%', left: '5%', width: '90%', height: '88%',
           borderRadius: '50%/42%',
-          border: '1px solid rgba(212,175,55,0.1)',
+          border: '1px solid ' + T.feltInner,
         }} />
+        {/* Tournament logo on felt */}
+        <div style={{
+          position: 'absolute', top: '68%', left: '50%', transform: 'translate(-50%,-50%)',
+          fontSize: '18px', fontWeight: 900, letterSpacing: '3px',
+          color: T.logoColor || T.accent, opacity: 0.12,
+          textShadow: `0 0 20px ${T.accentGlow}`,
+          userSelect: 'none', pointerEvents: 'none',
+        }}>{T.logo || ''}</div>
       </div>
 
       {/* Pot + To Call — center of table */}
@@ -303,8 +308,8 @@ function PremiumTable({ gs }) {
           <div style={{
             fontSize: '13px', color: '#b0b8a8', letterSpacing: '1px', marginBottom: '2px',
           }}>Pot: <span style={{
-            fontSize: '22px', fontWeight: 800, color: '#e8e0d0',
-            textShadow: '0 0 15px rgba(212,175,55,0.25)',
+            fontSize: '22px', fontWeight: 800, color: T.potColor,
+            textShadow: T.potShadow,
           }}>{fmt(gs.pot)}</span></div>
           {gs.toCall > 0 && gs.waitingForHero && (
             <div style={{ fontSize: '12px', color: '#8a8a78', letterSpacing: '0.5px' }}>
@@ -357,15 +362,13 @@ function PremiumTable({ gs }) {
               <div style={{
                 width: isHero ? 46 : 38, height: isHero ? 46 : 38, borderRadius: '50%',
                 margin: '0 auto 2px',
-                background: isWinner ? 'linear-gradient(135deg, #ffd700, #ff8c00)' :
-                           isHero ? 'linear-gradient(135deg, #1a6a3a, #2ecc71)' :
-                           'linear-gradient(135deg, #1a2a4a, #2a3a5a)',
-                border: `2.5px solid ${isWinner ? '#ffd700' : isHero ? '#2ecc71' : '#2a3a5a55'}`,
+                background: isWinner ? T.avatarWin : isHero ? T.avatarHero : T.avatarBot,
+                border: `2.5px solid ${isWinner ? T.accent : isHero ? T.accent + '88' : '#2a3a5a44'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: isHero ? '18px' : '14px',
                 boxShadow: isWinner
-                  ? '0 0 24px rgba(255,215,0,0.5), 0 0 48px rgba(255,215,0,0.2)'
-                  : isHero ? '0 0 16px rgba(46,204,113,0.25)' : '0 3px 10px rgba(0,0,0,0.4)',
+                  ? `0 0 24px ${T.accentGlow}, 0 0 48px ${T.ambientColor}`
+                  : isHero ? `0 0 16px ${T.accentGlow}` : '0 3px 10px rgba(0,0,0,0.4)',
                 transition: 'box-shadow 0.5s ease',
               }}>
                 {p.emoji || (isHero ? '👤' : '🤖')}
@@ -377,7 +380,7 @@ function PremiumTable({ gs }) {
               {/* Name */}
               <div style={{
                 fontSize: isHero ? '11px' : '10px', fontWeight: 600,
-                color: isHero ? '#ffd700' : '#7a8a9a',
+                color: isHero ? T.accent : '#7a8a9a',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px',
               }}>{isHero ? 'HERO' : p.name}</div>
 
@@ -419,7 +422,7 @@ function PremiumTable({ gs }) {
 
               {/* Chip count */}
               <div style={{
-                fontSize: '11px', fontWeight: 700, color: '#e8d48b',
+                fontSize: '11px', fontWeight: 700, color: T.chipColor,
                 background: 'rgba(0,0,0,0.5)', padding: '2px 10px', borderRadius: '12px',
                 display: 'inline-block', marginTop: '2px',
                 backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.04)',
@@ -429,7 +432,7 @@ function PremiumTable({ gs }) {
               {p.allIn && (
                 <div style={{
                   fontSize: '9px', fontWeight: 800, color: '#fff',
-                  background: 'linear-gradient(90deg, #e74c3c, #c0392b)',
+                  background: T.allInBg, color: T.allInColor,
                   padding: '2px 8px', borderRadius: '10px', display: 'inline-block', marginTop: '2px',
                   animation: 'pulse 1.5s infinite',
                   boxShadow: '0 0 8px rgba(231,76,60,0.4)',
@@ -457,16 +460,16 @@ function PremiumTable({ gs }) {
       {gs.phase === 'showdown' && gs.winner && (
         <div style={{
           position: 'absolute', bottom: '2%', left: '50%', transform: 'translateX(-50%)',
-          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+          background: T.winBg, backdropFilter: 'blur(12px)',
           padding: '10px 30px', borderRadius: '24px', zIndex: 30,
-          border: '1.5px solid rgba(255,215,0,0.25)',
-          boxShadow: '0 4px 24px rgba(255,215,0,0.2), 0 0 60px rgba(255,215,0,0.08)',
+          border: '1.5px solid ' + T.winBorder,
+          boxShadow: T.winGlow,
           animation: 'winPopup 0.5s cubic-bezier(0.34,1.56,0.64,1)',
         }}>
-          <span style={{ fontSize: '16px', fontWeight: 800, color: '#ffd700' }}>
+          <span style={{ fontSize: '16px', fontWeight: 800, color: T.accent }}>
             {gs.winner.isHero ? '🏆 You win ' : `${gs.winner.name} wins `}
           </span>
-          <span style={{ fontSize: '16px', fontWeight: 800, color: '#2ecc71' }}>{fmt(gs.potWon)}</span>
+          <span style={{ fontSize: '16px', fontWeight: 800, color: '#e0e0e0' }}>{fmt(gs.potWon)}</span>
         </div>
       )}
     </div>
@@ -607,7 +610,7 @@ function Game({ director, onExit }) {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 50% 30%, #0d1520 0%, #060810 60%, #030406 100%)',
+      background: getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey).bg,
       color: '#e0e0e0', fontFamily: "'Segoe UI', -apple-system, sans-serif",
       maxWidth: '800px', margin: '0 auto',
     }}>
@@ -674,7 +677,7 @@ function Game({ director, onExit }) {
       )}
 
       {/* Table */}
-      <PremiumTable gs={gs || {
+      <PremiumTable theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)} gs={gs || {
         players: tournState.heroTable?.players.filter(p => !p.eliminated).map(p => ({ ...p, position: '', bet: 0, folded: false, allIn: false })) || [],
         community: [], pot: 0, heroCards: [], heroIndex: tournState.heroTable?.players.findIndex(p => p.isHero) || 0,
         dealerIdx: tournState.heroTable?.dealer || 0, phase: 'idle', showdownResults: null, winner: null, potWon: 0,
