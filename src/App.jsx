@@ -87,9 +87,18 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
             {format === key && <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: '#ffd700', borderRadius: '3px 0 0 3px' }} />}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '15px', color: format === key ? '#ffd700' : '#c0d0e0' }}>{f.name}</div>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: format === key ? '#ffd700' : '#c0d0e0' }}>
+                  {f.name}
+                  {f.speed && <span style={{
+                    fontSize: '10px', fontWeight: 600, marginLeft: '8px',
+                    padding: '2px 6px', borderRadius: '6px',
+                    background: f.speed === 'Turbo' || f.speed === 'Hyper Turbo' ? 'rgba(220,53,69,0.2)' : f.speed === 'Fast' ? 'rgba(212,175,55,0.15)' : 'rgba(90,106,122,0.15)',
+                    color: f.speed === 'Turbo' || f.speed === 'Hyper Turbo' ? '#ff6050' : f.speed === 'Fast' ? '#d4af37' : '#7a8a9a',
+                    verticalAlign: 'middle',
+                  }}>{f.speed}</span>}
+                </div>
                 <div style={{ fontSize: '12px', color: '#5a6a7a', marginTop: '3px' }}>
-                  {f.players} players | {f.startingChips.toLocaleString()} chips
+                  {f.players} players | {f.startingChips.toLocaleString()} chips | {f.blindLevels[0].mins} min levels
                 </div>
               </div>
               <div style={{ fontSize: '16px', fontWeight: 700, color: format === key ? '#ffd700' : '#3a4a5a' }}>
