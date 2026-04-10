@@ -457,7 +457,7 @@ function PremiumTable({ gs, theme: T }) {
               {p.allIn && (
                 <div style={{
                   fontSize: '9px', fontWeight: 800, color: '#fff',
-                  background: T.allInBg, color: T.allInColor,
+                  background: T.allInBg,
                   padding: '2px 8px', borderRadius: '10px', display: 'inline-block', marginTop: '2px',
                   animation: 'pulse 1.5s infinite',
                   boxShadow: '0 0 8px rgba(231,76,60,0.4)',

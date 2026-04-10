@@ -105,7 +105,6 @@ export const THEMES = {
     headerBg: 'rgba(10,3,3,0.92)', headerColor: '#ff6040',
     ambientColor: 'rgba(255,50,30,0.04)', logoColor: '#ff4020',
   },
-};
 
   // ═══ HARDCORE — Dark Crimson Arena ═══
   HARDCORE: {
