@@ -377,6 +377,11 @@ export class GameEngine {
       _currentBet: this.currentBet,          // Bet AT this moment
       _myChips: player.chips,                // Hero chips AT this moment
       _myBet: this.bets[player.id] || 0,     // Hero bet AT this moment
+      // Opponent state AT decision time (for accurate effective stack / EV)
+      _opponents: this.players.filter(p => !p.isHero && !this.folded.has(p.id)).map(p => ({
+        name: p.name, position: this.positions[this.players.indexOf(p)],
+        chips: p.chips, style: p.profile?.style, observedVpip: p.profile?.vpip,
+      })),
     } : undefined;
 
     switch (action.action) {

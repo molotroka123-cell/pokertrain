@@ -3,7 +3,7 @@
 
 import { getHandValue, handString, isInOpenRange, isIn3BetRange } from '../engine/ranges.js';
 import { potOdds, mRatio, calculateEquity } from '../engine/equity.js';
-import { classifyTexture } from '../engine/evEngine.js';
+import { classifyTexture, calculateQuickEV, calculateTournamentEV } from '../engine/evEngine.js';
 import { evaluateHand } from '../engine/evaluator.js';
 import { rankValue } from '../engine/deck.js';
 
@@ -109,10 +109,52 @@ export function recordDecision({
   // Is this +EV?
   const evOfCall = toCall > 0 ? (equity * (potSize + toCall)) - ((1 - equity) * toCall) : 0;
   const commitRatio = myChips > 0 ? toCall / myChips : 0;  // How much of stack this costs
+
+  // Multi-branch raise EV via evEngine (includes fold equity + call + reraise branches)
+  let raiseEV = null;
+  let bestActionEV = null;
+  if (hCards.length === 2) {
+    try {
+      const villainProfile = (opponents || []).length > 0 ? {
+        vpip: opponents[0].observedVpip || 0.25,
+        style: opponents[0].style || 'TAG',
+        position: opponents[0].position,
+        foldToCbet: 0.45,
+        af: 2.0,
+      } : {};
+      const evResult = calculateQuickEV(hCards, board, potSize, toCall, villainProfile, position, [], myChips);
+      bestActionEV = { action: evResult.bestAction, ev: evResult.bestEV, confidence: evResult.bestConfidence };
+      // Extract raise EV (best raise sizing available)
+      const raiseKeys = Object.keys(evResult.actions).filter(k => k.startsWith('raise_'));
+      if (raiseKeys.length > 0) {
+        const bestRaise = raiseKeys.reduce((best, k) =>
+          evResult.actions[k].ev > (evResult.actions[best]?.ev ?? -Infinity) ? k : best, raiseKeys[0]);
+        raiseEV = evResult.actions[bestRaise].ev;
+      }
+    } catch (e) {
+      // evEngine may fail on edge cases — fallback silently
+    }
+  }
+
   const isEVPositive = action === 'fold' ? false :
     action === 'call' ? evOfCall > 0 :
-    action === 'raise' ? equity > 0.35 : // Simplified
+    action === 'raise' ? (raiseEV != null ? raiseEV > 0 : equity > 0.35) :
     true;
+
+  // ICM-adjusted EV — chips worth more near money
+  let icmEV = null;
+  if (playersRemaining && totalPlayers) {
+    try {
+      const chipEVObj = { ev: evOfCall, confidence: 0.7, tier: 'quick' };
+      const icmResult = calculateTournamentEV(chipEVObj, {
+        playersRemaining, totalPlayers,
+        payingPlaces: Math.ceil(totalPlayers * 0.15),
+      });
+      icmEV = { blendedEV: icmResult.blendedEV, icmWeight: Math.round(icmResult.icmWeight * 100) / 100 };
+    } catch (e) {
+      // Fallback silently
+    }
+  }
 
   // GTO check — uses stack-aware EV
   let gtoAction = null;
@@ -195,6 +237,19 @@ export function recordDecision({
     gtoMatch = false;
   }
 
+  // draw_fold_error: folded a draw with correct pot odds
+  if (action === 'fold' && !mistakeType && draws?.drawType && draws.drawType !== 'none' &&
+      draws.drawType !== 'backdoor_flush' && toCall > 0 && evOfCall > 0) {
+    const evFraction = myChips > 0 ? evOfCall / myChips : 0;
+    if (evFraction > 0.01 || evOfCall > (blinds?.bb || 100) * 2) {
+      mistakeType = 'draw_fold_error';
+      mistakeSeverity = draws.isCombo ? 'critical' : draws.hasFlushDraw || draws.hasStraightDraw ? 'high' : 'medium';
+      evLost = Math.round(evOfCall);
+      gtoMatch = false;
+      gtoAction = 'call';
+    }
+  }
+
   // icm_error: calling too light on the bubble with significant stack risk
   if (isBubble && action === 'call' && equity < 0.55 && commitRatio > 0.3) {
     mistakeType = 'icm_error';
@@ -235,6 +290,9 @@ export function recordDecision({
     numOpponents,
     evOfCall: Math.round(evOfCall),
     commitRatio: Math.round(commitRatio * 100) / 100,
+    raiseEV,
+    bestActionEV,
+    icmEV,
     isEVPositive,
     boardTexture,
     draws,

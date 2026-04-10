@@ -703,7 +703,8 @@ function Game({ director, onExit }) {
         toCall: ha._toCall || 0,
         myChips: ha._myChips ?? hero.chips,             // Decision-time chips
         myBet: ha._myBet ?? ha.amount ?? 0,
-        opponents: gs.players?.filter(p => !p.isHero && !p.folded).map(p => ({
+        // Use decision-time opponent snapshot if available, fallback to end-of-hand
+        opponents: ha._opponents || gs.players?.filter(p => !p.isHero && !p.folded).map(p => ({
           name: p.name, position: p.position, chips: p.chips,
           style: p.profile?.style, observedVpip: p.profile?.vpip,
         })) || [],

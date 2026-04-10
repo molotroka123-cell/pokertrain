@@ -38,6 +38,8 @@ export function generateDebrief(records) {
   const patterns = detectPatterns(records);
   const positionStats = computePositionStats(records);
   const sessionStats = computeSessionStats(records);
+  const stageAnalysis = computeStageAnalysis(records);
+  const tiltIndicator = computeTiltIndicator(records);
 
   return {
     totalMistakes: mistakes.length,
@@ -49,6 +51,8 @@ export function generateDebrief(records) {
     patterns,
     positionStats,
     sessionStats,
+    stageAnalysis,
+    tiltIndicator,
     summary: generateSummary(mistakes),
   };
 }
@@ -90,6 +94,8 @@ function generateWhyExplanation(d) {
       return `Ты заколлировал с ${Math.round(d.equity * 100)}% equity — достаточно для рейза. Колл даёт дро дешёвые карты и не берёт вэлью с худших рук.`;
     case 'push_fold_error':
       return `С M=${d.mRatio} на ${d.position}, по Нэшу нужно пушить. На такой глубине стека фолд убивает — блайнды съедают стек.`;
+    case 'draw_fold_error':
+      return `Ты сфолдил ${d.draws?.drawType || 'дро'} (~${d.draws?.outs || '?'} аутов) с ${Math.round(d.equity * 100)}% equity при пот-оддсах ${Math.round(d.potOdds * 100)}%. Дро с правильной ценой нужно доигрывать.`;
     case 'icm_error':
       return `На баббле жизнь в турнире стоит дороже фишек. Даже если колл +chipEV, он -$EV — вылет тут стоит долю призового фонда.`;
     default:
@@ -99,6 +105,8 @@ function generateWhyExplanation(d) {
 
 function describeAlternative(d) {
   switch (d.mistakeType) {
+    case 'draw_fold_error':
+      return `Колл с ${d.draws?.drawType || 'дро'} выигрывает ~${Math.round(d.equity * 100)}% — достаточно для продолжения.`;
     case 'bad_fold':
       return `Колл выигрывает ~${Math.round(d.equity * 100)}% — прибыльно при этих шансах.`;
     case 'bad_call':
@@ -116,6 +124,7 @@ function describeAlternative(d) {
 
 function recommendDrill(mistakeType) {
   const map = {
+    'draw_fold_error': { drill: 'Pot Odds Drill', icon: '🎯', focus: 'Practice continuing with draws when getting the right price' },
     'bad_fold': { drill: 'RFI Drill / Pot Odds', icon: '🎯', focus: 'Practice calling spots with correct odds' },
     'bad_call': { drill: 'Pot Odds Quiz', icon: '🧮', focus: 'Learn when to fold based on equity vs odds' },
     'too_passive': { drill: 'Bet Sizing Drill', icon: '📏', focus: 'Practice value betting with strong hands' },
@@ -189,6 +198,79 @@ function detectPatterns(records) {
     }
   }
 
+  // Multi-street паттерн: потеря инициативы (рейзил префлоп → чекнул флоп → сфолдил)
+  const pfRaisers = new Set(pf.filter(r => r.action === 'raise').map(r => r.handNumber));
+  if (pfRaisers.size > 10) {
+    let lostInitCount = 0;
+    for (const handNum of pfRaisers) {
+      const handRecs = records.filter(r => r.handNumber === handNum);
+      const flopRec = handRecs.find(r => r.stage === 'flop');
+      const turnRec = handRecs.find(r => r.stage === 'turn');
+      // Opened preflop but checked/folded flop
+      if (flopRec && (flopRec.action === 'check' || flopRec.action === 'fold')) {
+        lostInitCount++;
+      }
+    }
+    const lostInitRate = lostInitCount / pfRaisers.size;
+    if (lostInitRate > 0.50) {
+      patterns.push({
+        type: 'lost_initiative',
+        message: `В ${Math.round(lostInitRate * 100)}% рук после префлоп-рейза ты сдаёшь инициативу на флопе (чек/фолд). Ставь c-bet чаще.`,
+        severity: 'high',
+      });
+    }
+  }
+
+  // Multi-street паттерн: check-call-fold (колл флоп → колл тёрн → фолд ривер)
+  const handNums = [...new Set(records.map(r => r.handNumber))];
+  let ccfCount = 0;
+  let multiStreetHands = 0;
+  for (const hn of handNums) {
+    const handRecs = records.filter(r => r.handNumber === hn);
+    if (handRecs.length < 3) continue;
+    const stages = handRecs.map(r => ({ stage: r.stage, action: r.action }));
+    const flopAct = stages.find(s => s.stage === 'flop');
+    const turnAct = stages.find(s => s.stage === 'turn');
+    const riverAct = stages.find(s => s.stage === 'river');
+    if (flopAct && turnAct) multiStreetHands++;
+    if (flopAct?.action === 'call' && turnAct?.action === 'call' && riverAct?.action === 'fold') {
+      ccfCount++;
+    }
+  }
+  if (multiStreetHands > 10 && ccfCount / multiStreetHands > 0.15) {
+    patterns.push({
+      type: 'check_call_fold',
+      message: `В ${Math.round(ccfCount / multiStreetHands * 100)}% мульти-стрит рук ты коллишь флоп+тёрн и фолдишь ривер. Либо фолди раньше, либо доигрывай до конца.`,
+      severity: 'high',
+    });
+  }
+
+  // Draw-aware паттерн: фолдишь дро с правильной ценой
+  const drawFolds = records.filter(r =>
+    r.action === 'fold' && r.draws?.drawType && r.draws.drawType !== 'none' &&
+    r.draws.drawType !== 'backdoor_flush' && r.toCall > 0 && r.evOfCall > 0
+  );
+  if (drawFolds.length >= 3) {
+    patterns.push({
+      type: 'folding_draws_with_odds',
+      message: `Ты сфолдил ${drawFolds.length} дро с правильной ценой. Дро с достаточными шансами нужно доигрывать.`,
+      severity: 'high',
+    });
+  }
+
+  // Draw-aware паттерн: переплачиваешь за дро
+  const drawOverpays = records.filter(r =>
+    r.action === 'call' && r.draws?.drawType && r.draws.drawType !== 'none' &&
+    r.draws.drawType !== 'backdoor_flush' && r.toCall > 0 && r.evOfCall < 0
+  );
+  if (drawOverpays.length >= 3) {
+    patterns.push({
+      type: 'overpaying_draws',
+      message: `Ты переплатил за ${drawOverpays.length} дро без правильной цены. Не все дро стоят колла — считай шансы банка.`,
+      severity: 'medium',
+    });
+  }
+
   return patterns;
 }
 
@@ -203,6 +285,7 @@ function generateSummary(mistakes) {
 
   const biggest = Object.entries(types).sort((a, b) => b[1] - a[1])[0];
   const messages = {
+    draw_fold_error: 'Главная утечка: фолдишь дро с правильной ценой. Считай ауты и шансы банка.',
     bad_fold: 'Главная утечка: слишком много фолдов в прибыльных ситуациях. Ты оставляешь фишки на столе.',
     bad_call: 'Главная утечка: коллируешь без достаточной equity. Учись отпускать маргинальные руки.',
     too_passive: 'Главная утечка: пассивная игра с сильными руками. Рейзь больше для вэлью.',
@@ -300,5 +383,129 @@ function computeSessionStats(records) {
   const foldToCbetCount = flopFacingBet.filter(r => r.action === 'fold').length;
   const foldToCbet = flopFacingBet.length > 0 ? Math.round((foldToCbetCount / flopFacingBet.length) * 100) : 0;
 
-  return { vpip, pfr, af, wtsd, cbet, foldToCbet, totalHands };
+  // W$SD%: won money at showdown (of hands that went to showdown)
+  const showdownWins = new Set();
+  for (const r of records) {
+    if (handsWithShowdown.has(r.handNumber) && r.handResult === 'won') showdownWins.add(r.handNumber);
+  }
+  const wsd = handsWithShowdown.size > 0 ? Math.round((showdownWins.size / handsWithShowdown.size) * 100) : 0;
+
+  return { vpip, pfr, af, wtsd, wsd, cbet, foldToCbet, totalHands };
+}
+
+// Tournament stage dynamics — how play changes across early/mid/late/bubble/FT
+function computeStageAnalysis(records) {
+  if (records.length === 0) return null;
+
+  // Classify each record into a tournament stage
+  function getStage(r) {
+    if (r.isFinalTable) return 'final_table';
+    if (r.isBubble) return 'bubble';
+    if (!r.playersRemaining || !r.totalPlayers) return 'unknown';
+    const pct = r.playersRemaining / r.totalPlayers;
+    if (pct > 0.65) return 'early';
+    if (pct > 0.35) return 'middle';
+    return 'late';
+  }
+
+  const stages = {};
+  for (const r of records) {
+    const stage = getStage(r);
+    if (!stages[stage]) stages[stage] = [];
+    stages[stage].push(r);
+  }
+
+  const result = {};
+  for (const [stage, recs] of Object.entries(stages)) {
+    // Dedup preflop by hand within this stage
+    const pfByHand = new Map();
+    for (const r of recs) {
+      if (r.stage === 'preflop' && !pfByHand.has(r.handNumber)) {
+        pfByHand.set(r.handNumber, r);
+      }
+    }
+    const pfUnique = [...pfByHand.values()];
+    const hands = pfUnique.length;
+    if (hands === 0) continue;
+
+    const vpip = Math.round(pfUnique.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length / hands * 100);
+    const pfr = Math.round(pfUnique.filter(r => r.action === 'raise').length / hands * 100);
+    const mistakes = recs.filter(r => r.mistakeType).length;
+    const evLost = recs.filter(r => r.mistakeType).reduce((a, r) => a + (r.evLost || 0), 0);
+    const avgM = pfUnique.reduce((a, r) => a + (r.mRatio || 0), 0) / hands;
+
+    result[stage] = { hands, vpip, pfr, mistakes, evLost: Math.round(evLost), avgM: Math.round(avgM * 10) / 10 };
+  }
+  return result;
+}
+
+// Tilt indicator — decision speed trends after losses (JSON data only, no UI)
+function computeTiltIndicator(records) {
+  if (records.length < 10) return null;
+
+  // Group records by hand, track decision times and results chronologically
+  const handMap = new Map();
+  for (const r of records) {
+    if (!handMap.has(r.handNumber)) handMap.set(r.handNumber, []);
+    handMap.get(r.handNumber).push(r);
+  }
+
+  const handOrder = [...handMap.keys()].sort((a, b) => a - b);
+  const handData = handOrder.map(hn => {
+    const recs = handMap.get(hn);
+    const avgTime = recs.reduce((a, r) => a + (r.decisionTimeMs || 0), 0) / recs.length;
+    const result = recs[recs.length - 1]?.handResult;
+    const hasMistake = recs.some(r => r.mistakeType);
+    return { handNumber: hn, avgDecisionMs: Math.round(avgTime), result, hasMistake };
+  });
+
+  // Detect tilt windows: 3+ consecutive losses followed by faster decisions + more mistakes
+  const windows = [];
+  for (let i = 2; i < handData.length; i++) {
+    // Check for 3+ loss streak ending at i
+    let lossStreak = 0;
+    for (let j = i; j >= 0 && handData[j].result === 'lost'; j--) lossStreak++;
+    if (lossStreak < 3) continue;
+
+    // Check next 5 hands after the loss streak
+    const afterStart = i + 1;
+    const afterEnd = Math.min(afterStart + 5, handData.length);
+    const afterHands = handData.slice(afterStart, afterEnd);
+    if (afterHands.length < 2) continue;
+
+    const beforeAvgTime = handData.slice(Math.max(0, i - lossStreak - 5), i - lossStreak).reduce((a, h) => a + h.avgDecisionMs, 0) /
+      Math.max(1, Math.min(5, i - lossStreak));
+    const afterAvgTime = afterHands.reduce((a, h) => a + h.avgDecisionMs, 0) / afterHands.length;
+    const afterMistakes = afterHands.filter(h => h.hasMistake).length;
+
+    // Tilt signal: decisions got faster AND mistakes increased
+    const speedup = beforeAvgTime > 0 ? (beforeAvgTime - afterAvgTime) / beforeAvgTime : 0;
+    if (speedup > 0.20 && afterMistakes >= 2) {
+      windows.push({
+        lossStreakStart: handData[i - lossStreak + 1].handNumber,
+        lossStreakEnd: handData[i].handNumber,
+        lossStreakLength: lossStreak,
+        speedupPct: Math.round(speedup * 100),
+        mistakesAfter: afterMistakes,
+        handsAfter: afterHands.length,
+      });
+    }
+  }
+
+  // Overall stats
+  const allTimes = handData.filter(h => h.avgDecisionMs > 0).map(h => h.avgDecisionMs);
+  const avgDecisionTime = allTimes.length > 0 ? Math.round(allTimes.reduce((a, t) => a + t, 0) / allTimes.length) : 0;
+
+  // Decision time trend (first half vs second half)
+  const mid = Math.floor(allTimes.length / 2);
+  const firstHalfAvg = mid > 0 ? Math.round(allTimes.slice(0, mid).reduce((a, t) => a + t, 0) / mid) : 0;
+  const secondHalfAvg = mid > 0 ? Math.round(allTimes.slice(mid).reduce((a, t) => a + t, 0) / (allTimes.length - mid)) : 0;
+
+  return {
+    avgDecisionTimeMs: avgDecisionTime,
+    decisionTimeTrend: { firstHalf: firstHalfAvg, secondHalf: secondHalfAvg },
+    tiltWindows: windows,
+    tiltDetected: windows.length > 0,
+    handData, // Full per-hand timeline for analysis
+  };
 }
