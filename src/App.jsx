@@ -1,208 +1,280 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { TournamentDirector } from './tournament/TournamentDirector.js';
 import { FORMATS } from './data/tournamentFormats.js';
-import { freshDeck, deal, cardName } from './engine/deck.js';
-import { evaluateHand, compareHands } from './engine/evaluator.js';
-import { handStrength as calcHandStrength, potOdds, mRatio } from './engine/equity.js';
-import { getHandValue, handString, isInOpenRange } from './engine/ranges.js';
-import { BaseAI, POSITIONS_9 } from './engine/ai.js';
+import { GameEngine, PHASE } from './engine/GameEngine.js';
 import { AdaptiveAI } from './engine/adaptiveAI.js';
-import Table from './tournament/Table.jsx';
+import { mRatio } from './engine/equity.js';
+import Card from './components/Card.jsx';
 import Controls from './tournament/Controls.jsx';
 import TournamentDashboard from './tournament/TournamentDashboard.jsx';
-import HandLog from './tournament/HandLog.jsx';
 
-const app = {
-  minHeight: '100vh',
-  background: 'linear-gradient(180deg, #0a0d12 0%, #151b28 100%)',
-  color: '#e0e0e0',
-  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace",
-  maxWidth: '500px',
-  margin: '0 auto',
+// ──── STYLES ────
+const S = {
+  app: {
+    minHeight: '100vh',
+    background: 'linear-gradient(180deg, #0a0d12 0%, #151b28 100%)',
+    color: '#e0e0e0',
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace",
+    maxWidth: '500px',
+    margin: '0 auto',
+    overflow: 'hidden',
+  },
+  header: {
+    padding: '10px 16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottom: '1px solid #1e2a3a',
+    background: '#0a0d12',
+  },
+  hud: {
+    display: 'flex',
+    justifyContent: 'space-around',
+    padding: '6px 8px',
+    background: '#0d1118',
+    borderBottom: '1px solid #1a2230',
+    fontSize: '11px',
+  },
+  hudItem: { textAlign: 'center', flex: 1 },
+  hudLabel: { color: '#6b7b8d', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  hudVal: { fontWeight: 700, fontSize: '13px' },
 };
-const header = {
-  padding: '12px 16px',
-  textAlign: 'center',
-  borderBottom: '1px solid #1e2a3a',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
-const hudBar = {
-  display: 'flex',
-  justifyContent: 'space-around',
-  padding: '8px 12px',
-  background: '#0d1118',
-  borderBottom: '1px solid #1a2230',
-  fontSize: '11px',
-};
-const hudItem = { textAlign: 'center' };
-const hudLabel = { color: '#6b7b8d', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.5px' };
-const hudValue = { color: '#ffd700', fontWeight: 700, fontSize: '14px' };
 
-// ──── LOBBY SCREEN ────
-function Lobby({ onStart }) {
-  const [selectedFormat, setFormat] = useState('WSOP_Main');
-  const [heroName, setHeroName] = useState('');
-
-  return (
-    <div style={app}>
-      <div style={{ padding: '16px', textAlign: 'center' }}>
-        <div style={{ fontSize: '28px', fontWeight: 800, color: '#ffd700', letterSpacing: '2px', marginTop: '40px' }}>
-          WSOP POKER TRAINER
-        </div>
-        <div style={{ fontSize: '13px', color: '#6b7b8d', marginTop: '6px' }}>v3.0 — Full Tournament Emulator</div>
-      </div>
-
-      <div style={{ padding: '20px' }}>
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '12px', color: '#8899aa', display: 'block', marginBottom: '6px' }}>Your Name</label>
-          <input
-            value={heroName}
-            onChange={e => setHeroName(e.target.value)}
-            placeholder="Hero"
-            style={{
-              width: '100%', padding: '12px', background: '#111820', border: '1px solid #2a3a4a',
-              borderRadius: '8px', color: '#e0e0e0', fontSize: '16px', outline: 'none',
-            }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '12px', color: '#8899aa', display: 'block', marginBottom: '6px' }}>Tournament Format</label>
-          {Object.entries(FORMATS).map(([key, fmt]) => (
-            <div
-              key={key}
-              onClick={() => setFormat(key)}
-              style={{
-                padding: '14px', background: selectedFormat === key ? '#1a3a5c' : '#111820',
-                border: `1px solid ${selectedFormat === key ? '#2a6a9a' : '#1e2a3a'}`,
-                borderRadius: '10px', marginBottom: '8px', cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              <div style={{ fontWeight: 700, fontSize: '14px', color: selectedFormat === key ? '#ffd700' : '#c0d0e0' }}>
-                {fmt.name}
-              </div>
-              <div style={{ fontSize: '12px', color: '#6b7b8d', marginTop: '4px' }}>
-                {fmt.players} players — {fmt.startingChips.toLocaleString()} chips — ${fmt.buyIn.toLocaleString()} buy-in
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <button
-          onClick={() => onStart(selectedFormat, heroName || 'Hero')}
-          style={{
-            width: '100%', padding: '16px', background: 'linear-gradient(135deg, #1a5c3a, #27ae60)',
-            border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 800,
-            fontSize: '18px', cursor: 'pointer', letterSpacing: '1px',
-          }}
-        >
-          START TOURNAMENT
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ──── HUD BAR ────
-function HUDBar({ heroChips, pot, equity, potOddsVal, mVal, position, stage }) {
-  return (
-    <div style={hudBar}>
-      <div style={hudItem}>
-        <div style={hudLabel}>Stack</div>
-        <div style={hudValue}>{formatChips(heroChips)}</div>
-      </div>
-      <div style={hudItem}>
-        <div style={hudLabel}>Pot</div>
-        <div style={{ ...hudValue, color: '#e0e0e0' }}>{formatChips(pot)}</div>
-      </div>
-      <div style={hudItem}>
-        <div style={hudLabel}>Equity</div>
-        <div style={{ ...hudValue, color: equity > 0.5 ? '#27ae60' : '#e74c3c' }}>
-          {equity > 0 ? (equity * 100).toFixed(0) + '%' : '—'}
-        </div>
-      </div>
-      <div style={hudItem}>
-        <div style={hudLabel}>Pot Odds</div>
-        <div style={{ ...hudValue, color: '#c0d0e0' }}>
-          {potOddsVal > 0 ? (potOddsVal * 100).toFixed(0) + '%' : '—'}
-        </div>
-      </div>
-      <div style={hudItem}>
-        <div style={hudLabel}>M</div>
-        <div style={{ ...hudValue, color: mVal < 10 ? '#e74c3c' : mVal < 20 ? '#f39c12' : '#27ae60' }}>
-          {mVal.toFixed(0)}
-        </div>
-      </div>
-      <div style={hudItem}>
-        <div style={hudLabel}>Pos</div>
-        <div style={{ ...hudValue, color: '#8899aa', fontSize: '12px' }}>{position}</div>
-      </div>
-    </div>
-  );
-}
-
-function formatChips(n) {
+function fmt(n) {
   if (!n && n !== 0) return '0';
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
   if (n >= 10000) return (n / 1000).toFixed(1) + 'K';
   return n.toLocaleString();
 }
 
-// ──── GAME POSITIONS ────
-function getPositions(numPlayers, dealerIdx) {
-  const positions = new Array(numPlayers).fill('');
-  positions[dealerIdx] = 'BTN';
-  positions[(dealerIdx + 1) % numPlayers] = 'SB';
-  positions[(dealerIdx + 2) % numPlayers] = 'BB';
-  const remaining = numPlayers - 3;
-  for (let i = 0; i < remaining; i++) {
-    const seat = (dealerIdx + 3 + i) % numPlayers;
-    if (i === 0) positions[seat] = 'UTG';
-    else if (i === remaining - 1) positions[seat] = 'CO';
-    else if (i === remaining - 2 && remaining > 2) positions[seat] = 'HJ';
-    else if (i === 1 && remaining > 3) positions[seat] = 'UTG+1';
-    else positions[seat] = 'MP';
-  }
-  return positions;
+// ────────────────────────────────────
+// LOBBY
+// ────────────────────────────────────
+function Lobby({ onStart }) {
+  const [format, setFormat] = useState('WSOP_Main');
+  const [name, setName] = useState('');
+
+  return (
+    <div style={S.app}>
+      <div style={{ padding: '16px', textAlign: 'center' }}>
+        <div style={{ fontSize: '28px', fontWeight: 800, color: '#ffd700', marginTop: '40px', letterSpacing: '2px' }}>
+          WSOP POKER TRAINER
+        </div>
+        <div style={{ fontSize: '13px', color: '#6b7b8d', marginTop: '6px' }}>v3.0 — Full Tournament Emulator</div>
+      </div>
+      <div style={{ padding: '20px' }}>
+        <label style={{ fontSize: '12px', color: '#8899aa', display: 'block', marginBottom: '6px' }}>Your Name</label>
+        <input
+          value={name} onChange={e => setName(e.target.value)} placeholder="Hero"
+          style={{
+            width: '100%', padding: '12px', background: '#111820', border: '1px solid #2a3a4a',
+            borderRadius: '8px', color: '#e0e0e0', fontSize: '16px', outline: 'none', marginBottom: '16px',
+            boxSizing: 'border-box',
+          }}
+        />
+        <label style={{ fontSize: '12px', color: '#8899aa', display: 'block', marginBottom: '6px' }}>Tournament</label>
+        {Object.entries(FORMATS).map(([key, f]) => (
+          <div key={key} onClick={() => setFormat(key)} style={{
+            padding: '14px', background: format === key ? '#1a3a5c' : '#111820',
+            border: `1px solid ${format === key ? '#2a6a9a' : '#1e2a3a'}`,
+            borderRadius: '10px', marginBottom: '8px', cursor: 'pointer',
+          }}>
+            <div style={{ fontWeight: 700, color: format === key ? '#ffd700' : '#c0d0e0' }}>{f.name}</div>
+            <div style={{ fontSize: '12px', color: '#6b7b8d', marginTop: '4px' }}>
+              {f.players} players — {f.startingChips.toLocaleString()} chips — ${f.buyIn.toLocaleString()}
+            </div>
+          </div>
+        ))}
+        <button onClick={() => onStart(format, name || 'Hero')} style={{
+          width: '100%', padding: '16px', background: 'linear-gradient(135deg, #1a5c3a, #27ae60)',
+          border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 800, fontSize: '18px',
+          cursor: 'pointer', marginTop: '8px',
+        }}>START TOURNAMENT</button>
+      </div>
+    </div>
+  );
 }
 
-// ──── MAIN GAME ────
+// ────────────────────────────────────
+// TABLE FELT
+// ────────────────────────────────────
+const SEATS = [
+  { left: '50%', top: '88%' },
+  { left: '12%', top: '72%' },
+  { left: '3%',  top: '45%' },
+  { left: '12%', top: '20%' },
+  { left: '35%', top: '5%' },
+  { left: '65%', top: '5%' },
+  { left: '88%', top: '20%' },
+  { left: '97%', top: '45%' },
+  { left: '88%', top: '72%' },
+];
+
+function TableView({ gs }) {
+  if (!gs || !gs.players) return null;
+
+  const heroIdx = gs.heroIndex;
+  const showdown = gs.phase === 'showdown';
+  const showdownMap = {};
+  if (showdown && gs.showdownResults) {
+    for (const r of gs.showdownResults) {
+      showdownMap[r.player.id] = r;
+    }
+  }
+
+  // Reorder: hero at seat 0
+  const seated = [];
+  for (let i = 0; i < gs.players.length; i++) {
+    seated.push(gs.players[(heroIdx + i) % gs.players.length]);
+  }
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '370px', maxWidth: '500px', margin: '0 auto' }}>
+      {/* Felt */}
+      <div style={{
+        position: 'absolute', top: '14%', left: '10%', width: '80%', height: '62%',
+        background: 'radial-gradient(ellipse, #1a5c3a 0%, #0d3d24 70%, #0a2d1a 100%)',
+        borderRadius: '120px', border: '4px solid #2a7a4a',
+        boxShadow: '0 0 40px rgba(0,0,0,0.5), inset 0 0 30px rgba(0,0,0,0.3)',
+      }} />
+
+      {/* Pot */}
+      {gs.pot > 0 && (
+        <div style={{ position: 'absolute', top: '34%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center', zIndex: 5 }}>
+          <div style={{ fontSize: '10px', color: '#8ca88c', letterSpacing: '1px' }}>POT</div>
+          <div style={{ fontSize: '20px', fontWeight: 800, color: '#ffd700' }}>{fmt(gs.pot)}</div>
+        </div>
+      )}
+
+      {/* Community */}
+      {gs.community.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          display: 'flex', gap: '4px', zIndex: 5,
+        }}>
+          {gs.community.map((c, i) => <Card key={i} card={c} mini delay={i * 120} />)}
+        </div>
+      )}
+
+      {/* Seats */}
+      {seated.map((p, seatI) => {
+        if (!p || p.folded) return null;
+        const pos = SEATS[seatI % SEATS.length];
+        const isHero = seatI === 0;
+        const sdResult = showdownMap[p.id];
+        const isWinner = gs.winner && gs.winner.id === p.id;
+        const isDealer = gs.players.indexOf(p) === gs.dealerIdx;
+
+        return (
+          <div key={p.id} style={{
+            position: 'absolute', left: pos.left, top: pos.top,
+            transform: 'translate(-50%, -50%)', textAlign: 'center', width: '72px', zIndex: 10,
+            ...(isHero ? { padding: '4px', borderRadius: '10px', background: 'rgba(255,215,0,0.06)', boxShadow: '0 0 12px rgba(255,215,0,0.15)' } : {}),
+            ...(isWinner ? { boxShadow: '0 0 16px rgba(255,215,0,0.5)', borderRadius: '10px', padding: '4px', background: 'rgba(255,215,0,0.1)' } : {}),
+          }}>
+            {/* Position label */}
+            <div style={{ fontSize: '9px', color: '#6b8fa3', fontWeight: 600 }}>{p.position}</div>
+            {/* Name */}
+            <div style={{ fontSize: '10px', color: isHero ? '#ffd700' : '#a0b0c0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {p.emoji || ''} {isHero ? 'Hero' : p.name}
+            </div>
+            {/* Cards */}
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '2px 0', minHeight: '36px' }}>
+              {isHero && gs.heroCards.length > 0 ? (
+                gs.heroCards.map((c, ci) => <Card key={ci} card={c} mini delay={ci * 200} />)
+              ) : showdown && sdResult?.cards ? (
+                sdResult.cards.map((c, ci) => <Card key={ci} card={c} mini delay={ci * 100} />)
+              ) : !isHero ? (
+                <><Card card="Xx" faceDown mini /><Card card="Xx" faceDown mini /></>
+              ) : null}
+            </div>
+            {/* Hand name at showdown */}
+            {showdown && sdResult?.hand && (
+              <div style={{ fontSize: '9px', color: isWinner ? '#ffd700' : '#8899aa', fontWeight: 600 }}>
+                {sdResult.hand.name}
+              </div>
+            )}
+            {/* Chips */}
+            <div style={{ fontSize: '11px', fontWeight: 700, color: isWinner ? '#ffd700' : '#ffd700' }}>
+              {fmt(p.chips)}
+            </div>
+            {/* Current bet */}
+            {p.bet > 0 && (
+              <div style={{ fontSize: '10px', color: '#4caf50', fontWeight: 600 }}>{fmt(p.bet)}</div>
+            )}
+            {/* All-in badge */}
+            {p.allIn && (
+              <div style={{ fontSize: '9px', color: '#e74c3c', fontWeight: 700 }}>ALL-IN</div>
+            )}
+            {/* Dealer chip */}
+            {isDealer && (
+              <div style={{
+                position: 'absolute', top: '-4px', right: '-4px', width: '18px', height: '18px',
+                borderRadius: '50%', background: '#ffd700', color: '#000', fontSize: '10px', fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>D</div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Winner announcement */}
+      {gs.phase === 'showdown' && gs.winner && (
+        <div style={{
+          position: 'absolute', bottom: '2%', left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.85)', padding: '8px 20px', borderRadius: '20px',
+          fontSize: '14px', fontWeight: 700, color: '#ffd700', whiteSpace: 'nowrap', zIndex: 20,
+          border: '1px solid #ffd700',
+        }}>
+          {gs.winner.isHero ? 'You win' : gs.winner.name + ' wins'} {fmt(gs.potWon)}!
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────
+// HAND LOG
+// ────────────────────────────────────
+function HandLog({ entries }) {
+  if (!entries || entries.length === 0) return null;
+
+  const actionColor = { fold: '#c0392b', check: '#2980b9', call: '#27ae60', raise: '#f39c12', win: '#ffd700' };
+
+  return (
+    <div style={{
+      background: '#111820', borderRadius: '10px', padding: '10px 12px', margin: '8px 12px',
+      border: '1px solid #1e2a3a', maxHeight: '160px', overflowY: 'auto',
+    }}>
+      <div style={{ fontSize: '11px', color: '#6b7b8d', fontWeight: 600, marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '1px' }}>Hand Log</div>
+      {entries.slice(-15).reverse().map((e, i) => (
+        <div key={i} style={{
+          fontSize: '12px', color: '#a0b0c0', padding: '2px 0', borderBottom: '1px solid #0d1118',
+          ...(e.isHero ? { background: 'rgba(255,215,0,0.04)', borderRadius: '3px', padding: '2px 4px', margin: '0 -4px' } : {}),
+        }}>
+          {e.text}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ────────────────────────────────────
+// MAIN GAME
+// ────────────────────────────────────
 function Game({ director, onExit }) {
-  const [view, setView] = useState('table'); // 'table' | 'dashboard'
-  const [gameState, setGameState] = useState(null);
-  const [handPhase, setHandPhase] = useState('waiting'); // waiting, preflop, flop, turn, river, showdown
-  const [deck, setDeck] = useState([]);
-  const [heroCards, setHeroCards] = useState([]);
-  const [community, setCommunity] = useState([]);
-  const [pot, setPot] = useState(0);
-  const [bets, setBets] = useState({});
-  const [currentBet, setCurrentBet] = useState(0);
-  const [heroEquity, setHeroEquity] = useState(0);
-  const [handLog, setHandLog] = useState([]);
-  const [heroPosition, setHeroPosition] = useState('');
-  const [waitingForAction, setWaitingForAction] = useState(false);
+  const [view, setView] = useState('table');
+  const [tournState, setTourn] = useState(() => director.getState());
+  const [gs, setGs] = useState(null); // game engine state
+  const [handActive, setHandActive] = useState(false);
 
-  const directorRef = useRef(director);
+  const dirRef = useRef(director);
+  const engineRef = useRef(new GameEngine());
   const aiBotsRef = useRef({});
-  const handInProgressRef = useRef(false);
-
-  // Background simulation ticker
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!handInProgressRef.current) {
-        directorRef.current.simulateBackgroundTick(3);
-      }
-      setGameState(directorRef.current.getState());
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Init AI bots for hero table
   useEffect(() => {
-    const state = directorRef.current.getState();
+    const state = dirRef.current.getState();
     if (state.heroTable) {
       const bots = {};
       for (const p of state.heroTable.players) {
@@ -212,440 +284,185 @@ function Game({ director, onExit }) {
       }
       aiBotsRef.current = bots;
     }
-    setGameState(state);
   }, []);
 
-  // ──── PLAY A HAND ────
+  // Background sim
+  useEffect(() => {
+    const iv = setInterval(() => {
+      dirRef.current.simulateBackgroundTick(3);
+      dirRef.current.checkBlindLevel();
+      setTourn(dirRef.current.getState());
+    }, 4000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Play one hand
   const playHand = useCallback(async () => {
-    if (handInProgressRef.current) return;
-    handInProgressRef.current = true;
+    if (handActive) return;
+    setHandActive(true);
 
-    const state = directorRef.current.getState();
-    if (!state.heroTable || state.heroEliminated) return;
+    const tState = dirRef.current.getState();
+    if (!tState.heroTable || tState.heroEliminated) { setHandActive(false); return; }
 
-    const tablePlayers = state.heroTable.players.filter(p => !p.eliminated);
-    if (tablePlayers.length < 2) return;
+    const tablePlayers = tState.heroTable.players.filter(p => !p.eliminated && p.chips > 0);
+    if (tablePlayers.length < 2) { setHandActive(false); return; }
 
-    const d = freshDeck();
-    const blinds = state.blinds;
-    const dealerIdx = state.heroTable.dealer % tablePlayers.length;
-    const positions = getPositions(tablePlayers.length, dealerIdx);
-    const heroIdx = tablePlayers.findIndex(p => p.isHero);
-    const heroPos = positions[heroIdx];
+    const engine = engineRef.current;
+    const blinds = tState.blinds;
+    const dealer = tState.heroTable.dealer % tablePlayers.length;
 
-    setHeroPosition(heroPos);
+    const ok = engine.startHand(tablePlayers, dealer, blinds, aiBotsRef.current);
+    if (!ok) { setHandActive(false); return; }
 
-    // Deal hole cards
-    const allHoleCards = {};
-    for (const p of tablePlayers) {
-      allHoleCards[p.id] = deal(d, 2);
-    }
-    const hCards = allHoleCards[tablePlayers[heroIdx].id];
-    setHeroCards(hCards);
-    setDeck(d);
-    setCommunity([]);
-    setHandPhase('preflop');
+    setGs(engine.getState());
 
-    // Post blinds
-    let potTotal = 0;
-    const betState = {};
-    const sbIdx = (dealerIdx + 1) % tablePlayers.length;
-    const bbIdx = (dealerIdx + 2) % tablePlayers.length;
-    const sbPlayer = tablePlayers[sbIdx];
-    const bbPlayer = tablePlayers[bbIdx];
-
-    const sbAmount = Math.min(blinds.sb, sbPlayer.chips);
-    const bbAmount = Math.min(blinds.bb, bbPlayer.chips);
-    sbPlayer.chips -= sbAmount;
-    bbPlayer.chips -= bbAmount;
-    betState[sbPlayer.id] = sbAmount;
-    betState[bbPlayer.id] = bbAmount;
-    potTotal += sbAmount + bbAmount;
-
-    // Antes
-    if (blinds.ante > 0) {
-      for (const p of tablePlayers) {
-        const ante = Math.min(blinds.ante, p.chips);
-        p.chips -= ante;
-        potTotal += ante;
-      }
-    }
-
-    setPot(potTotal);
-    setBets(betState);
-    setCurrentBet(bbAmount);
-
-    // Estimate equity
-    const eq = 1 - getHandValue(hCards[0], hCards[1]);
-    setHeroEquity(eq);
-
-    const newLog = [];
-
-    // ──── BETTING ROUND ────
-    async function bettingRound(stageName, board, startIdx) {
-      let cBet = stageName === 'preflop' ? bbAmount : 0;
-      const roundBets = stageName === 'preflop' ? { ...betState } : {};
-      let lastRaiser = -1;
-      let actionsRemaining = tablePlayers.length;
-      let idx = startIdx;
-      const folded = new Set();
-
-      for (let actions = 0; actions < tablePlayers.length * 3; actions++) {
-        if (actionsRemaining <= 0) break;
-        const player = tablePlayers[idx % tablePlayers.length];
-        idx++;
-
-        if (folded.has(player.id) || player.eliminated || player.chips <= 0) continue;
-        if (tablePlayers.filter(p => !folded.has(p.id) && !p.eliminated).length <= 1) break;
-
-        const toCall = cBet - (roundBets[player.id] || 0);
-        const pos = positions[tablePlayers.indexOf(player)];
-
-        if (player.isHero) {
-          // Hero's turn — wait for input
-          const canCheck = toCall <= 0;
-          const minRaise = Math.min(cBet + blinds.bb, player.chips);
-
-          setWaitingForAction(true);
-          const action = await new Promise(resolve => {
-            window.__heroResolve = resolve;
-          });
-          setWaitingForAction(false);
-
-          if (action.action === 'fold') {
-            folded.add(player.id);
-            newLog.push({ name: 'Hero', position: pos, action: 'fold', isHero: true });
-          } else if (action.action === 'check') {
-            newLog.push({ name: 'Hero', position: pos, action: 'check', isHero: true });
-          } else if (action.action === 'call') {
-            const callAmt = Math.min(toCall, player.chips);
-            player.chips -= callAmt;
-            roundBets[player.id] = (roundBets[player.id] || 0) + callAmt;
-            potTotal += callAmt;
-            newLog.push({ name: 'Hero', position: pos, action: 'call', amount: callAmt, isHero: true });
-          } else if (action.action === 'raise') {
-            const raiseAmt = Math.min(action.amount || minRaise, player.chips);
-            const addedToPot = raiseAmt - (roundBets[player.id] || 0);
-            player.chips -= addedToPot;
-            roundBets[player.id] = raiseAmt;
-            potTotal += addedToPot;
-            cBet = raiseAmt;
-            lastRaiser = tablePlayers.indexOf(player);
-            actionsRemaining = tablePlayers.length - 1;
-            newLog.push({ name: 'Hero', position: pos, action: 'raise', amount: raiseAmt, isHero: true });
-          }
-
-          // Notify adaptive AI
-          for (const bot of Object.values(aiBotsRef.current)) {
-            bot.observeHeroAction(action.action, {
-              stage: stageName,
-              position: pos,
-              facingCbet: cBet > 0 && stageName !== 'preflop',
-              facing3Bet: false,
-              facingBet: toCall > 0,
-            });
-          }
-        } else {
-          // AI turn
-          const ai = aiBotsRef.current[player.id];
-          if (!ai) { idx++; continue; }
-
-          const gs = {
-            stage: stageName,
-            holeCards: allHoleCards[player.id],
-            community: board,
-            pot: potTotal,
-            toCall,
-            myChips: player.chips,
-            position: pos,
-            bigBlind: blinds.bb,
-            smallBlind: blinds.sb,
-            ante: blinds.ante,
-            playersInHand: tablePlayers.length - folded.size,
-            playersAtTable: tablePlayers.length,
-            currentBet: cBet,
-            handStrength: 0.5,
-          };
-
-          // Quick hand strength for AI
-          if (board.length > 0) {
-            const eval_ = evaluateHand(allHoleCards[player.id], board);
-            gs.handStrength = eval_ ? Math.min(1, eval_.rank / 10) : 0.5;
-          } else {
-            gs.handStrength = 1 - getHandValue(allHoleCards[player.id][0], allHoleCards[player.id][1]);
-          }
-
-          const decision = ai.decide(gs);
-
-          if (decision.action === 'fold') {
-            folded.add(player.id);
-            newLog.push({ name: player.name, position: pos, action: 'fold' });
-          } else if (decision.action === 'check') {
-            newLog.push({ name: player.name, position: pos, action: 'check' });
-          } else if (decision.action === 'call') {
-            const callAmt = Math.min(toCall, player.chips);
-            player.chips -= callAmt;
-            roundBets[player.id] = (roundBets[player.id] || 0) + callAmt;
-            potTotal += callAmt;
-            newLog.push({ name: player.name, position: pos, action: 'call', amount: callAmt });
-          } else if (decision.action === 'raise') {
-            const raiseAmt = Math.min(decision.amount || cBet * 2, player.chips);
-            const addedToPot = raiseAmt - (roundBets[player.id] || 0);
-            player.chips -= Math.max(0, addedToPot);
-            roundBets[player.id] = raiseAmt;
-            potTotal += Math.max(0, addedToPot);
-            cBet = raiseAmt;
-            lastRaiser = tablePlayers.indexOf(player);
-            actionsRemaining = tablePlayers.length - 1;
-            newLog.push({ name: player.name, position: pos, action: 'raise', amount: raiseAmt });
-          }
-
-          // Brief delay for AI actions
-          await new Promise(r => setTimeout(r, 300));
-        }
-
-        setPot(potTotal);
-        setBets({ ...roundBets });
-        setHandLog([...newLog]);
-        actionsRemaining--;
-      }
-
-      return { folded, potTotal };
-    }
-
-    // ──── PLAY STREETS ────
-    const startAction = (dealerIdx + 3) % tablePlayers.length;
-
-    // Preflop
-    let result = await bettingRound('preflop', [], startAction);
-    let { folded } = result;
-    potTotal = result.potTotal;
-
-    const activePlayers = () => tablePlayers.filter(p => !folded.has(p.id) && !p.eliminated);
-
-    if (activePlayers().length > 1) {
-      // Flop
-      const flop = deal(d, 3);
-      setCommunity(flop);
-      setHandPhase('flop');
-      setBets({});
-      await new Promise(r => setTimeout(r, 500));
-
-      result = await bettingRound('flop', flop, (dealerIdx + 1) % tablePlayers.length);
-      folded = result.folded;
-      potTotal = result.potTotal;
-
-      if (activePlayers().length > 1) {
-        // Turn
-        const turnCard = deal(d, 1);
-        const turnBoard = [...flop, ...turnCard];
-        setCommunity(turnBoard);
-        setHandPhase('turn');
-        setBets({});
-        await new Promise(r => setTimeout(r, 400));
-
-        result = await bettingRound('turn', turnBoard, (dealerIdx + 1) % tablePlayers.length);
-        folded = result.folded;
-        potTotal = result.potTotal;
-
-        if (activePlayers().length > 1) {
-          // River
-          const riverCard = deal(d, 1);
-          const riverBoard = [...turnBoard, ...riverCard];
-          setCommunity(riverBoard);
-          setHandPhase('river');
-          setBets({});
-          await new Promise(r => setTimeout(r, 400));
-
-          result = await bettingRound('river', riverBoard, (dealerIdx + 1) % tablePlayers.length);
-          folded = result.folded;
-          potTotal = result.potTotal;
-        }
-      }
-    }
-
-    // ──── SHOWDOWN ────
-    setHandPhase('showdown');
-    const active = activePlayers();
-    let winner;
-
-    if (active.length === 1) {
-      winner = active[0];
-    } else {
-      // Evaluate hands
-      const finalBoard = community.length > 0 ? community : [];
-      let bestHand = null;
-      winner = active[0];
-      for (const p of active) {
-        const cards = allHoleCards[p.id];
-        const board = finalBoard.length >= 3 ? finalBoard : [];
-        if (board.length >= 3) {
-          const hand = evaluateHand(cards, board);
-          if (!bestHand || (hand && compareHands(hand, bestHand) > 0)) {
-            bestHand = hand;
-            winner = p;
-          }
-        }
-      }
-    }
-
-    // Award pot
-    winner.chips += potTotal;
-    newLog.push({
-      name: winner.isHero ? 'Hero' : winner.name,
-      position: '',
-      action: 'win',
-      amount: potTotal,
-      isHero: winner.isHero,
+    await engine.runHand((state) => {
+      setGs({ ...state });
     });
-    setHandLog([...newLog]);
 
-    // Eliminate busted players
+    // Post-hand: eliminate busted, advance dealer, notify adaptive AI
     for (const p of tablePlayers) {
       if (p.chips <= 0 && !p.eliminated) {
-        directorRef.current.pool.eliminate(p.id);
+        dirRef.current.pool.eliminate(p.id);
       }
     }
 
-    // Advance dealer
-    const heroTable = directorRef.current.tableManager.getHeroTable();
+    const heroTable = dirRef.current.tableManager.getHeroTable();
     if (heroTable) {
-      heroTable.dealer = (heroTable.dealer + 1) % heroTable.players.filter(p => !p.eliminated).length;
+      const alive = heroTable.players.filter(p => !p.eliminated);
+      heroTable.dealer = (heroTable.dealer + 1) % Math.max(1, alive.length);
     }
 
-    // Check blinds
-    directorRef.current.checkBlindLevel();
+    dirRef.current.checkBlindLevel();
+    setTourn(dirRef.current.getState());
+    setHandActive(false);
+  }, [handActive]);
 
-    setPot(0);
-    setBets({});
-    setHandPhase('waiting');
-    setGameState(directorRef.current.getState());
-    handInProgressRef.current = false;
-  }, []);
-
-  // Hero action handler
+  // Hero action
   const handleAction = useCallback((action, amount) => {
-    if (window.__heroResolve) {
-      window.__heroResolve({ action, amount });
-      window.__heroResolve = null;
-    }
+    engineRef.current.submitHeroAction(action, amount);
   }, []);
-
-  if (!gameState) return <div style={app}>Loading...</div>;
-
-  const blinds = gameState.blinds;
-  const mVal = mRatio(gameState.heroChips, blinds.sb, blinds.bb, blinds.ante, 9);
 
   if (view === 'dashboard') {
     return (
-      <div style={app}>
-        <TournamentDashboard state={gameState} onBackToTable={() => setView('table')} />
+      <div style={S.app}>
+        <TournamentDashboard state={tournState} onBackToTable={() => setView('table')} />
       </div>
     );
   }
 
+  const blinds = tournState.blinds;
+  const m = mRatio(tournState.heroChips, blinds.sb, blinds.bb, blinds.ante || 0, 9);
+  // equity display handled in HUD via getHandValue if needed
+
   return (
-    <div style={app}>
+    <div style={S.app}>
       {/* Header */}
-      <div style={header}>
-        <div style={{ fontSize: '14px', fontWeight: 700, color: '#ffd700' }}>
-          {gameState.format.name}
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => setView('dashboard')}
-            style={{
-              padding: '6px 12px', background: '#1a2840', border: '1px solid #2a3a4a',
-              borderRadius: '6px', color: '#8899aa', fontSize: '11px', cursor: 'pointer',
-            }}
-          >
-            Dashboard
-          </button>
-          <div style={{ fontSize: '12px', color: '#6b7b8d', lineHeight: '28px' }}>
-            {gameState.playersRemaining}/{gameState.totalPlayers}
-          </div>
+      <div style={S.header}>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffd700' }}>{tournState.format.name}</div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button onClick={() => setView('dashboard')} style={{
+            padding: '5px 10px', background: '#1a2840', border: '1px solid #2a3a4a',
+            borderRadius: '6px', color: '#8899aa', fontSize: '11px', cursor: 'pointer',
+          }}>Info</button>
+          <span style={{ fontSize: '12px', color: '#6b7b8d' }}>
+            Lvl {blinds.level + 1} | {tournState.playersRemaining}/{tournState.totalPlayers}
+          </span>
         </div>
       </div>
 
       {/* HUD */}
-      <HUDBar
-        heroChips={gameState.heroChips}
-        pot={pot}
-        equity={heroEquity}
-        potOddsVal={currentBet > 0 ? potOdds(currentBet - (bets[0] || 0), pot) : 0}
-        mVal={mVal}
-        position={heroPosition}
-        stage={handPhase}
-      />
+      <div style={S.hud}>
+        <div style={S.hudItem}>
+          <div style={S.hudLabel}>Stack</div>
+          <div style={{ ...S.hudVal, color: '#ffd700' }}>{fmt(tournState.heroChips)}</div>
+        </div>
+        <div style={S.hudItem}>
+          <div style={S.hudLabel}>Pot</div>
+          <div style={{ ...S.hudVal, color: '#e0e0e0' }}>{fmt(gs?.pot || 0)}</div>
+        </div>
+        <div style={S.hudItem}>
+          <div style={S.hudLabel}>Blinds</div>
+          <div style={{ ...S.hudVal, color: '#c0d0e0', fontSize: '11px' }}>{fmt(blinds.sb)}/{fmt(blinds.bb)}</div>
+        </div>
+        <div style={S.hudItem}>
+          <div style={S.hudLabel}>M</div>
+          <div style={{ ...S.hudVal, color: m < 10 ? '#e74c3c' : m < 20 ? '#f39c12' : '#27ae60' }}>{m.toFixed(0)}</div>
+        </div>
+        <div style={S.hudItem}>
+          <div style={S.hudLabel}>Rank</div>
+          <div style={{ ...S.hudVal, color: '#c0d0e0' }}>#{tournState.heroRank}</div>
+        </div>
+        <div style={S.hudItem}>
+          <div style={S.hudLabel}>Pos</div>
+          <div style={{ ...S.hudVal, color: '#8899aa', fontSize: '11px' }}>{gs?.heroPosition || '—'}</div>
+        </div>
+      </div>
+
+      {/* Bubble alert */}
+      {tournState.isBubble && (
+        <div style={{ textAlign: 'center', padding: '6px', background: '#2a1010', color: '#e74c3c', fontWeight: 700, fontSize: '12px' }}>
+          BUBBLE — {tournState.playersRemaining - tournState.payout.paidPlaces} from the money!
+        </div>
+      )}
+      {tournState.isFinalTable && (
+        <div style={{ textAlign: 'center', padding: '6px', background: '#2a2010', color: '#f39c12', fontWeight: 700, fontSize: '12px' }}>
+          FINAL TABLE
+        </div>
+      )}
 
       {/* Table */}
-      {gameState.heroTable && (
-        <Table
-          players={gameState.heroTable.players}
-          community={community}
-          pot={pot}
-          dealer={gameState.heroTable.dealer}
-          heroCards={heroCards}
-          heroIndex={gameState.heroTable.players.findIndex(p => p.isHero)}
-          bets={bets}
-          stage={handPhase}
-        />
-      )}
+      <TableView gs={gs || {
+        players: tournState.heroTable?.players.filter(p => !p.eliminated).map((p, i) => ({ ...p, position: '', bet: 0, folded: false, allIn: false })) || [],
+        community: [], pot: 0, heroCards: [], heroIndex: tournState.heroTable?.players.findIndex(p => p.isHero) || 0,
+        dealerIdx: tournState.heroTable?.dealer || 0, phase: 'idle', showdownResults: null, winner: null, potWon: 0,
+      }} />
 
       {/* Controls */}
-      {waitingForAction ? (
+      {gs?.waitingForHero && (
         <Controls
-          canCheck={currentBet <= 0 || (bets[0] || 0) >= currentBet}
-          canCall={currentBet > 0}
-          toCall={Math.max(0, currentBet - (bets[0] || 0))}
-          pot={pot}
-          myChips={gameState.heroChips}
-          minRaise={Math.min(currentBet + blinds.bb, gameState.heroChips)}
-          maxRaise={gameState.heroChips}
+          canCheck={gs.canCheck}
+          canCall={gs.toCall > 0}
+          toCall={gs.toCall}
+          pot={gs.pot}
+          myChips={gs.heroChips}
+          minRaise={gs.minRaise}
+          maxRaise={gs.maxRaise}
           onAction={handleAction}
         />
-      ) : handPhase === 'waiting' ? (
+      )}
+
+      {/* Deal button */}
+      {!handActive && gs?.phase !== 'showdown' && (
         <div style={{ padding: '12px', textAlign: 'center' }}>
-          <button
-            onClick={playHand}
-            style={{
-              width: '100%', padding: '16px', background: 'linear-gradient(135deg, #1a5c3a, #27ae60)',
-              border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 800,
-              fontSize: '16px', cursor: 'pointer',
-            }}
-          >
-            {gameState.heroEliminated ? 'ELIMINATED' : 'DEAL NEXT HAND'}
+          <button onClick={playHand} disabled={tournState.heroEliminated} style={{
+            width: '100%', padding: '16px',
+            background: tournState.heroEliminated
+              ? 'linear-gradient(135deg, #4a1010, #6a1010)'
+              : 'linear-gradient(135deg, #1a5c3a, #27ae60)',
+            border: 'none', borderRadius: '12px', color: '#fff', fontWeight: 800,
+            fontSize: '16px', cursor: tournState.heroEliminated ? 'default' : 'pointer',
+            opacity: tournState.heroEliminated ? 0.6 : 1,
+          }}>
+            {tournState.heroEliminated ? `ELIMINATED #${tournState.heroRank}` : 'DEAL NEXT HAND'}
           </button>
         </div>
-      ) : null}
+      )}
 
       {/* Hand Log */}
-      <HandLog entries={handLog} />
-
-      {/* Bubble / FT alerts */}
-      {gameState.isBubble && (
-        <div style={{
-          textAlign: 'center', padding: '8px', background: '#2a1010',
-          color: '#e74c3c', fontWeight: 700, fontSize: '13px',
-        }}>
-          BUBBLE — {gameState.playersRemaining - gameState.payout.paidPlaces} from the money!
-        </div>
-      )}
+      <HandLog entries={gs?.actionLog} />
     </div>
   );
 }
 
-// ──── ROOT APP ────
+// ────────────────────────────────────
+// ROOT
+// ────────────────────────────────────
 export default function App() {
   const [director, setDirector] = useState(null);
 
-  const startTournament = (formatKey, heroName) => {
-    const d = new TournamentDirector(formatKey, heroName);
-    setDirector(d);
-  };
-
   if (!director) {
-    return <Lobby onStart={startTournament} />;
+    return <Lobby onStart={(fmt, name) => setDirector(new TournamentDirector(fmt, name))} />;
   }
 
   return <Game director={director} onExit={() => setDirector(null)} />;
