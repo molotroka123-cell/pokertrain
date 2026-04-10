@@ -542,6 +542,15 @@ export class GameEngine {
     this.phase = PHASE.SHOWDOWN;
     onUpdate(this.getState());
 
+    // Notify all AI bots: end of hand + showdown results
+    const hero = this.players.find(p => p.isHero);
+    const heroWon = this.winner?.isHero;
+    const heroStrength = hero ? this._getHandStrength(hero.id) : 0.5;
+    for (const bot of Object.values(this.aiBots || {})) {
+      if (bot.endHand) bot.endHand({ bigBlind: this.blinds.bb });
+      if (bot.observeShowdown) bot.observeShowdown(this.holeCards[hero?.id], heroWon, heroStrength);
+    }
+
     // Wait for player to see showdown
     await this._delay(2500);
     this.phase = PHASE.HAND_OVER;
