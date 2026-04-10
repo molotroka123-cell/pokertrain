@@ -234,77 +234,83 @@ function PremiumTable({ gs }) {
       position: 'relative', width: '100%', maxWidth: '750px', height: '440px',
       margin: '0 auto', overflow: 'hidden',
     }}>
-      {/* Ambient glow under table */}
+      {/* Ambient light from above */}
       <div style={{
-        position: 'absolute', top: '50%', left: '50%', width: '60%', height: '40%',
-        transform: 'translate(-50%,-50%)',
-        background: 'radial-gradient(ellipse, rgba(26,92,58,0.15) 0%, transparent 70%)',
-        filter: 'blur(40px)', pointerEvents: 'none',
+        position: 'absolute', top: '20%', left: '50%', width: '50%', height: '30%',
+        transform: 'translate(-50%,-30%)',
+        background: 'radial-gradient(ellipse, rgba(212,175,55,0.04) 0%, transparent 70%)',
+        filter: 'blur(30px)', pointerEvents: 'none',
       }} />
 
-      {/* Table shadow */}
+      {/* Table shadow on floor */}
       <div style={{
-        position: 'absolute', top: '54%', left: '50%', width: '76%', height: '28%',
+        position: 'absolute', top: '56%', left: '50%', width: '78%', height: '30%',
         transform: 'translate(-50%,-50%)',
-        background: 'rgba(0,0,0,0.35)', borderRadius: '50%', filter: 'blur(25px)',
+        background: 'rgba(0,0,0,0.4)', borderRadius: '50%', filter: 'blur(30px)',
       }} />
 
-      {/* Wood rail */}
+      {/* Outer dark rim */}
       <div style={{
-        position: 'absolute', top: '11%', left: '7%', width: '86%', height: '68%',
+        position: 'absolute', top: '10%', left: '6%', width: '88%', height: '70%',
         borderRadius: '50%/42%',
-        background: 'linear-gradient(180deg, #3a2a15 0%, #2a1c0e 50%, #1a1208 100%)',
-        boxShadow: '0 6px 30px rgba(0,0,0,0.6), inset 0 2px 0 rgba(255,255,255,0.03)',
-        border: '1px solid #4a3a20',
+        background: 'linear-gradient(180deg, #1a1510 0%, #0d0a06 50%, #050404 100%)',
+        boxShadow: `
+          0 0 25px rgba(212,175,55,0.12),
+          0 0 50px rgba(212,175,55,0.05),
+          0 8px 40px rgba(0,0,0,0.7),
+          inset 0 2px 0 rgba(212,175,55,0.08)
+        `,
+        border: '1px solid rgba(212,175,55,0.15)',
+      }} />
+
+      {/* Gold edge glow */}
+      <div style={{
+        position: 'absolute', top: '10.5%', left: '6.5%', width: '87%', height: '69%',
+        borderRadius: '50%/42%',
+        border: '1px solid rgba(212,175,55,0.1)',
+        boxShadow: 'inset 0 0 15px rgba(212,175,55,0.06)',
+        pointerEvents: 'none',
       }} />
 
       {/* Felt */}
       <div style={{
-        position: 'absolute', top: '13.5%', left: '9%', width: '82%', height: '63%',
-        background: `
-          radial-gradient(ellipse at 50% 40%, #1f7a48 0%, #17663a 30%, #106030 55%, #0b4a22 80%, #08381a 100%)
-        `,
+        position: 'absolute', top: '13%', left: '9%', width: '82%', height: '64%',
+        background: 'radial-gradient(ellipse at 50% 38%, #1a6a3f 0%, #145a32 25%, #0e4828 50%, #0a3820 75%, #072a18 100%)',
         borderRadius: '50%/42%',
-        boxShadow: 'inset 0 0 80px rgba(0,0,0,0.35), inset 0 0 20px rgba(0,0,0,0.2)',
+        boxShadow: 'inset 0 0 100px rgba(0,0,0,0.4), inset 0 -10px 40px rgba(0,0,0,0.15)',
       }}>
+        {/* Radial light spot on felt */}
+        <div style={{
+          position: 'absolute', top: '25%', left: '50%', width: '40%', height: '30%',
+          transform: 'translate(-50%, 0)',
+          background: 'radial-gradient(ellipse, rgba(255,255,255,0.035) 0%, transparent 70%)',
+          borderRadius: '50%', pointerEvents: 'none',
+        }} />
         {/* Inner gold line */}
         <div style={{
-          position: 'absolute', top: '7%', left: '5%', width: '90%', height: '86%',
+          position: 'absolute', top: '6%', left: '5%', width: '90%', height: '88%',
           borderRadius: '50%/42%',
-          border: '1px solid rgba(255,215,0,0.06)',
-        }} />
-        {/* Felt texture overlay */}
-        <div style={{
-          position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-          borderRadius: '50%/42%', opacity: 0.03,
-          background: `url("data:image/svg+xml,%3Csvg width='4' height='4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='1' height='1' fill='%23fff'/%3E%3C/svg%3E")`,
+          border: '1px solid rgba(212,175,55,0.1)',
         }} />
       </div>
 
-      {/* Pot with chip visual */}
+      {/* Pot + To Call — center of table */}
       {gs.pot > 0 && (
         <div style={{
-          position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%,-50%)',
+          position: 'absolute', top: '32%', left: '50%', transform: 'translate(-50%,-50%)',
           textAlign: 'center', zIndex: 20,
         }}>
-          {/* Mini chip stack icon */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
-            {[0,1,2].map(i => (
-              <div key={i} style={{
-                width: 18, height: 5, borderRadius: '50%', marginTop: i === 0 ? 0 : -3,
-                background: i === 0 ? 'linear-gradient(90deg, #e74c3c, #c0392b)' : i === 1 ? 'linear-gradient(90deg, #2980b9, #2471a3)' : 'linear-gradient(90deg, #27ae60, #1e8449)',
-                border: '1px solid rgba(255,255,255,0.15)',
-              }} />
-            ))}
-          </div>
           <div style={{
-            display: 'inline-block', padding: '4px 16px', borderRadius: '16px',
-            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,215,0,0.12)',
-          }}>
-            <span style={{ fontSize: '10px', color: '#8ca88c', letterSpacing: '1px' }}>POT </span>
-            <span style={{ fontSize: '18px', fontWeight: 800, color: '#ffd700', letterSpacing: '0.5px' }}>{fmt(gs.pot)}</span>
-          </div>
+            fontSize: '13px', color: '#b0b8a8', letterSpacing: '1px', marginBottom: '2px',
+          }}>Pot: <span style={{
+            fontSize: '22px', fontWeight: 800, color: '#e8e0d0',
+            textShadow: '0 0 15px rgba(212,175,55,0.25)',
+          }}>{fmt(gs.pot)}</span></div>
+          {gs.toCall > 0 && gs.waitingForHero && (
+            <div style={{ fontSize: '12px', color: '#8a8a78', letterSpacing: '0.5px' }}>
+              To call: <span style={{ color: '#c0b080', fontWeight: 700 }}>{fmt(gs.toCall)}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -376,15 +382,29 @@ function PremiumTable({ gs }) {
               }}>{isHero ? 'HERO' : p.name}</div>
 
               {/* Cards */}
-              <div style={{ display: 'flex', justifyContent: 'center', margin: '3px 0', minHeight: '34px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', margin: '3px 0', minHeight: isHero ? '52px' : '34px' }}>
                 {isHero && gs.heroCards?.length > 0 ? (
-                  gs.heroCards.map((c, ci) => <Card key={c} card={c} mini glow delay={ci * 300} />)
+                  gs.heroCards.map((c, ci) => <Card key={c} card={c} hero glow delay={ci * 300} />)
                 ) : showdown && sd?.cards ? (
                   sd.cards.map((c, ci) => <Card key={c} card={c} mini delay={200 + ci * 200} />)
                 ) : !isHero && !p.folded ? (
                   <><Card card="Xx" faceDown mini delay={si * 60} /><Card card="Xx" faceDown mini delay={si * 60 + 80} /></>
                 ) : null}
               </div>
+
+              {/* Timer bar — only for hero when waiting */}
+              {isHero && gs.waitingForHero && (
+                <div style={{
+                  width: '80%', height: '4px', borderRadius: '2px', margin: '4px auto 0',
+                  background: '#1a2230', overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%', borderRadius: '2px',
+                    background: 'linear-gradient(90deg, #28a745, #d4af37, #dc3545)',
+                    animation: 'timerShrink 30s linear forwards',
+                  }} />
+                </div>
+              )}
 
               {/* Showdown hand name */}
               {showdown && sd?.hand && (
@@ -454,26 +474,30 @@ function PremiumTable({ gs }) {
 }
 
 // ════════════════════════════════════════════
-// HUD BAR — Premium
+// HUD BAR — Cinematic minimal
 // ════════════════════════════════════════════
-function HUDBar({ heroChips, pot, mVal, position, rank, blinds, playersLeft, total }) {
+function HUDBar({ heroChips, pot, mVal, position, rank, blinds }) {
   return (
     <div style={{
-      display: 'flex', justifyContent: 'space-around', padding: '8px 12px',
-      background: 'linear-gradient(180deg, #0a0d14 0%, #0d1118 100%)',
-      borderBottom: '1px solid #1a2230', fontSize: '11px',
+      display: 'flex', justifyContent: 'space-around', padding: '6px 10px',
+      background: 'linear-gradient(180deg, rgba(10,13,18,0.95), rgba(13,17,24,0.95))',
+      borderBottom: '1px solid #1a223055', fontSize: '11px',
+      backdropFilter: 'blur(8px)',
     }}>
       {[
-        { label: 'STACK', val: fmt(heroChips), color: '#ffd700' },
-        { label: 'POT', val: fmt(pot), color: '#e0e0e0' },
-        { label: 'BLINDS', val: `${fmt(blinds.sb)}/${fmt(blinds.bb)}`, color: '#8899aa', small: true },
-        { label: 'M', val: mVal.toFixed(0), color: mVal < 10 ? '#e74c3c' : mVal < 20 ? '#f39c12' : '#27ae60' },
-        { label: 'RANK', val: `#${rank}`, color: '#c0d0e0' },
-        { label: 'POS', val: position || '—', color: '#5a7a8a', small: true },
+        { label: 'STACK', val: fmt(heroChips), color: '#d4af37' },
+        { label: 'POT', val: fmt(pot), color: '#c0c0c0' },
+        { label: 'BLINDS', val: `${fmt(blinds.sb)}/${fmt(blinds.bb)}`, color: '#6a7a8a', small: true },
+        { label: 'M', val: mVal.toFixed(0), color: mVal < 10 ? '#dc3545' : mVal < 20 ? '#d4af37' : '#28a745' },
+        { label: 'RANK', val: `#${rank}`, color: '#9aa' },
+        { label: 'POS', val: position || '—', color: '#6a7a8a', small: true },
       ].map((h, i) => (
         <div key={i} style={{ textAlign: 'center', flex: 1 }}>
-          <div style={{ color: '#3a4a5a', fontSize: '8px', letterSpacing: '0.5px', fontWeight: 600 }}>{h.label}</div>
-          <div style={{ color: h.color, fontWeight: 700, fontSize: h.small ? '11px' : '14px', marginTop: '1px' }}>{h.val}</div>
+          <div style={{ color: '#4a5a6a', fontSize: '9px', letterSpacing: '1px', fontWeight: 600 }}>{h.label}</div>
+          <div style={{
+            color: h.color, fontWeight: 700, fontSize: h.small ? '11px' : '14px', marginTop: '1px',
+            textShadow: h.color === '#d4af37' ? '0 0 10px rgba(212,175,55,0.2)' : 'none',
+          }}>{h.val}</div>
         </div>
       ))}
     </div>
