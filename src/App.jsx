@@ -654,11 +654,17 @@ function Game({ director, onExit }) {
     const hero = gs.players?.find(p => p.isHero);
     if (!hero) return;
 
-    // Find hero actions from the log
+    // Find hero actions from the log — use DECISION-TIME snapshots, not end-of-hand
     const heroActions = (gs.actionLog || []).filter(a => a.isHero && a.action !== 'win');
     for (const ha of heroActions) {
+      // Use decision-time community from action meta (not end-of-hand board!)
+      const decisionCommunity = ha._phase === 'preflop' ? []
+        : ha._phase === 'flop' ? (gs.community || []).slice(0, 3)
+        : ha._phase === 'turn' ? (gs.community || []).slice(0, 4)
+        : gs.community || [];
+
       recordDecision({
-        handNumber: handCount,
+        handNumber: handCount + 1, // 1-indexed to match UI
         blindLevel: tState.blindLevel,
         blinds: tState.blinds,
         playersRemaining: tState.playersRemaining,
@@ -671,11 +677,11 @@ function Game({ director, onExit }) {
         stage: ha._phase || 'preflop',
         position: ha.position || gs.heroPosition,
         holeCards: gs.heroCards || [],
-        community: gs.community || [],
-        potSize: gs.pot || 0,
+        community: decisionCommunity,                  // FIX: decision-time board
+        potSize: ha._pot || gs.pot || 0,               // FIX: decision-time pot
         currentBet: gs.currentBet || 0,
         toCall: ha._toCall || 0,
-        myChips: hero.chips,
+        myChips: ha._heroChips || hero.chips,           // FIX: decision-time chips
         myBet: ha.amount || 0,
         opponents: gs.players?.filter(p => !p.isHero && !p.folded).map(p => ({
           name: p.name, position: p.position, chips: p.chips,
@@ -684,14 +690,26 @@ function Game({ director, onExit }) {
         action: ha.action,
         raiseAmount: ha.action === 'raise' ? ha.amount : null,
         decisionTimeMs: ha._decisionTimeMs || 0,
+        tournamentFormat: tState.formatKey || null,     // FIX: format saved
       });
     }
 
-    // Update hand result
+    // Update ALL records for this hand (not just last one)
     const heroWon = gs.winner?.isHero;
-    updateHandResult(handCount, heroWon ? 'won' : 'lost', heroWon ? gs.potWon : 0, hero.chips, gs.allHoleCards);
+    const allRecs = getRecords().filter(r => r.handNumber === handCount + 1);
+    for (const rec of allRecs) {
+      rec.handResult = heroWon ? 'won' : 'lost';
+      rec.potWon = heroWon ? gs.potWon : 0;
+      rec.chipsAfter = hero.chips;
+      if (gs.allHoleCards) {
+        rec.opponentCards = {};
+        for (const [id, cards] of Object.entries(gs.allHoleCards)) {
+          if (cards?.length === 2) rec.opponentCards[id] = cards.join(' ');
+        }
+      }
+    }
 
-    // Auto-save session after every hand (so data is never lost)
+    // Save session after every hand
     saveSession();
 
     // If hero eliminated — auto-show debrief

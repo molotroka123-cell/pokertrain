@@ -283,9 +283,9 @@ export class GameEngine {
         action = await this._getAIAction(p, toCall, pos);
       }
 
-      // FIX: Never fold when toCall is 0 (free check)
+      // FIX: Never fold when toCall is 0 (free check) — preserve meta!
       if (toCall <= 0 && action.action === 'fold') {
-        action = { action: 'check' };
+        action = { ...action, action: 'check' }; // Spread preserves _decisionTimeMs etc.
       }
 
       // Apply action
@@ -372,6 +372,7 @@ export class GameEngine {
       _phase: this.phase,
       _toCall: toCall,
       _pot: this.pot,
+      _heroChips: player.chips, // Chips at decision time
     } : undefined;
 
     switch (action.action) {

@@ -10,8 +10,11 @@ let sessionId = null;
 let records = [];
 let handHistories = [];
 
+let sessionFormat = null;
+
 export function startSession(tournamentFormat) {
   sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  sessionFormat = tournamentFormat || null;
   records = [];
   handHistories = [];
   return sessionId;
@@ -26,7 +29,7 @@ export function recordDecision({
   handNumber, blindLevel, blinds, playersRemaining, totalPlayers,
   averageStack, isBubble, isFinalTable, tableId, playersAtTable,
   stage, position, holeCards, community, potSize, currentBet, toCall,
-  myChips, myBet, opponents, action, raiseAmount, decisionTimeMs,
+  myChips, myBet, opponents, action, raiseAmount, decisionTimeMs, tournamentFormat,
 }) {
   const hCards = holeCards || [];
   const board = community || [];
@@ -105,7 +108,7 @@ export function recordDecision({
   const record = {
     id: `${sessionId}_h${handNumber}_${Date.now()}`,
     sessionId,
-    tournamentFormat: null,
+    tournamentFormat: tournamentFormat || sessionFormat || null,
     timestamp: Date.now(),
     handNumber,
     blindLevel,
