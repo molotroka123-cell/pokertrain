@@ -107,6 +107,28 @@ export const THEMES = {
   },
 };
 
+  // ═══ HARDCORE — Dark Crimson Arena ═══
+  HARDCORE: {
+    id: 'hardcore', name: 'HARDCORE Arena', logo: 'HARDCORE',
+    bg: 'radial-gradient(ellipse at 50% 30%, #150505 0%, #0a0304 60%, #050202 100%)',
+    rimBg: 'linear-gradient(180deg, #1a0505 0%, #0d0303 50%, #050101 100%)',
+    rimBorder: 'rgba(255,30,30,0.25)', rimEdge: 'rgba(255,30,30,0.15)',
+    rimGlow: '0 0 35px rgba(255,30,30,0.2), 0 0 70px rgba(255,0,0,0.08), 0 8px 40px rgba(0,0,0,0.7)',
+    feltBg: 'radial-gradient(ellipse at 50% 38%, #1a2020 0%, #151a1a 25%, #101515 50%, #0a1010 75%, #060a0a 100%)',
+    feltInner: 'rgba(255,30,30,0.1)', feltLight: 'rgba(255,50,50,0.02)',
+    accent: '#ff2020', accentGlow: 'rgba(255,30,30,0.4)',
+    potColor: '#ffd0d0', potShadow: '0 0 20px rgba(255,30,30,0.3)',
+    chipColor: '#ff4040', heroGlow: '0 0 25px rgba(255,30,30,0.3), 0 0 50px rgba(255,0,0,0.12)',
+    avatarHero: 'linear-gradient(135deg, #4a0a0a, #cc2020)', avatarBot: 'linear-gradient(135deg, #1a0808, #2a1010)',
+    avatarWin: 'linear-gradient(135deg, #ff2020, #ff6040)',
+    allInBg: 'linear-gradient(90deg, #ff2020, #ff4040)', allInColor: '#fff',
+    winBg: 'rgba(10,3,3,0.9)', winBorder: 'rgba(255,30,30,0.3)',
+    winGlow: '0 4px 30px rgba(255,30,30,0.3), 0 0 80px rgba(255,0,0,0.12)',
+    headerBg: 'rgba(10,3,3,0.92)', headerColor: '#ff4040',
+    ambientColor: 'rgba(255,30,30,0.04)', logoColor: '#ff2020',
+  },
+};
+
 export function getTheme(formatKey) {
   return THEMES[formatKey] || THEMES.WSOP_Main;
 }

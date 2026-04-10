@@ -122,6 +122,18 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
         onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
         >TRAINING DRILLS</button>
 
+        {/* Hardcore mode */}
+        <button onClick={() => onStart('HARDCORE', name || 'Hero')} style={{
+          width: '100%', padding: '14px', border: 'none', borderRadius: '14px', cursor: 'pointer',
+          background: 'linear-gradient(135deg, #3a0a0a, #cc2020, #8a1010)',
+          color: '#fff', fontWeight: 800, fontSize: '15px', letterSpacing: '1px',
+          boxShadow: '0 4px 20px rgba(204,32,32,0.3)',
+          marginTop: '10px', transition: 'transform 0.15s',
+        }}
+        onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
+        onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
+        >HARDCORE — 5 AI PRO vs YOU</button>
+
         {/* Secondary buttons */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
           <button onClick={onStats} style={{
@@ -563,17 +575,26 @@ function Game({ director, onExit }) {
     if (state.heroTable) {
       const bots = {};
       const players = state.heroTable.players;
-      // Pick one random bot as "boss" (AI-enhanced) — marked with crown
       const botPlayers = players.filter(p => !p.isHero && p.profile);
-      const bossIdx = botPlayers.length > 0 ? Math.floor(Math.random() * botPlayers.length) : -1;
+      const isHardcore = dirRef.current.format?.isHardcore;
+      // In Hardcore: ALL bots are boss. Regular: 1 random boss.
+      const bossIdx = !isHardcore && botPlayers.length > 0 ? Math.floor(Math.random() * botPlayers.length) : -1;
       for (let i = 0; i < botPlayers.length; i++) {
         const p = botPlayers[i];
+        // Hardcore: make all bots tough (TAG/LAG mix)
+        if (isHardcore) {
+          const styles = ['TAG', 'LAG', 'TAG', 'SemiLAG', 'LAG'];
+          p.profile.style = styles[i % styles.length];
+          p.profile.vpip = 0.20 + Math.random() * 0.10;
+          p.profile.pfr = p.profile.vpip - 0.03;
+          p.profile.af = 2.5 + Math.random() * 2.0;
+          p.profile.threeBet = 0.06 + Math.random() * 0.06;
+        }
         const ai = new AdaptiveAI(p.profile);
-        if (i === bossIdx) {
-          p._isBoss = true; // Mark for UI (crown icon)
-          // Boss bots are smarter: higher aggression, better reads
-          ai.exploitLevel = 0.3; // Start with some exploit ability
-          ai.minHandsToExploit = 5; // Adapt faster
+        if (isHardcore || i === bossIdx) {
+          p._isBoss = true;
+          ai.exploitLevel = isHardcore ? 0.5 : 0.3;
+          ai.minHandsToExploit = isHardcore ? 3 : 5;
         }
         bots[p.id] = ai;
       }

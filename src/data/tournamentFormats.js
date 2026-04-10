@@ -106,4 +106,27 @@ export const FORMATS = {
       { sb: 8000, bb: 16000, ante: 2000, mins: 3 },
     ],
   },
+
+  HARDCORE: {
+    name: 'HARDCORE 6-Max',
+    players: 6,
+    startingChips: 5000,
+    playersPerTable: 6,
+    buyIn: 50000,
+    isHardcore: true,
+    blindLevels: [
+      { sb: 25, bb: 50, ante: 0, mins: 4 },
+      { sb: 50, bb: 100, ante: 10, mins: 4 },
+      { sb: 75, bb: 150, ante: 20, mins: 3 },
+      { sb: 100, bb: 200, ante: 25, mins: 3 },
+      { sb: 150, bb: 300, ante: 50, mins: 3 },
+      { sb: 200, bb: 400, ante: 50, mins: 3 },
+      { sb: 300, bb: 600, ante: 100, mins: 2 },
+      { sb: 400, bb: 800, ante: 100, mins: 2 },
+      { sb: 500, bb: 1000, ante: 150, mins: 2 },
+      { sb: 750, bb: 1500, ante: 200, mins: 2 },
+      { sb: 1000, bb: 2000, ante: 300, mins: 2 },
+      { sb: 1500, bb: 3000, ante: 500, mins: 2 },
+    ],
+  },
 };
