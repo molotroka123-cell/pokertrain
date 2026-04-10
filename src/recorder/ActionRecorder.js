@@ -52,12 +52,14 @@ export function recordDecision({
   const boardTexture = board.length >= 3 ? classifyTexture(board) : null;
 
   // Is this +EV?
+  const evOfCall = toCall > 0 ? (equity * (potSize + toCall)) - ((1 - equity) * toCall) : 0;
+  const commitRatio = myChips > 0 ? toCall / myChips : 0;  // How much of stack this costs
   const isEVPositive = action === 'fold' ? false :
-    action === 'call' ? equity > odds :
+    action === 'call' ? evOfCall > 0 :
     action === 'raise' ? equity > 0.35 : // Simplified
     true;
 
-  // GTO check (simplified)
+  // GTO check — uses stack-aware EV
   let gtoAction = null;
   let gtoMatch = true;
   let mistakeType = null;
@@ -71,36 +73,65 @@ export function recordDecision({
     }
   }
 
-  // Detect mistakes
-  if (action === 'fold' && equity > odds + 0.10 && toCall > 0) {
-    mistakeType = 'bad_fold';
-    mistakeSeverity = equity > odds + 0.20 ? 'critical' : 'medium';
-    evLost = Math.round((equity - odds) * potSize);
-    gtoMatch = false;
-    gtoAction = 'call';
+  // Detect mistakes — stack-aware, proper EV math
+  // bad_fold: folded when calling was +EV
+  if (action === 'fold' && toCall > 0 && evOfCall > 0) {
+    // Severity scales with how much EV was left on the table vs stack
+    const evFraction = myChips > 0 ? evOfCall / myChips : 0;
+    // Don't flag marginal spots (<2% of stack EV) as mistakes
+    if (evFraction > 0.02 || evOfCall > (blinds?.bb || 100) * 3) {
+      mistakeType = 'bad_fold';
+      mistakeSeverity = evFraction > 0.10 ? 'critical' : 'medium';
+      evLost = Math.round(evOfCall);
+      gtoMatch = false;
+      gtoAction = 'call';
+    }
   }
-  if (action === 'call' && equity < odds - 0.10 && toCall > 0) {
-    mistakeType = 'bad_call';
-    mistakeSeverity = equity < odds - 0.20 ? 'critical' : 'medium';
-    evLost = Math.round((odds - equity) * toCall);
-    gtoMatch = false;
-    gtoAction = 'fold';
+
+  // bad_call: called when EV was negative
+  if (action === 'call' && toCall > 0 && evOfCall < 0) {
+    const lossAmt = Math.abs(evOfCall);
+    const lossFraction = myChips > 0 ? lossAmt / myChips : 0;
+    if (lossFraction > 0.02 || lossAmt > (blinds?.bb || 100) * 3) {
+      mistakeType = 'bad_call';
+      mistakeSeverity = lossFraction > 0.10 ? 'critical' : 'medium';
+      evLost = Math.round(lossAmt);
+      gtoMatch = false;
+      gtoAction = 'fold';
+    }
   }
-  if (action === 'call' && equity > 0.65 && stage !== 'preflop') {
-    mistakeType = 'too_passive';
-    mistakeSeverity = 'medium';
-    gtoAction = 'raise';
-    gtoMatch = false;
+
+  // too_passive: called with strong hand when raising is better
+  // Account for SPR: low SPR (< 3) with strong equity = should be raising/shoving
+  // High SPR with strong equity = raise for value
+  if (action === 'call' && stage !== 'preflop') {
+    const raiseThreshold = sprVal < 3 ? 0.55 : sprVal < 8 ? 0.62 : 0.70;
+    if (equity > raiseThreshold) {
+      mistakeType = 'too_passive';
+      mistakeSeverity = sprVal < 3 && equity > 0.65 ? 'critical' : 'medium';
+      // EV lost from not raising: estimate extra value missed
+      const raiseSize = Math.min(potSize * 0.75, myChips);
+      const extraEV = equity * raiseSize * 0.3; // ~30% of the time villain calls
+      evLost = Math.round(extraEV);
+      gtoAction = 'raise';
+      gtoMatch = false;
+    }
   }
+
+  // push_fold_error: short stack, should be shoving
   if (action === 'fold' && m < 10 && stage === 'preflop' && handVal <= 0.35 && toCall <= (blinds?.bb || 0)) {
     mistakeType = 'push_fold_error';
-    mistakeSeverity = 'high';
+    mistakeSeverity = m < 5 ? 'critical' : 'high';
+    evLost = Math.round(myChips * 0.05); // ~5% of stack wasted on average
     gtoAction = 'raise';
     gtoMatch = false;
   }
-  if (isBubble && action === 'call' && equity < 0.55 && toCall > myChips * 0.3) {
+
+  // icm_error: calling too light on the bubble with significant stack risk
+  if (isBubble && action === 'call' && equity < 0.55 && commitRatio > 0.3) {
     mistakeType = 'icm_error';
-    mistakeSeverity = 'high';
+    mistakeSeverity = commitRatio > 0.5 ? 'critical' : 'high';
+    evLost = Math.round(Math.abs(evOfCall) * 1.5); // ICM multiplier — chips worth more near bubble
     gtoAction = 'fold';
     gtoMatch = false;
   }
@@ -133,6 +164,8 @@ export function recordDecision({
     potOdds: Math.round(odds * 100) / 100,
     spr: Math.round(sprVal * 10) / 10,
     mRatio: Math.round(m * 10) / 10,
+    evOfCall: Math.round(evOfCall),
+    commitRatio: Math.round(commitRatio * 100) / 100,
     isEVPositive,
     boardTexture,
     opponents: opponents || [],
