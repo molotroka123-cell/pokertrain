@@ -197,11 +197,19 @@ function generateQuickSummary() {
   };
 }
 
-// Save to localStorage
+// Save to localStorage — updates current session in place (no duplicates)
 export function saveSession() {
   const data = exportSession();
   const sessions = JSON.parse(localStorage.getItem('wsop_sessions') || '[]');
-  sessions.push(data);
+
+  // Find existing session by ID and update it, or add new
+  const existingIdx = sessions.findIndex(s => s.sessionId === data.sessionId);
+  if (existingIdx >= 0) {
+    sessions[existingIdx] = data; // Update in place
+  } else {
+    sessions.push(data); // New session
+  }
+
   // Keep last 50 sessions
   if (sessions.length > 50) sessions.splice(0, sessions.length - 50);
   localStorage.setItem('wsop_sessions', JSON.stringify(sessions));
