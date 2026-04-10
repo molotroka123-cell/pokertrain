@@ -100,16 +100,20 @@ export class WeightedRange {
   }
 
   applyRaise(raiseSize, potSize) {
-    const sizeFactor = potSize > 0 ? raiseSize / potSize : 1;
+    // PATCH 1: Polarized model — raises are VALUE or BLUFF, not medium
     for (const c of this.combos) {
       if (c.strength > 0.80) {
-        c.weight *= 1.5;  // Value raising
+        c.weight *= 1.5;  // VALUE: strong hands raise
       } else if (c.strength > 0.55) {
-        c.weight *= 0.25; // Usually just calls
+        c.weight *= 0.20; // MEDIUM: these CALL, not raise
       } else if (c.strength > 0.30) {
-        c.weight *= 0.3 * Math.max(0.5, sizeFactor); // Bluff raises
+        // Check for bluff candidates: suited, blockers, draws
+        const isBluffCandidate =
+          c.category === 'suited_conn' || c.category === 'ax_suited' ||
+          c.cards.some(card => card[0] === 'A' || card[0] === 'K');
+        c.weight *= isBluffCandidate ? 0.6 : 0.10;
       } else {
-        c.weight *= 0.1;  // Occasional spew
+        c.weight *= 0.05;
       }
     }
   }

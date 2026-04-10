@@ -62,10 +62,12 @@ export function calculateQuickEV(heroCards, board, pot, toCall, villainProfile, 
     const potIfCalled = pot + raiseAmt * 2;
     const evCall = equity * potIfCalled - raiseAmt;
 
-    // Re-raise branch: fold if weak, continue if strong
-    const evReraise = equity > 0.55
-      ? equity * (pot + raiseAmt * 4) - raiseAmt * 2
-      : -raiseAmt;
+    // PATCH 2: Sigmoid reraise model (smooth, not binary)
+    const reraiseCallProb = 1 / (1 + Math.exp(-12 * (equity - 0.52)));
+    // equity 0.40→7%, 0.50→44%, 0.55→78%, 0.65→99%
+    const evReraiseCall = equity * (pot + raiseAmt * 4) - raiseAmt * 2;
+    const evReraiseFold = -raiseAmt;
+    const evReraise = reraiseCallProb * evReraiseCall + (1 - reraiseCallProb) * evReraiseFold;
 
     const totalEV = rFold * evFold + rCall * evCall + rReraise * evReraise;
 
@@ -332,7 +334,7 @@ function estimateReraiseProb(villainProfile) {
 // DYNAMIC REALIZATION FACTOR
 // ═══════════════════════════════════════════
 
-function dynamicRealizationFactor(heroCards, board, position, villainProfile) {
+function dynamicRealizationFactor(heroCards, board, position, villainProfile, pot, stack) {
   let rf = 0.85;
 
   // Position
@@ -340,13 +342,36 @@ function dynamicRealizationFactor(heroCards, board, position, villainProfile) {
   if (position === 'SB') rf -= 0.05;
   if (position === 'BB') rf -= 0.03;
 
-  // Hand type on board
+  // PATCH 3: SPR affects realization
+  const spr = (stack || 10000) / Math.max(pot || 1, 1);
+  if (spr < 3) rf += 0.08;       // Short SPR: committed, see showdown
+  else if (spr < 6) rf += 0.03;
+  else if (spr > 12) rf -= 0.06; // Deep: complex postflop
+
+  // Hand type + backdoor draws
   if (board && board.length >= 3) {
     const wr = new WeightedRange();
     const inter = wr.evaluateBoardInteraction(heroCards, board);
-    if (inter.type === 'draw') rf -= 0.10;
+    if (inter.type === 'draw') rf -= 0.08;
     if (inter.type === 'top_pair_plus') rf += 0.05;
-    if (inter.type === 'air') rf -= 0.15;
+    if (inter.type === 'air') rf -= 0.12;
+
+    // Backdoor flush (3 of suit but not 4)
+    const allSuits = [...heroCards, ...board].map(c => c[1]);
+    const sc = {};
+    allSuits.forEach(s => { sc[s] = (sc[s] || 0) + 1; });
+    const maxSuit = Math.max(...Object.values(sc));
+    if (maxSuit === 3) rf += 0.04; // backdoor flush draw
+
+    // Backdoor straight (3 within 4 ranks)
+    const allVals = [...new Set([...heroCards, ...board].map(c => RV[c[0]] || 0))].sort((a, b) => a - b);
+    for (let i = 0; i < allVals.length - 2; i++) {
+      if (allVals[i + 2] - allVals[i] <= 4) { rf += 0.03; break; }
+    }
+
+    // Overcards
+    const boardMax = Math.max(...board.map(c => RV[c[0]] || 0));
+    if (heroCards.some(c => (RV[c[0]] || 0) > boardMax)) rf += 0.03;
   }
 
   // Villain aggression reduces OOP realization
@@ -355,7 +380,7 @@ function dynamicRealizationFactor(heroCards, board, position, villainProfile) {
   // Suited = nut potential
   if (heroCards.length >= 2 && heroCards[0][1] === heroCards[1][1]) rf += 0.03;
 
-  return Math.max(0.40, Math.min(1.0, rf));
+  return Math.max(0.35, Math.min(1.0, rf));
 }
 
 // ═══════════════════════════════════════════
