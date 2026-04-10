@@ -341,8 +341,15 @@ export class GameEngine {
     if (this.community.length >= 3) {
       const eval_ = evaluateHand(cards, this.community);
       if (eval_) {
-        // Normalize rank to 0-1 (rough but fast)
-        return Math.min(1, eval_.rank / 9 + (eval_.value % 1e6) / 1e7);
+        // Proper hand strength mapping:
+        // 1=High Card→0.15, 2=Pair→0.45, 3=TwoPair→0.6, 4=Trips→0.7,
+        // 5=Straight→0.78, 6=Flush→0.83, 7=FullHouse→0.88, 8=Quads→0.93,
+        // 9=StraightFlush→0.97, 10=Royal→1.0
+        const strengthMap = [0, 0.15, 0.45, 0.60, 0.70, 0.78, 0.83, 0.88, 0.93, 0.97, 1.0];
+        const base = strengthMap[eval_.rank] || 0.15;
+        // Add kicker bonus (0-0.1 range based on value within rank)
+        const kicker = Math.min(0.1, (eval_.value % 1e6) / 1e7);
+        return Math.min(1, base + kicker);
       }
     }
 
