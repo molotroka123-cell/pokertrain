@@ -18,6 +18,9 @@ import PushFoldDrill from './drills/PushFoldDrill.jsx';
 import PostflopDrill from './drills/PostflopDrill.jsx';
 import SizingDrill from './drills/SizingDrill.jsx';
 import PotOddsDrill from './drills/PotOddsDrill.jsx';
+import StatsScreen from './stats/Dashboard.jsx';
+import CoachScreen from './coach/Coach.jsx';
+import { Sounds } from './lib/sounds.js';
 
 function fmt(n) {
   if (!n && n !== 0) return '0';
@@ -29,7 +32,7 @@ function fmt(n) {
 // ════════════════════════════════════════════
 // PREMIUM LOBBY — V3 Design
 // ════════════════════════════════════════════
-function Lobby({ onStart, onDrills }) {
+function Lobby({ onStart, onDrills, onStats, onCoach }) {
   const [format, setFormat] = useState('WSOP_Main');
   const [name, setName] = useState('');
 
@@ -118,20 +121,32 @@ function Lobby({ onStart, onDrills }) {
         onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
         >TRAINING DRILLS</button>
 
+        {/* Secondary buttons */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
+          <button onClick={onStats} style={{
+            padding: '14px', background: '#0d1118', border: '1px solid #1a2230', borderRadius: '12px',
+            color: '#8899aa', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+          }}>📊 Statistics</button>
+          <button onClick={onCoach} style={{
+            padding: '14px', background: '#0d1118', border: '1px solid #1a2230', borderRadius: '12px',
+            color: '#8899aa', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+          }}>🧠 AI Coach</button>
+        </div>
+
         {/* Quick drill buttons */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '6px', marginTop: '12px' }}>
           {[
             { id: 'rfi', icon: '🎯', name: 'RFI', color: '#27ae60' },
-            { id: 'pushfold', icon: '💣', name: 'Push/Fold', color: '#e74c3c' },
-            { id: 'potodds', icon: '🧮', name: 'Pot Odds', color: '#3498db' },
-            { id: 'postflop', icon: '🃏', name: 'Postflop', color: '#9b59b6' },
+            { id: 'pushfold', icon: '💣', name: 'Push', color: '#e74c3c' },
+            { id: 'potodds', icon: '🧮', name: 'Odds', color: '#3498db' },
+            { id: 'postflop', icon: '🃏', name: 'Flop', color: '#9b59b6' },
           ].map(d => (
             <div key={d.id} onClick={() => { window.__quickDrill = d.id; onDrills(); }} style={{
-              padding: '12px', background: '#0d1118', border: '1px solid #1a2230', borderRadius: '10px',
-              cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.2s',
+              padding: '10px 4px', background: '#0d1118', border: '1px solid #1a2230', borderRadius: '10px',
+              cursor: 'pointer', textAlign: 'center',
             }}>
-              <div style={{ fontSize: '20px' }}>{d.icon}</div>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: d.color, marginTop: '4px' }}>{d.name}</div>
+              <div style={{ fontSize: '18px' }}>{d.icon}</div>
+              <div style={{ fontSize: '10px', fontWeight: 600, color: d.color, marginTop: '2px' }}>{d.name}</div>
             </div>
           ))}
         </div>
@@ -603,6 +618,12 @@ export default function App() {
 
   const appBg = { minHeight: '100vh', background: '#050709', color: '#e0e0e0', fontFamily: "'Segoe UI', sans-serif" };
 
+  if (screen === 'stats') {
+    return <div style={appBg}><StatsScreen onBack={() => setScreen('lobby')} /></div>;
+  }
+  if (screen === 'coach') {
+    return <div style={appBg}><CoachScreen onBack={() => setScreen('lobby')} /></div>;
+  }
   if (screen === 'drill' && activeDrill) {
     const D = DRILL_MAP[activeDrill];
     if (D) return <div style={appBg}><D onBack={() => setScreen('drills')} /></div>;
@@ -635,5 +656,7 @@ export default function App() {
 
   return <Lobby
     onStart={(fmt, name) => { startSession(fmt); setDirector(new TournamentDirector(fmt, name)); setScreen('tournament'); }}
-    onDrills={() => setScreen('drills')} />;
+    onDrills={() => setScreen('drills')}
+    onStats={() => setScreen('stats')}
+    onCoach={() => setScreen('coach')} />;
 }
