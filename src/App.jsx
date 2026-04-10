@@ -492,7 +492,7 @@ function PremiumTable({ gs, theme: T }) {
 // ════════════════════════════════════════════
 // TOURNAMENT HEADER — Premium info bar
 // ════════════════════════════════════════════
-function HUDBar({ heroChips, pot, mVal, position, rank, blinds, theme, level, playersRemaining, totalPlayers, isFinalTable, payouts }) {
+function HUDBar({ heroChips, pot, mVal, position, rank, blinds, theme, level, playersRemaining, totalPlayers, isFinalTable, payouts, levelTimeRemaining }) {
   const T = theme || getTheme('WSOP_Main');
   return (
     <div style={{
@@ -533,6 +533,12 @@ function HUDBar({ heroChips, pot, mVal, position, rank, blinds, theme, level, pl
         }}>
           {fmt(blinds.sb)}/{fmt(blinds.bb)}{blinds.ante > 0 ? `·${fmt(blinds.ante)}` : ''}
           {level != null && <span style={{ color: '#5a6a7a' }}> · Lvl {level + 1}</span>}
+          {levelTimeRemaining != null && (
+            <span style={{
+              color: levelTimeRemaining < 30 ? '#dc3545' : levelTimeRemaining < 60 ? '#d4af37' : '#5a6a7a',
+              fontWeight: levelTimeRemaining < 30 ? 700 : 400,
+            }}> · {Math.floor(levelTimeRemaining / 60)}:{String(Math.floor(levelTimeRemaining % 60)).padStart(2, '0')}</span>
+          )}
           {playersRemaining && <span style={{ color: '#5a6a7a' }}> · {playersRemaining}/{totalPlayers}</span>}
         </div>
         {/* Right: Rank + M */}
@@ -845,7 +851,8 @@ function Game({ director, onExit }) {
         blinds={bl} theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)}
         level={tournState.blindLevel} playersRemaining={tournState.playersRemaining}
         totalPlayers={tournState.totalPlayers} isFinalTable={tournState.isFinalTable}
-        payouts={tournState.payouts?.payouts?.slice(0, 3)} />
+        payouts={tournState.payouts?.payouts?.slice(0, 3)}
+        levelTimeRemaining={tournState.levelTimeRemaining} />
 
       {/* Alerts */}
       {tournState.isBubble && (
