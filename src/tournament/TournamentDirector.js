@@ -60,13 +60,28 @@ export class TournamentDirector {
     return Math.max(0, level.mins * 60 - elapsed);
   }
 
-  // Check if it's time to advance blinds
+  // Check if blinds should advance — HYBRID: time + player elimination milestones
   checkBlindLevel() {
-    const remaining = this.getLevelTimeRemaining();
-    if (remaining <= 0 && this.blindLevel < this.format.blindLevels.length - 1) {
-      this.blindLevel++;
+    const alive = this.pool.getAliveCount();
+    const total = this.format.players;
+    const maxLevel = this.format.blindLevels.length - 1;
+
+    // Method 1: Time-based (original)
+    const timeUp = this.getLevelTimeRemaining() <= 0;
+
+    // Method 2: Player-count milestones — ensures realistic blind progression
+    // blindLevel roughly tracks how deep into the tournament we are
+    const elimPct = 1 - alive / total; // 0.0 at start, 1.0 when 1 player left
+    const targetLevel = Math.floor(elimPct * maxLevel * 1.1); // Slightly ahead of linear
+
+    // Advance if EITHER time expired OR player count demands it
+    const shouldAdvance = (timeUp || targetLevel > this.blindLevel) && this.blindLevel < maxLevel;
+
+    if (shouldAdvance) {
+      this.blindLevel = Math.max(this.blindLevel + 1, Math.min(targetLevel, this.blindLevel + 2)); // Never jump more than 2 levels
+      this.blindLevel = Math.min(this.blindLevel, maxLevel);
       this.levelStartTime = Date.now();
-      return true; // Blinds went up
+      return true;
     }
     return false;
   }

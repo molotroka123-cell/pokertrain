@@ -54,6 +54,7 @@ export class GameEngine {
     this.pot = 0;
     this.sidePots = [];
     this.bets = {};          // current street bets { playerId: amount }
+    this._startChips = {};   // chips at start of hand for side-pot calc
     this.folded = new Set();
     this.allIn = new Set();
     this.players = [];       // seat order array of player objects
@@ -86,6 +87,10 @@ export class GameEngine {
     this.blinds = blinds;
     this.aiBots = aiBots || {};
     this.positions = getPositions(this.players.length, this.dealerIdx);
+
+    // Record starting chips for side-pot calculation
+    this._startChips = {};
+    for (const p of this.players) this._startChips[p.id] = p.chips;
 
     // Deal cards from ONE fresh shuffled deck (52 unique cards)
     this.deck = freshDeck();
@@ -455,18 +460,67 @@ export class GameEngine {
         return compareHands(b.hand, a.hand);
       });
 
-      // Award pot to best hand(s)
+      // Side-pot aware pot distribution
+      // Track total invested per player this hand (bets + antes + blinds)
+      const invested = {};
+      for (const p of this.players) {
+        // Total invested = startChips - currentChips (if they lost chips) or from pot contribution
+        invested[p.id] = this._startChips?.[p.id] != null
+          ? this._startChips[p.id] - p.chips
+          : 0;
+      }
+
+      // Simple side-pot: winner can only win from each player up to their own investment
+      let totalAwarded = 0;
       const bestValue = results[0].hand?.value || 0;
       const winners = results.filter(r => r.hand?.value === bestValue);
-      const share = Math.floor(this.pot / winners.length);
 
-      for (const w of winners) {
-        w.won = share;
-        w.player.chips += share;
+      if (winners.length === 1) {
+        const w = winners[0];
+        const winnerInvested = invested[w.player.id] || this.pot;
+        let winnings = 0;
+        for (const p of this.players) {
+          const pInvested = invested[p.id] || 0;
+          // Winner gets min(their investment, opponent's investment) from each player
+          winnings += Math.min(winnerInvested, pInvested);
+        }
+        // Plus any excess from antes/blinds already in pot
+        winnings = Math.max(winnings, Math.min(this.pot, winnerInvested * this.players.length));
+        winnings = Math.min(winnings, this.pot); // Never more than pot
+        w.won = winnings;
+        w.player.chips += winnings;
+        totalAwarded = winnings;
+
+        // Return excess to other players (side pot remainder)
+        const excess = this.pot - winnings;
+        if (excess > 0) {
+          // Give excess back to the player who put in more
+          const others = this.players.filter(p => p.id !== w.player.id && !this.folded.has(p.id) && (invested[p.id] || 0) > winnerInvested);
+          if (others.length > 0) {
+            const excessShare = Math.floor(excess / others.length);
+            for (const o of others) {
+              o.chips += excessShare;
+            }
+          } else {
+            // No clear recipient — give to winner
+            w.player.chips += excess;
+            w.won += excess;
+          }
+        }
+      } else {
+        // Split pot between multiple winners
+        const share = Math.floor(this.pot / winners.length);
+        for (const w of winners) {
+          w.won = share;
+          w.player.chips += share;
+        }
+        // Remainder chip to first winner
+        const remainder = this.pot - share * winners.length;
+        if (remainder > 0) { winners[0].player.chips += remainder; winners[0].won += remainder; }
       }
 
       this.winner = winners[0].player;
-      this.potWon = this.pot;
+      this.potWon = winners[0].won;
       // Include folded players' cards too (for AI debrief)
       const foldedResults = this.players
         .filter(p => this.folded.has(p.id) && this.holeCards[p.id])
