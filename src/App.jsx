@@ -382,7 +382,7 @@ function PremiumTable({ gs, theme: T }) {
                 fontSize: isHero ? '11px' : '10px', fontWeight: 600,
                 color: isHero ? T.accent : '#7a8a9a',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px',
-              }}>{isHero ? 'HERO' : p.name}</div>
+              }}>{isHero ? 'HERO' : p._isBoss ? `👑 ${p.name}` : p.name}</div>
 
               {/* Cards */}
               <div style={{ display: 'flex', justifyContent: 'center', margin: '3px 0', minHeight: isHero ? '52px' : '34px' }}>
@@ -549,8 +549,20 @@ function Game({ director, onExit }) {
     const state = dirRef.current.getState();
     if (state.heroTable) {
       const bots = {};
-      for (const p of state.heroTable.players) {
-        if (!p.isHero && p.profile) bots[p.id] = new AdaptiveAI(p.profile);
+      const players = state.heroTable.players;
+      // Pick one random bot as "boss" (AI-enhanced) — marked with crown
+      const botPlayers = players.filter(p => !p.isHero && p.profile);
+      const bossIdx = botPlayers.length > 0 ? Math.floor(Math.random() * botPlayers.length) : -1;
+      for (let i = 0; i < botPlayers.length; i++) {
+        const p = botPlayers[i];
+        const ai = new AdaptiveAI(p.profile);
+        if (i === bossIdx) {
+          p._isBoss = true; // Mark for UI (crown icon)
+          // Boss bots are smarter: higher aggression, better reads
+          ai.exploitLevel = 0.3; // Start with some exploit ability
+          ai.minHandsToExploit = 5; // Adapt faster
+        }
+        bots[p.id] = ai;
       }
       aiBotsRef.current = bots;
     }
