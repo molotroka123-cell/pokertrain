@@ -4,6 +4,7 @@
 import { getHandValue, handString, isInOpenRange } from '../engine/ranges.js';
 import { potOdds, mRatio } from '../engine/equity.js';
 import { classifyTexture } from '../engine/evEngine.js';
+import { evaluateHand } from '../engine/evaluator.js';
 
 let sessionId = null;
 let records = [];
@@ -30,9 +31,18 @@ export function recordDecision({
   const hCards = holeCards || [];
   const board = community || [];
 
-  // Computed fields
+  // Computed fields — use proper equity based on street
   const handVal = hCards.length === 2 ? getHandValue(hCards[0], hCards[1]) : 0.5;
-  const equity = 1 - handVal; // Quick estimate
+  let equity;
+  if (board.length >= 3 && hCards.length === 2) {
+    // Postflop: use actual hand evaluation
+    const evalResult = evaluateHand(hCards, board);
+    const strengthMap = [0, 0.15, 0.45, 0.60, 0.70, 0.78, 0.83, 0.88, 0.93, 0.97, 1.0];
+    equity = evalResult ? (strengthMap[evalResult.rank] || 0.15) + Math.min(0.1, (evalResult.value % 1e6) / 1e7) : 0.3;
+  } else {
+    // Preflop: range-based estimate
+    equity = 1 - handVal;
+  }
   const odds = toCall > 0 ? potOdds(toCall, potSize) : 0;
   const sprVal = potSize > 0 ? myChips / potSize : Infinity;
   const m = mRatio(myChips, blinds?.sb || 0, blinds?.bb || 0, blinds?.ante || 0, playersAtTable || 9);
