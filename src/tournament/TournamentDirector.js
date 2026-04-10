@@ -165,10 +165,17 @@ export class TournamentDirector {
       }
     }
 
-    // Elimination check
+    // Elimination check — chips <= 0 OR critically short-stacked
     for (const p of active) {
       if (p.chips <= 0 && !p.eliminated) {
         this.pool.eliminate(p.id);
+      }
+      // Short-stack desperation: if stack < 1bb, bust with increasing probability
+      if (!p.eliminated && !p.isHero && p.chips > 0 && p.chips < bl.bb) {
+        if (cryptoRandomFloat() < 0.5) {
+          p.chips = 0;
+          this.pool.eliminate(p.id);
+        }
       }
     }
 
@@ -190,7 +197,11 @@ export class TournamentDirector {
 
   // Simulate all background tables (called periodically)
   // ~10 min to final table target
+  // handsPerTable scales with blind level for acceleration
   simulateBackgroundTick(handsPerTable = 5) {
+    // More hands per tick at higher blind levels (pressure increases)
+    const levelBoost = Math.floor(this.blindLevel / 3);
+    handsPerTable = handsPerTable + levelBoost;
     const nonHeroTables = this.tableManager.getNonHeroTables();
     const results = { eliminations: [], moves: [] };
 

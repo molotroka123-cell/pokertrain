@@ -244,291 +244,306 @@ function PremiumTable({ gs, theme: T }) {
     seated.push(gs.players[(heroIdx + i) % gs.players.length]);
   }
 
+  // Don't render hero in seat layout — hero area is separate below table
+  const opponents = seated.slice(1);
+
   return (
-    <div style={{
-      position: 'relative', width: '100%', maxWidth: '750px', height: 'min(440px, 55vh)',
-      margin: '0 auto', overflow: 'hidden',
-    }}>
-      {/* Ambient light from above */}
+    <div style={{ position: 'relative', width: '100%', maxWidth: '750px', margin: '0 auto' }}>
+      {/* ═══ TABLE AREA ═══ */}
       <div style={{
-        position: 'absolute', top: '20%', left: '50%', width: '50%', height: '30%',
-        transform: 'translate(-50%,-30%)',
-        background: `radial-gradient(ellipse, ${T.ambientColor} 0%, transparent 70%)`,
-        filter: 'blur(30px)', pointerEvents: 'none',
-      }} />
-
-      {/* Table shadow on floor */}
-      <div style={{
-        position: 'absolute', top: '56%', left: '50%', width: '78%', height: '30%',
-        transform: 'translate(-50%,-50%)',
-        background: 'rgba(0,0,0,0.4)', borderRadius: '50%', filter: 'blur(30px)',
-      }} />
-
-      {/* Outer dark rim */}
-      <div style={{
-        position: 'absolute', top: '10%', left: '6%', width: '88%', height: '70%',
-        borderRadius: '50%/42%',
-        background: T.rimBg,
-        boxShadow: T.rimGlow + ', inset 0 2px 0 ' + T.rimEdge,
-        border: '1px solid ' + T.rimBorder,
-      }} />
-
-      {/* Edge glow line */}
-      <div style={{
-        position: 'absolute', top: '10.5%', left: '6.5%', width: '87%', height: '69%',
-        borderRadius: '50%/42%',
-        border: '1px solid ' + T.rimEdge,
-        boxShadow: 'inset 0 0 15px ' + T.ambientColor,
-        pointerEvents: 'none',
-      }} />
-
-      {/* Felt */}
-      <div style={{
-        position: 'absolute', top: '13%', left: '9%', width: '82%', height: '64%',
-        background: T.feltBg,
-        borderRadius: '50%/42%',
-        boxShadow: 'inset 0 0 100px rgba(0,0,0,0.4), inset 0 -10px 40px rgba(0,0,0,0.15)',
+        position: 'relative', width: '100%', height: 'min(340px, 44dvh)',
+        overflow: 'visible', contain: 'layout style',
       }}>
-        {/* Light spot */}
+        {/* Ambient light */}
         <div style={{
-          position: 'absolute', top: '25%', left: '50%', width: '40%', height: '30%',
-          transform: 'translate(-50%, 0)',
-          background: `radial-gradient(ellipse, ${T.feltLight} 0%, transparent 70%)`,
-          borderRadius: '50%', pointerEvents: 'none',
+          position: 'absolute', top: '15%', left: '50%', width: '50%', height: '30%',
+          transform: 'translate(-50%,-30%)',
+          background: `radial-gradient(ellipse, ${T.ambientColor} 0%, transparent 70%)`,
+          filter: 'blur(30px)', pointerEvents: 'none',
         }} />
-        {/* Inner line */}
+
+        {/* Table shadow */}
         <div style={{
-          position: 'absolute', top: '6%', left: '5%', width: '90%', height: '88%',
+          position: 'absolute', top: '58%', left: '50%', width: '78%', height: '30%',
+          transform: 'translate(-50%,-50%)',
+          background: 'rgba(0,0,0,0.4)', borderRadius: '50%', filter: 'blur(30px)',
+        }} />
+
+        {/* Outer metallic rim */}
+        <div style={{
+          position: 'absolute', top: '10%', left: '6%', width: '88%', height: '72%',
           borderRadius: '50%/42%',
-          border: '1px solid ' + T.feltInner,
+          background: T.rimBg,
+          boxShadow: T.rimGlow + ', inset 0 2px 0 ' + T.rimEdge,
+          border: '2px solid ' + T.rimBorder,
         }} />
-        {/* Tournament logo on felt */}
+
+        {/* Inner rim glow */}
         <div style={{
-          position: 'absolute', top: '68%', left: '50%', transform: 'translate(-50%,-50%)',
-          fontSize: '18px', fontWeight: 900, letterSpacing: '3px',
-          color: T.logoColor || T.accent, opacity: 0.12,
-          textShadow: `0 0 20px ${T.accentGlow}`,
-          userSelect: 'none', pointerEvents: 'none',
-        }}>{T.logo || ''}</div>
+          position: 'absolute', top: '10.8%', left: '6.8%', width: '86.4%', height: '70.4%',
+          borderRadius: '50%/42%',
+          border: '1px solid ' + T.rimEdge,
+          boxShadow: 'inset 0 0 15px ' + T.ambientColor,
+          pointerEvents: 'none',
+        }} />
+
+        {/* Felt */}
+        <div style={{
+          position: 'absolute', top: '14%', left: '9%', width: '82%', height: '64%',
+          background: T.feltBg,
+          borderRadius: '50%/42%',
+          boxShadow: 'inset 0 0 80px rgba(0,0,0,0.4), inset 0 -8px 30px rgba(0,0,0,0.15)',
+        }}>
+          {/* Light spot */}
+          <div style={{
+            position: 'absolute', top: '20%', left: '50%', width: '45%', height: '30%',
+            transform: 'translate(-50%, 0)',
+            background: `radial-gradient(ellipse, ${T.feltLight} 0%, transparent 70%)`,
+            borderRadius: '50%', pointerEvents: 'none',
+          }} />
+          {/* Inner line */}
+          <div style={{
+            position: 'absolute', top: '6%', left: '5%', width: '90%', height: '88%',
+            borderRadius: '50%/42%',
+            border: '1px solid ' + T.feltInner,
+          }} />
+          {/* Tournament logo */}
+          <div style={{
+            position: 'absolute', top: '70%', left: '50%', transform: 'translate(-50%,-50%)',
+            fontSize: '24px', fontWeight: 900, letterSpacing: '4px',
+            fontFamily: T.logoFont || "'Georgia', serif",
+            color: T.logoColor || T.accent, opacity: 0.22,
+            textShadow: `0 0 25px ${T.accentGlow}`,
+            userSelect: 'none', pointerEvents: 'none',
+          }}>{T.logo || ''}</div>
+        </div>
+
+        {/* ═══ Pot + To Call ═══ */}
+        {gs.pot > 0 && (
+          <div style={{
+            position: 'absolute', top: '33%', left: '50%', transform: 'translate(-50%,-50%)',
+            textAlign: 'center', zIndex: 20,
+          }}>
+            <div style={{ fontSize: '14px', color: '#a0a890', letterSpacing: '1px' }}>
+              Pot: <span style={{
+                fontSize: '24px', fontWeight: 800, color: T.potColor,
+                textShadow: T.potShadow,
+              }}>{fmt(gs.pot)}</span>
+            </div>
+            {gs.toCall > 0 && gs.waitingForHero && (
+              <div style={{ fontSize: '13px', color: '#908a78', letterSpacing: '0.5px', marginTop: '2px' }}>
+                To call: <span style={{ color: '#d0c090', fontWeight: 700, fontSize: '15px' }}>{fmt(gs.toCall)}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ Community cards ═══ */}
+        {gs.community.length > 0 && (
+          <div style={{
+            position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%,-50%)',
+            display: 'flex', gap: '5px', zIndex: 15,
+          }}>
+            {gs.community.map((c, i) => <Card key={c + i} card={c} mini delay={i * 220} />)}
+          </div>
+        )}
+
+        {/* ═══ Opponent Seats (no hero — hero is below table) ═══ */}
+        {opponents.map((p, oi) => {
+          if (!p || (p.folded && gs.phase !== 'showdown')) return null;
+          const si = oi + 1; // seat index (1-8)
+          const pos = SEATS_9[si % SEATS_9.length];
+          const sd = sdMap[p.id];
+          const isWinner = gs.winner?.id === p.id;
+          const isDealer = gs.players.indexOf(p) === gs.dealerIdx;
+          const betOff = BET_OFFSETS[si % BET_OFFSETS.length];
+
+          return (
+            <React.Fragment key={p.id}>
+              {/* Bet chips */}
+              {p.bet > 0 && (
+                <ChipStack
+                  amount={p.bet}
+                  x={`calc(${pos.x}% + ${betOff.dx}px)`}
+                  y={`calc(${pos.y}% + ${betOff.dy}px)`}
+                  animate
+                />
+              )}
+
+              <div style={{
+                position: 'absolute', left: pos.x + '%', top: pos.y + '%',
+                transform: 'translate(-50%,-50%)', textAlign: 'center', zIndex: 10,
+                width: '72px', transition: 'opacity 0.4s ease',
+                opacity: p.folded ? 0.3 : 1,
+              }}>
+                {/* ALL-IN callout above avatar */}
+                {p.allIn && (
+                  <div style={{
+                    fontSize: '10px', fontWeight: 800, color: T.allInColor,
+                    background: T.allInBg, padding: '3px 10px', borderRadius: '10px',
+                    marginBottom: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                    animation: 'pulse 1.5s infinite',
+                  }}>ALL IN</div>
+                )}
+
+                {/* Avatar circle — initial letter, no emoji */}
+                <div style={{
+                  width: 42, height: 42, borderRadius: '50%', margin: '0 auto',
+                  background: isWinner ? T.avatarWin : p._isBoss ? 'linear-gradient(135deg, #5a4010, #d4af37)' : T.avatarBot,
+                  border: `2.5px solid ${isWinner ? T.accent : p._isBoss ? '#d4af37' : '#2a3a4a55'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '16px', fontWeight: 800,
+                  color: isWinner ? '#fff' : p._isBoss ? '#fff' : '#8a9aaa',
+                  boxShadow: isWinner
+                    ? `0 0 20px ${T.accentGlow}`
+                    : p._isBoss ? '0 0 14px rgba(212,175,55,0.4)' : '0 3px 10px rgba(0,0,0,0.5)',
+                  willChange: 'transform',
+                }}>
+                  {(p.name || 'P')[0].toUpperCase()}
+                </div>
+
+                {/* Showdown cards */}
+                {showdown && sd?.cards && (
+                  <div style={{ display: 'flex', justifyContent: 'center', margin: '3px 0' }}>
+                    {sd.cards.map((c, ci) => <Card key={c} card={c} mini delay={200 + ci * 200} />)}
+                  </div>
+                )}
+
+                {/* Showdown hand name */}
+                {showdown && sd?.hand && (
+                  <div style={{
+                    fontSize: '9px', fontWeight: 700,
+                    color: isWinner ? '#ffd700' : '#5a7a8a',
+                    background: isWinner ? 'rgba(255,215,0,0.12)' : 'rgba(0,0,0,0.35)',
+                    padding: '2px 8px', borderRadius: '10px', display: 'inline-block',
+                    border: isWinner ? '1px solid rgba(255,215,0,0.2)' : 'none',
+                  }}>{sd.hand.name}</div>
+                )}
+
+                {/* Stack badge */}
+                <div style={{
+                  fontSize: '11px', fontWeight: 700, color: T.chipColor,
+                  background: 'rgba(0,0,0,0.7)', padding: '3px 10px', borderRadius: '12px',
+                  display: 'inline-block', marginTop: '3px',
+                  backdropFilter: 'blur(4px)', border: `1px solid ${T.accent}18`,
+                }}>${fmt(p.chips)}</div>
+
+                {/* Dealer chip */}
+                {isDealer && (
+                  <div style={{
+                    position: 'absolute', top: '2px', right: '-2px',
+                    width: '20px', height: '20px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #ffd700, #e8a800)',
+                    color: '#1a1a00', fontSize: '10px', fontWeight: 900,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 2px 6px rgba(255,215,0,0.5)',
+                    border: '1.5px solid rgba(255,255,255,0.15)',
+                  }}>D</div>
+                )}
+              </div>
+            </React.Fragment>
+          );
+        })}
+
+        {/* Winner popup */}
+        {gs.phase === 'showdown' && gs.winner && (
+          <div style={{
+            position: 'absolute', bottom: '4%', left: '50%', transform: 'translateX(-50%)',
+            background: T.winBg, backdropFilter: 'blur(12px)',
+            padding: '10px 30px', borderRadius: '20px', zIndex: 30,
+            border: '1.5px solid ' + T.winBorder,
+            boxShadow: T.winGlow,
+            animation: 'winPopup 0.5s cubic-bezier(0.34,1.56,0.64,1)',
+          }}>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: T.accent }}>
+              {gs.winner.isHero ? 'You win ' : `${gs.winner.name} wins `}
+            </span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#e0e0e0' }}>{fmt(gs.potWon)}</span>
+          </div>
+        )}
       </div>
 
-      {/* Pot + To Call — center of table */}
-      {gs.pot > 0 && (
-        <div style={{
-          position: 'absolute', top: '32%', left: '50%', transform: 'translate(-50%,-50%)',
-          textAlign: 'center', zIndex: 20,
-        }}>
-          <div style={{
-            fontSize: '13px', color: '#b0b8a8', letterSpacing: '1px', marginBottom: '2px',
-          }}>Pot: <span style={{
-            fontSize: '22px', fontWeight: 800, color: T.potColor,
-            textShadow: T.potShadow,
-          }}>{fmt(gs.pot)}</span></div>
-          {gs.toCall > 0 && gs.waitingForHero && (
-            <div style={{ fontSize: '12px', color: '#8a8a78', letterSpacing: '0.5px' }}>
-              To call: <span style={{ color: '#c0b080', fontWeight: 700 }}>{fmt(gs.toCall)}</span>
-            </div>
-          )}
+      {/* ═══ HERO AREA — below table ═══ */}
+      <div style={{
+        textAlign: 'center', padding: '6px 0 2px', position: 'relative',
+      }}>
+        {/* Hero bet chips */}
+        {seated[0]?.bet > 0 && (
+          <ChipStack amount={seated[0].bet} x="50%" y="-10px" animate />
+        )}
+        {/* Hero cards — larger */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', minHeight: '68px' }}>
+          {gs.heroCards?.length > 0 && gs.heroCards.map((c, ci) => (
+            <Card key={c} card={c} hero glow delay={ci * 300} />
+          ))}
         </div>
-      )}
-
-      {/* Community cards */}
-      {gs.community.length > 0 && (
+        {/* Stack label */}
         <div style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          display: 'flex', gap: '6px', zIndex: 15,
+          fontSize: '13px', fontWeight: 700, color: T.chipColor, marginTop: '4px',
+          textShadow: `0 0 12px ${T.accentGlow}`,
         }}>
-          {gs.community.map((c, i) => <Card key={c + i} card={c} mini delay={i * 220} />)}
+          Stack: {fmt(seated[0]?.chips || 0)}
         </div>
-      )}
-
-      {/* Seats */}
-      {seated.map((p, si) => {
-        if (!p || (p.folded && gs.phase !== 'showdown')) return null;
-        const pos = SEATS_9[si % SEATS_9.length];
-        const isHero = si === 0;
-        const sd = sdMap[p.id];
-        const isWinner = gs.winner?.id === p.id;
-        const isDealer = gs.players.indexOf(p) === gs.dealerIdx;
-        const betOff = BET_OFFSETS[si % BET_OFFSETS.length];
-
-        return (
-          <React.Fragment key={p.id}>
-            {/* Bet chips (separate from seat, positioned between seat and center) */}
-            {p.bet > 0 && (
-              <ChipStack
-                amount={p.bet}
-                x={`calc(${pos.x}% + ${betOff.dx}px)`}
-                y={`calc(${pos.y}% + ${betOff.dy}px)`}
-                animate
-              />
-            )}
-
-            <div style={{
-              position: 'absolute', left: pos.x + '%', top: pos.y + '%',
-              transform: 'translate(-50%,-50%)', textAlign: 'center', zIndex: 10,
-              width: isHero ? '92px' : '80px',
-              transition: 'opacity 0.4s ease',
-              opacity: p.folded ? 0.3 : 1,
-            }}>
-              {/* Avatar */}
-              <div style={{
-                width: isHero ? 46 : p._isBoss ? 42 : 38, height: isHero ? 46 : p._isBoss ? 42 : 38, borderRadius: '50%',
-                margin: '0 auto 2px',
-                background: isWinner ? T.avatarWin : isHero ? T.avatarHero : p._isBoss ? 'linear-gradient(135deg, #8a6a10, #d4af37)' : T.avatarBot,
-                border: `${p._isBoss ? '3px' : '2.5px'} solid ${isWinner ? T.accent : isHero ? T.accent + '88' : p._isBoss ? '#d4af37' : '#2a3a5a44'}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: isHero ? '18px' : '14px',
-                boxShadow: isWinner
-                  ? `0 0 24px ${T.accentGlow}, 0 0 48px ${T.ambientColor}`
-                  : isHero ? `0 0 16px ${T.accentGlow}`
-                  : p._isBoss ? '0 0 16px rgba(212,175,55,0.5), 0 0 32px rgba(212,175,55,0.2)'
-                  : '0 3px 10px rgba(0,0,0,0.4)',
-                animation: p._isBoss && !isWinner ? 'goldPulse 2s ease-in-out infinite' : 'none',
-                transition: 'box-shadow 0.5s ease',
-              }}>
-                {p.emoji || (isHero ? '👤' : '🤖')}
-              </div>
-
-              {/* Position */}
-              <div style={{ fontSize: '9px', fontWeight: 700, color: '#4a6a7a', letterSpacing: '0.5px' }}>{p.position}</div>
-
-              {/* Name */}
-              <div style={{
-                fontSize: isHero ? '11px' : '10px', fontWeight: 600,
-                color: isHero ? T.accent : '#7a8a9a',
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px',
-              }}>
-                {isHero ? 'HERO' : p.name}
-              </div>
-              {p._isBoss && !isHero && (
-                <div style={{
-                  fontSize: '8px', fontWeight: 800, color: '#d4af37',
-                  background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)',
-                  padding: '1px 6px', borderRadius: '6px', display: 'inline-block',
-                  letterSpacing: '1px',
-                }}>👑 AI PRO</div>
-              )}
-
-              {/* Cards */}
-              <div style={{ display: 'flex', justifyContent: 'center', margin: '3px 0', minHeight: isHero ? '52px' : '34px' }}>
-                {isHero && gs.heroCards?.length > 0 ? (
-                  gs.heroCards.map((c, ci) => <Card key={c} card={c} hero glow delay={ci * 300} />)
-                ) : showdown && sd?.cards ? (
-                  sd.cards.map((c, ci) => <Card key={c} card={c} mini delay={200 + ci * 200} />)
-                ) : !isHero && !p.folded ? (
-                  <><Card card="Xx" faceDown mini delay={si * 60} /><Card card="Xx" faceDown mini delay={si * 60 + 80} /></>
-                ) : null}
-              </div>
-
-              {/* Timer bar — only for hero when waiting */}
-              {isHero && gs.waitingForHero && (
-                <div style={{
-                  width: '80%', height: '4px', borderRadius: '2px', margin: '4px auto 0',
-                  background: '#1a2230', overflow: 'hidden',
-                }}>
-                  <div style={{
-                    height: '100%', borderRadius: '2px',
-                    background: 'linear-gradient(90deg, #28a745, #d4af37, #dc3545)',
-                    animation: 'timerShrink 30s linear forwards',
-                  }} />
-                </div>
-              )}
-
-              {/* Showdown hand name */}
-              {showdown && sd?.hand && (
-                <div style={{
-                  fontSize: '9px', fontWeight: 700,
-                  color: isWinner ? '#ffd700' : '#5a7a8a',
-                  background: isWinner ? 'rgba(255,215,0,0.12)' : 'rgba(0,0,0,0.35)',
-                  padding: '2px 8px', borderRadius: '10px', display: 'inline-block',
-                  border: isWinner ? '1px solid rgba(255,215,0,0.2)' : 'none',
-                }}>{sd.hand.name}</div>
-              )}
-
-              {/* Chip count */}
-              <div style={{
-                fontSize: '11px', fontWeight: 700, color: T.chipColor,
-                background: 'rgba(0,0,0,0.5)', padding: '2px 10px', borderRadius: '12px',
-                display: 'inline-block', marginTop: '2px',
-                backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.04)',
-              }}>{fmt(p.chips)}</div>
-
-              {/* All-in */}
-              {p.allIn && (
-                <div style={{
-                  fontSize: '9px', fontWeight: 800, color: '#fff',
-                  background: T.allInBg,
-                  padding: '2px 8px', borderRadius: '10px', display: 'inline-block', marginTop: '2px',
-                  animation: 'pulse 1.5s infinite',
-                  boxShadow: '0 0 8px rgba(231,76,60,0.4)',
-                }}>ALL-IN</div>
-              )}
-
-              {/* Dealer */}
-              {isDealer && (
-                <div style={{
-                  position: 'absolute', top: '-3px', right: '-3px',
-                  width: '22px', height: '22px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #ffd700, #ffaa00)',
-                  color: '#1a1a00', fontSize: '11px', fontWeight: 900,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 2px 8px rgba(255,215,0,0.5)',
-                  border: '1.5px solid rgba(255,255,255,0.2)',
-                }}>D</div>
-              )}
-            </div>
-          </React.Fragment>
-        );
-      })}
-
-      {/* Winner popup */}
-      {gs.phase === 'showdown' && gs.winner && (
-        <div style={{
-          position: 'absolute', bottom: '2%', left: '50%', transform: 'translateX(-50%)',
-          background: T.winBg, backdropFilter: 'blur(12px)',
-          padding: '10px 30px', borderRadius: '24px', zIndex: 30,
-          border: '1.5px solid ' + T.winBorder,
-          boxShadow: T.winGlow,
-          animation: 'winPopup 0.5s cubic-bezier(0.34,1.56,0.64,1)',
-        }}>
-          <span style={{ fontSize: '16px', fontWeight: 800, color: T.accent }}>
-            {gs.winner.isHero ? '🏆 You win ' : `${gs.winner.name} wins `}
-          </span>
-          <span style={{ fontSize: '16px', fontWeight: 800, color: '#e0e0e0' }}>{fmt(gs.potWon)}</span>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
 
 // ════════════════════════════════════════════
-// HUD BAR — Cinematic minimal
+// TOURNAMENT HEADER — Premium info bar
 // ════════════════════════════════════════════
-function HUDBar({ heroChips, pot, mVal, position, rank, blinds }) {
+function HUDBar({ heroChips, pot, mVal, position, rank, blinds, theme, level, playersRemaining, totalPlayers, isFinalTable, payouts }) {
+  const T = theme || getTheme('WSOP_Main');
   return (
     <div style={{
-      display: 'flex', justifyContent: 'space-around', padding: '6px 10px',
-      background: 'linear-gradient(180deg, rgba(10,13,18,0.95), rgba(13,17,24,0.95))',
-      borderBottom: '1px solid #1a223055', fontSize: '11px',
-      backdropFilter: 'blur(8px)',
+      background: T.headerBg, borderBottom: `1px solid ${T.rimBorder}`,
+      backdropFilter: 'blur(8px)', paddingTop: 'env(safe-area-inset-top, 0px)',
     }}>
-      {[
-        { label: 'STACK', val: fmt(heroChips), color: '#d4af37' },
-        { label: 'POT', val: fmt(pot), color: '#c0c0c0' },
-        { label: 'BLINDS', val: `${fmt(blinds.sb)}/${fmt(blinds.bb)}`, color: '#6a7a8a', small: true },
-        { label: 'M', val: mVal.toFixed(0), color: mVal < 10 ? '#dc3545' : mVal < 20 ? '#d4af37' : '#28a745' },
-        { label: 'RANK', val: `#${rank}`, color: '#9aa' },
-        { label: 'POS', val: position || '—', color: '#6a7a8a', small: true },
-      ].map((h, i) => (
-        <div key={i} style={{ textAlign: 'center', flex: 1 }}>
-          <div style={{ color: '#4a5a6a', fontSize: '9px', letterSpacing: '1px', fontWeight: 600 }}>{h.label}</div>
+      {/* Final Table banner */}
+      {isFinalTable && (
+        <div style={{
+          textAlign: 'center', padding: '6px 10px 4px',
+          background: 'linear-gradient(180deg, rgba(212,175,55,0.12), transparent)',
+          borderBottom: '1px solid rgba(212,175,55,0.15)',
+        }}>
           <div style={{
-            color: h.color, fontWeight: 700, fontSize: h.small ? '11px' : '14px', marginTop: '1px',
-            textShadow: h.color === '#d4af37' ? '0 0 10px rgba(212,175,55,0.2)' : 'none',
-          }}>{h.val}</div>
+            fontSize: '16px', fontWeight: 900, color: '#d4af37', letterSpacing: '3px',
+            textShadow: '0 0 20px rgba(212,175,55,0.4)',
+          }}>✦ FINAL TABLE ✦</div>
+          {payouts && payouts.length >= 3 && (
+            <div style={{ fontSize: '11px', color: '#b0a070', marginTop: '2px' }}>
+              1st: ${fmt(payouts[0])}  2nd: ${fmt(payouts[1])}  3rd: ${fmt(payouts[2])}
+            </div>
+          )}
         </div>
-      ))}
+      )}
+      {/* Main info row */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '6px 12px',
+      }}>
+        {/* Left: Tournament name */}
+        <div style={{
+          fontSize: '13px', fontWeight: 800, color: T.headerColor,
+          fontFamily: T.logoFont || 'inherit', letterSpacing: '1px',
+        }}>{T.logo || 'POKER'}</div>
+        {/* Center: Blinds info */}
+        <div style={{
+          fontSize: '11px', color: '#7a8a9a', textAlign: 'center',
+        }}>
+          {fmt(blinds.sb)}/{fmt(blinds.bb)}{blinds.ante > 0 ? `·${fmt(blinds.ante)}` : ''}
+          {level != null && <span style={{ color: '#5a6a7a' }}> · Lvl {level + 1}</span>}
+          {playersRemaining && <span style={{ color: '#5a6a7a' }}> · {playersRemaining}/{totalPlayers}</span>}
+        </div>
+        {/* Right: Rank + M */}
+        <div style={{ textAlign: 'right', fontSize: '11px' }}>
+          <span style={{ color: '#7a8a9a' }}>#{rank}</span>
+          <span style={{
+            marginLeft: '8px', fontWeight: 700,
+            color: mVal < 10 ? '#dc3545' : mVal < 20 ? '#d4af37' : '#28a745',
+          }}>M{mVal.toFixed(0)}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -776,10 +791,11 @@ function Game({ director, onExit }) {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       background: getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey).bg,
       color: '#e0e0e0', fontFamily: "'Segoe UI', -apple-system, sans-serif",
       maxWidth: '800px', margin: '0 auto',
+      display: 'flex', flexDirection: 'column',
     }}>
       {/* CSS animations */}
       <style>{`
@@ -826,7 +842,10 @@ function Game({ director, onExit }) {
       {/* HUD */}
       <HUDBar heroChips={tournState.heroChips} pot={gs?.pot || 0} mVal={m}
         position={gs?.heroPosition || '—'} rank={tournState.heroRank}
-        blinds={bl} playersLeft={tournState.playersRemaining} total={tournState.totalPlayers} />
+        blinds={bl} theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)}
+        level={tournState.blindLevel} playersRemaining={tournState.playersRemaining}
+        totalPlayers={tournState.totalPlayers} isFinalTable={tournState.isFinalTable}
+        payouts={tournState.payouts?.payouts?.slice(0, 3)} />
 
       {/* Alerts */}
       {tournState.isBubble && (
@@ -854,7 +873,8 @@ function Game({ director, onExit }) {
       {gs?.waitingForHero && (
         <Controls canCheck={gs.canCheck} canCall={gs.toCall > 0} toCall={gs.toCall}
           pot={gs.pot} myChips={gs.heroChips} minRaise={gs.minRaise} maxRaise={gs.maxRaise}
-          bigBlind={bl.bb} onAction={handleAction} />
+          bigBlind={bl.bb} onAction={handleAction}
+          theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)} />
       )}
 
       {/* Deal / Eliminated button */}

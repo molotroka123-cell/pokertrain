@@ -14,8 +14,8 @@ export default function Card({ card, faceDown = false, mini = false, delay = 0, 
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [delay, card]);
 
-  const w = hero ? 60 : mini ? 36 : 54;
-  const h = hero ? 86 : mini ? 52 : 76;
+  const w = hero ? 70 : mini ? 36 : 54;
+  const h = hero ? 100 : mini ? 52 : 76;
 
   // Face-down
   if (!card || card === 'Xx') {
