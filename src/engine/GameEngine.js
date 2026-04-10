@@ -257,13 +257,21 @@ export class GameEngine {
       let action;
 
       if (p.isHero) {
-        // Wait for hero input
+        // Wait for hero input — track decision time
         this._waitingForHero = true;
+        const decisionStart = Date.now();
         onUpdate(this.getState());
         action = await new Promise(resolve => {
           this._heroResolve = resolve;
         });
         this._waitingForHero = false;
+        action._decisionTimeMs = Date.now() - decisionStart;
+        action._phase = phase;
+        action._position = pos;
+        action._toCall = toCall;
+        action._pot = this.pot;
+        action._heroChips = p.chips;
+        action._community = [...this.community];
       } else {
         // AI decision
         await this._delay(400 + Math.floor(cryptoRandomFloat() * 600));
@@ -345,14 +353,22 @@ export class GameEngine {
   _applyAction(player, action, position) {
     const toCall = Math.max(0, this.currentBet - (this.bets[player.id] || 0));
 
+    // Hero meta for AI recording
+    const heroMeta = player.isHero ? {
+      _decisionTimeMs: action._decisionTimeMs || 0,
+      _phase: this.phase,
+      _toCall: toCall,
+      _pot: this.pot,
+    } : undefined;
+
     switch (action.action) {
       case 'fold':
         this.folded.add(player.id);
-        this._log(`[${position}] ${player.isHero ? 'Hero' : player.name} folds`, player);
+        this._log(`[${position}] ${player.isHero ? 'Hero' : player.name} folds`, player, 0, heroMeta);
         break;
 
       case 'check':
-        this._log(`[${position}] ${player.isHero ? 'Hero' : player.name} checks`, player);
+        this._log(`[${position}] ${player.isHero ? 'Hero' : player.name} checks`, player, 0, heroMeta);
         break;
 
       case 'call': {
@@ -361,7 +377,7 @@ export class GameEngine {
         this.bets[player.id] = (this.bets[player.id] || 0) + callAmt;
         this.pot += callAmt;
         if (player.chips <= 0) this.allIn.add(player.id);
-        this._log(`[${position}] ${player.isHero ? 'Hero' : player.name} calls ${callAmt}`, player, callAmt);
+        this._log(`[${position}] ${player.isHero ? 'Hero' : player.name} calls ${callAmt}`, player, callAmt, heroMeta);
         break;
       }
 
@@ -385,7 +401,7 @@ export class GameEngine {
         const label = isAllIn ? 'ALL-IN' : 'raises to';
         this._log(
           `[${position}] ${player.isHero ? 'Hero' : player.name} ${label} ${this.bets[player.id]}`,
-          player, this.bets[player.id]
+          player, this.bets[player.id], heroMeta
         );
         break;
       }
@@ -509,7 +525,7 @@ export class GameEngine {
     };
   }
 
-  _log(msg, player, amount) {
+  _log(msg, player, amount, meta) {
     this.actionLog.push({
       text: msg,
       name: player?.isHero ? 'Hero' : player?.name || '',
@@ -521,6 +537,7 @@ export class GameEngine {
               msg.includes('wins') || msg.includes('WINS') ? 'win' : '',
       amount: amount || 0,
       isHero: player?.isHero || false,
+      ...(meta || {}),
     });
   }
 

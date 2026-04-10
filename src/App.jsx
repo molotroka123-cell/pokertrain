@@ -8,7 +8,7 @@ import Card from './components/Card.jsx';
 import Controls from './tournament/Controls.jsx';
 import TournamentDashboard from './tournament/TournamentDashboard.jsx';
 import DebriefScreen from './stats/DebriefScreen.jsx';
-import { startSession, recordDecision, saveSession, exportSession, getRecords } from './recorder/ActionRecorder.js';
+import { startSession, recordDecision, updateHandResult, saveSession, exportSession, getRecords } from './recorder/ActionRecorder.js';
 import { generateDebrief } from './recorder/autoDebrief.js';
 import DrillMenu from './drills/DrillMenu.jsx';
 import RFIDrill from './drills/RFIDrill.jsx';
@@ -595,6 +595,51 @@ function Game({ director, onExit }) {
   const handleAction = useCallback((action, amount) => {
     engineRef.current.submitHeroAction(action, amount);
   }, []);
+
+  // Record hero decisions after each hand completes
+  useEffect(() => {
+    if (!gs || gs.phase !== 'hand_over') return;
+    const tState = dirRef.current.getState();
+    const hero = gs.players?.find(p => p.isHero);
+    if (!hero) return;
+
+    // Find hero actions from the log
+    const heroActions = (gs.actionLog || []).filter(a => a.isHero && a.action !== 'win');
+    for (const ha of heroActions) {
+      recordDecision({
+        handNumber: handCount,
+        blindLevel: tState.blindLevel,
+        blinds: tState.blinds,
+        playersRemaining: tState.playersRemaining,
+        totalPlayers: tState.totalPlayers,
+        averageStack: tState.averageStack,
+        isBubble: tState.isBubble,
+        isFinalTable: tState.isFinalTable,
+        tableId: tState.heroTable?.id,
+        playersAtTable: gs.players?.length || 9,
+        stage: ha._phase || 'preflop',
+        position: ha.position || gs.heroPosition,
+        holeCards: gs.heroCards || [],
+        community: gs.community || [],
+        potSize: gs.pot || 0,
+        currentBet: gs.currentBet || 0,
+        toCall: ha._toCall || 0,
+        myChips: hero.chips,
+        myBet: ha.amount || 0,
+        opponents: gs.players?.filter(p => !p.isHero && !p.folded).map(p => ({
+          name: p.name, position: p.position, chips: p.chips,
+          style: p.profile?.style, observedVpip: p.profile?.vpip,
+        })) || [],
+        action: ha.action,
+        raiseAmount: ha.action === 'raise' ? ha.amount : null,
+        decisionTimeMs: ha._decisionTimeMs || 0,
+      });
+    }
+
+    // Update hand result
+    const heroWon = gs.winner?.isHero;
+    updateHandResult(handCount, heroWon ? 'won' : 'lost', heroWon ? gs.potWon : 0, hero.chips, gs.allHoleCards);
+  }, [gs?.phase, handCount]);
 
   if (view === 'dashboard') {
     return (
