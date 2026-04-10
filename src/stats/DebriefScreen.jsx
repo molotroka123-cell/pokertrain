@@ -85,6 +85,9 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
         <div style={s.title}>TOURNAMENT DEBRIEF</div>
         <div style={s.subtitle}>
           Finish: #{finish?.position || '?'}/{finish?.total || '?'} | Hands: {records?.length || 0}
+          {finish?.apiCalls > 0 && (
+            <span style={{ color: '#d4af37' }}> | AI calls: {finish.apiCalls} (~${(finish.apiCalls * 0.0005).toFixed(3)})</span>
+          )}
         </div>
       </div>
 

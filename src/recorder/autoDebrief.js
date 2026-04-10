@@ -77,17 +77,17 @@ function explainMistake(d) {
 function generateWhyExplanation(d) {
   switch (d.mistakeType) {
     case 'bad_fold':
-      return `You folded with ${Math.round(d.equity * 100)}% equity but only needed ${Math.round(d.potOdds * 100)}% to call profitably. The pot offered ${d.potOdds > 0 ? ((1 / d.potOdds) - 1).toFixed(1) : '?'}:1 odds. Folding this spot repeatedly costs ~${d.evLost} chips.`;
+      return `Ты сфолдил с ${Math.round(d.equity * 100)}% equity, но нужно было всего ${Math.round(d.potOdds * 100)}% для прибыльного колла. Пот давал ${d.potOdds > 0 ? ((1 / d.potOdds) - 1).toFixed(1) : '?'}:1 шансы. Фолд в таких спотах стоит ~${d.evLost} фишек.`;
     case 'bad_call':
-      return `You called with only ${Math.round(d.equity * 100)}% equity but needed ${Math.round(d.potOdds * 100)}%. You're losing chips every time you call in this spot.`;
+      return `Ты заколлировал с ${Math.round(d.equity * 100)}% equity, но нужно было ${Math.round(d.potOdds * 100)}%. Каждый такой колл теряет фишки.`;
     case 'too_passive':
-      return `You called with ${Math.round(d.equity * 100)}% equity — strong enough to raise for value. Calling lets draws see cheap cards and misses value from worse hands.`;
+      return `Ты заколлировал с ${Math.round(d.equity * 100)}% equity — достаточно для рейза. Колл даёт дро дешёвые карты и не берёт вэлью с худших рук.`;
     case 'push_fold_error':
-      return `With M=${d.mRatio} on ${d.position}, Nash charts say push. At this stack depth, folding bleeds chips to blinds. You must be more aggressive.`;
+      return `С M=${d.mRatio} на ${d.position}, по Нэшу нужно пушить. На такой глубине стека фолд убивает — блайнды съедают стек.`;
     case 'icm_error':
-      return `On the bubble, your tournament life is worth more than chip-EV. Even if calling is +chipEV, it's -$EV because busting here costs prize pool equity.`;
+      return `На баббле жизнь в турнире стоит дороже фишек. Даже если колл +chipEV, он -$EV — вылет тут стоит долю призового фонда.`;
     default:
-      return `This decision cost approximately ${d.evLost} chips in EV.`;
+      return `Это решение стоило примерно ${d.evLost} фишек в EV.`;
   }
 }
 
@@ -179,7 +179,7 @@ function detectPatterns(records) {
 }
 
 function generateSummary(mistakes) {
-  if (mistakes.length === 0) return 'Clean session. No significant mistakes detected.';
+  if (mistakes.length === 0) return 'Чистая сессия. Серьёзных ошибок не обнаружено.';
 
   const types = {};
   for (const m of mistakes) {
@@ -189,12 +189,12 @@ function generateSummary(mistakes) {
 
   const biggest = Object.entries(types).sort((a, b) => b[1] - a[1])[0];
   const messages = {
-    bad_fold: 'Main leak: too many folds in profitable spots. You\'re leaving chips on the table.',
-    bad_call: 'Main leak: calling without sufficient equity. Learn to let go of marginal hands.',
-    too_passive: 'Main leak: passive play with strong hands. Raise more for value.',
-    push_fold_error: 'Main leak: push/fold errors when short-stacked. Study Nash charts.',
-    icm_error: 'Main leak: ICM mistakes near the bubble. These cost real tournament equity.',
+    bad_fold: 'Главная утечка: слишком много фолдов в прибыльных ситуациях. Ты оставляешь фишки на столе.',
+    bad_call: 'Главная утечка: коллируешь без достаточной equity. Учись отпускать маргинальные руки.',
+    too_passive: 'Главная утечка: пассивная игра с сильными руками. Рейзь больше для вэлью.',
+    push_fold_error: 'Главная утечка: ошибки push/fold с коротким стеком. Изучи чарты Нэша.',
+    icm_error: 'Главная утечка: ICM ошибки на баббле. Они стоят реальной турнирной equity.',
   };
 
-  return messages[biggest?.[0]] || 'Work on decision accuracy overall.';
+  return messages[biggest?.[0]] || 'Работай над точностью решений.';
 }

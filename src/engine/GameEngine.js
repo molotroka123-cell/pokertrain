@@ -278,9 +278,9 @@ export class GameEngine {
         action._heroChips = p.chips;
         action._community = [...this.community];
       } else {
-        // AI decision
+        // AI decision (may be async if ClaudeBossBot)
         await this._delay(400 + Math.floor(cryptoRandomFloat() * 600));
-        action = this._getAIAction(p, toCall, pos);
+        action = await this._getAIAction(p, toCall, pos);
       }
 
       // FIX: Never fold when toCall is 0 (free check)
@@ -308,7 +308,7 @@ export class GameEngine {
     }
   }
 
-  _getAIAction(player, toCall, position) {
+  async _getAIAction(player, toCall, position) {
     const ai = this.aiBots[player.id];
     if (!ai) {
       // Fallback: simple logic
@@ -336,7 +336,8 @@ export class GameEngine {
       handStrength: handStr,
     };
 
-    return ai.decide(gs);
+    const decision = await ai.decide(gs);
+    return decision;
   }
 
   _getHandStrength(playerId) {

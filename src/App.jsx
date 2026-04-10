@@ -22,6 +22,7 @@ import StatsScreen from './stats/Dashboard.jsx';
 import CoachScreen from './coach/Coach.jsx';
 import { Sounds } from './lib/sounds.js';
 import { getTheme } from './lib/themes.js';
+import { ClaudeBossBot } from './engine/claudeAI.js';
 
 function fmt(n) {
   if (!n && n !== 0) return '0';
@@ -590,13 +591,16 @@ function Game({ director, onExit }) {
           p.profile.af = 2.5 + Math.random() * 2.0;
           p.profile.threeBet = 0.06 + Math.random() * 0.06;
         }
-        const ai = new AdaptiveAI(p.profile);
+        const localAI = new AdaptiveAI(p.profile);
         if (isHardcore || i === bossIdx) {
           p._isBoss = true;
-          ai.exploitLevel = isHardcore ? 0.5 : 0.3;
-          ai.minHandsToExploit = isHardcore ? 3 : 5;
+          localAI.exploitLevel = isHardcore ? 0.5 : 0.3;
+          localAI.minHandsToExploit = isHardcore ? 3 : 5;
+          // Boss bots use Claude API for key decisions
+          bots[p.id] = new ClaudeBossBot(localAI);
+        } else {
+          bots[p.id] = localAI;
         }
-        bots[p.id] = ai;
       }
       aiBotsRef.current = bots;
     }
@@ -621,6 +625,7 @@ function Game({ director, onExit }) {
     const engine = engineRef.current;
     const blinds = tState.blinds;
     const dealer = tState.heroTable.dealer % tablePlayers.length;
+    if (handCount === 0) ClaudeBossBot.resetCalls(); // Reset API counter for new game
     if (!engine.startHand(tablePlayers, dealer, blinds, aiBotsRef.current)) { setHandActive(false); return; }
     setGs(engine.getState());
     await engine.runHand((state) => setGs({ ...state }));
@@ -756,7 +761,7 @@ function Game({ director, onExit }) {
             padding: '6px 14px', background: '#0d1118', border: '1px solid #1a2230',
             borderRadius: '8px', color: '#5a7a8a', fontSize: '11px', cursor: 'pointer', fontWeight: 600,
           }}>Dashboard</button>
-          <button onClick={() => onExit({ position: tournState.heroRank, total: tournState.totalPlayers })} style={{
+          <button onClick={() => onExit({ position: tournState.heroRank, total: tournState.totalPlayers, apiCalls: ClaudeBossBot.totalCalls })} style={{
             padding: '6px 14px', background: '#1a1015', border: '1px solid #3a1a20',
             borderRadius: '8px', color: '#8a5a5a', fontSize: '11px', cursor: 'pointer', fontWeight: 600,
           }}>Exit</button>
@@ -805,7 +810,7 @@ function Game({ director, onExit }) {
               <div style={{ fontSize: '18px', fontWeight: 800, color: '#e74c3c', marginBottom: '10px' }}>
                 ELIMINATED #{tournState.heroRank} / {tournState.totalPlayers}
               </div>
-              <button className="btn-action" onClick={() => onExit({ position: tournState.heroRank, total: tournState.totalPlayers })} style={{
+              <button className="btn-action" onClick={() => onExit({ position: tournState.heroRank, total: tournState.totalPlayers, apiCalls: ClaudeBossBot.totalCalls })} style={{
                 width: '100%', padding: '18px', border: 'none', borderRadius: '14px',
                 background: 'linear-gradient(135deg, #1a3a6c, #2980b9)',
                 color: '#fff', fontWeight: 800, fontSize: '16px', cursor: 'pointer',
