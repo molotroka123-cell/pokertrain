@@ -360,15 +360,18 @@ function PremiumTable({ gs, theme: T }) {
             }}>
               {/* Avatar */}
               <div style={{
-                width: isHero ? 46 : 38, height: isHero ? 46 : 38, borderRadius: '50%',
+                width: isHero ? 46 : p._isBoss ? 42 : 38, height: isHero ? 46 : p._isBoss ? 42 : 38, borderRadius: '50%',
                 margin: '0 auto 2px',
-                background: isWinner ? T.avatarWin : isHero ? T.avatarHero : T.avatarBot,
-                border: `2.5px solid ${isWinner ? T.accent : isHero ? T.accent + '88' : '#2a3a5a44'}`,
+                background: isWinner ? T.avatarWin : isHero ? T.avatarHero : p._isBoss ? 'linear-gradient(135deg, #8a6a10, #d4af37)' : T.avatarBot,
+                border: `${p._isBoss ? '3px' : '2.5px'} solid ${isWinner ? T.accent : isHero ? T.accent + '88' : p._isBoss ? '#d4af37' : '#2a3a5a44'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: isHero ? '18px' : '14px',
                 boxShadow: isWinner
                   ? `0 0 24px ${T.accentGlow}, 0 0 48px ${T.ambientColor}`
-                  : isHero ? `0 0 16px ${T.accentGlow}` : '0 3px 10px rgba(0,0,0,0.4)',
+                  : isHero ? `0 0 16px ${T.accentGlow}`
+                  : p._isBoss ? '0 0 16px rgba(212,175,55,0.5), 0 0 32px rgba(212,175,55,0.2)'
+                  : '0 3px 10px rgba(0,0,0,0.4)',
+                animation: p._isBoss && !isWinner ? 'goldPulse 2s ease-in-out infinite' : 'none',
                 transition: 'box-shadow 0.5s ease',
               }}>
                 {p.emoji || (isHero ? '👤' : '🤖')}
@@ -382,7 +385,17 @@ function PremiumTable({ gs, theme: T }) {
                 fontSize: isHero ? '11px' : '10px', fontWeight: 600,
                 color: isHero ? T.accent : '#7a8a9a',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '80px',
-              }}>{isHero ? 'HERO' : p._isBoss ? `👑 ${p.name}` : p.name}</div>
+              }}>
+                {isHero ? 'HERO' : p.name}
+              </div>
+              {p._isBoss && !isHero && (
+                <div style={{
+                  fontSize: '8px', fontWeight: 800, color: '#d4af37',
+                  background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)',
+                  padding: '1px 6px', borderRadius: '6px', display: 'inline-block',
+                  letterSpacing: '1px',
+                }}>👑 AI PRO</div>
+              )}
 
               {/* Cards */}
               <div style={{ display: 'flex', justifyContent: 'center', margin: '3px 0', minHeight: isHero ? '52px' : '34px' }}>
@@ -573,7 +586,7 @@ function Game({ director, onExit }) {
       dirRef.current.simulateBackgroundTick(3);
       dirRef.current.checkBlindLevel();
       setTourn(dirRef.current.getState());
-    }, 4000);
+    }, 5000); // Background sim every 5s
     return () => clearInterval(iv);
   }, []);
 

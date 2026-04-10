@@ -60,29 +60,33 @@ export class TournamentDirector {
     return Math.max(0, level.mins * 60 - elapsed);
   }
 
-  // Check if blinds should advance — HYBRID: time + player elimination milestones
+  // Check if blinds should advance — hybrid: time + soft player-count guide
   checkBlindLevel() {
     const alive = this.pool.getAliveCount();
     const total = this.format.players;
     const maxLevel = this.format.blindLevels.length - 1;
 
-    // Method 1: Time-based (original)
+    // Time-based (primary)
     const timeUp = this.getLevelTimeRemaining() <= 0;
 
-    // Method 2: Player-count milestones — ensures realistic blind progression
-    // blindLevel roughly tracks how deep into the tournament we are
-    const elimPct = 1 - alive / total; // 0.0 at start, 1.0 when 1 player left
-    const targetLevel = Math.floor(elimPct * maxLevel * 1.1); // Slightly ahead of linear
+    // Player-count guide (soft — never jumps, just nudges)
+    const elimPct = 1 - alive / total;
+    const targetLevel = Math.floor(elimPct * maxLevel * 0.8); // 0.8 = slower than linear
 
-    // Advance if EITHER time expired OR player count demands it
-    const shouldAdvance = (timeUp || targetLevel > this.blindLevel) && this.blindLevel < maxLevel;
-
-    if (shouldAdvance) {
-      this.blindLevel = Math.max(this.blindLevel + 1, Math.min(targetLevel, this.blindLevel + 2)); // Never jump more than 2 levels
-      this.blindLevel = Math.min(this.blindLevel, maxLevel);
+    // Only advance by 1 level at a time
+    if (timeUp && this.blindLevel < maxLevel) {
+      this.blindLevel++;
       this.levelStartTime = Date.now();
       return true;
     }
+
+    // Soft catch-up if blinds are WAY behind eliminations (>3 levels)
+    if (targetLevel > this.blindLevel + 3 && this.blindLevel < maxLevel) {
+      this.blindLevel++;
+      this.levelStartTime = Date.now();
+      return true;
+    }
+
     return false;
   }
 
@@ -129,24 +133,29 @@ export class TournamentDirector {
     }
     potBBs = potBBs || 5;
 
-    // Fold preflop?
+    // Fold preflop? (most hands fold pre — realistic)
     if (cryptoRandomFloat() < CHIP_FLOW.foldPre) {
-      // Just move blinds/antes
+      // Just move blinds/antes — small chip transfer
       const posted = bl.bb + bl.sb + bl.ante * active.length;
-      // Winner is random weighted by stack
       const winner = this._weightedRandomPlayer(active);
       const loserIdx = (active.indexOf(winner) + 1 + Math.floor(cryptoRandomFloat() * (active.length - 1))) % active.length;
       const loser = active[loserIdx];
+      // Cap transfer at blinds only (realistic — just steal blinds)
       const amount = Math.min(posted, loser.chips);
       loser.chips -= amount;
       winner.chips += amount;
     } else {
-      // Actual pot
+      // Actual pot — CAP pot size to prevent instant eliminations
       const potSize = Math.floor(potBBs * bl.bb);
       const winner = this._weightedRandomPlayer(active);
       const loserIdx = (active.indexOf(winner) + 1 + Math.floor(cryptoRandomFloat() * (active.length - 1))) % active.length;
       const loser = active[loserIdx];
-      const amount = Math.min(potSize, loser.chips);
+      // Key fix: cap loss at 25% of loser's stack (prevents instant bust)
+      // Full bust only happens ~5% of postflop hands (realistic all-in frequency)
+      const maxLoss = cryptoRandomFloat() < 0.05
+        ? loser.chips // Rare all-in bust
+        : Math.floor(loser.chips * (0.05 + cryptoRandomFloat() * 0.20)); // Lose 5-25% of stack
+      const amount = Math.min(potSize, maxLoss);
       loser.chips -= amount;
       winner.chips += amount;
 
@@ -180,7 +189,8 @@ export class TournamentDirector {
   }
 
   // Simulate all background tables (called periodically)
-  simulateBackgroundTick(handsPerTable = 3) {
+  // 2 hands per tick — balanced pace (~5-10 min to final table)
+  simulateBackgroundTick(handsPerTable = 2) {
     const nonHeroTables = this.tableManager.getNonHeroTables();
     const results = { eliminations: [], moves: [] };
 
