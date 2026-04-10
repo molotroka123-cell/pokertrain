@@ -367,12 +367,16 @@ export class GameEngine {
     const toCall = Math.max(0, this.currentBet - (this.bets[player.id] || 0));
 
     // Hero meta for AI recording
+    // Hero meta — snapshot ALL state AT decision time
     const heroMeta = player.isHero ? {
       _decisionTimeMs: action._decisionTimeMs || 0,
       _phase: this.phase,
       _toCall: toCall,
       _pot: this.pot,
-      _heroChips: player.chips, // Chips at decision time
+      _community: [...this.community],      // Board AT this street
+      _currentBet: this.currentBet,          // Bet AT this moment
+      _myChips: player.chips,                // Hero chips AT this moment
+      _myBet: this.bets[player.id] || 0,     // Hero bet AT this moment
     } : undefined;
 
     switch (action.action) {

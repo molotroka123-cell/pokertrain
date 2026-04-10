@@ -185,7 +185,7 @@ export function exportSession() {
   return {
     sessionId,
     exportDate: new Date().toISOString(),
-    totalHands: records.length,
+    totalHands: new Set(records.map(r => r.handNumber)).size,
     records,
     handHistories,
     summary: generateQuickSummary(),
@@ -194,14 +194,21 @@ export function exportSession() {
 
 function generateQuickSummary() {
   if (records.length === 0) return {};
-  const pf = records.filter(r => r.stage === 'preflop');
-  const vpip = pf.filter(r => r.action !== 'fold').length / Math.max(1, pf.length);
-  const pfr = pf.filter(r => r.action === 'raise').length / Math.max(1, pf.length);
+  // Deduplicate: use FIRST preflop record per hand for VPIP/PFR
+  const pfByHand = new Map();
+  for (const r of records) {
+    if (r.stage === 'preflop' && !pfByHand.has(r.handNumber)) {
+      pfByHand.set(r.handNumber, r);
+    }
+  }
+  const pfUnique = [...pfByHand.values()];
+  const vpip = pfUnique.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length / Math.max(1, pfUnique.length);
+  const pfr = pfUnique.filter(r => r.action === 'raise').length / Math.max(1, pfUnique.length);
   const mistakes = records.filter(r => r.mistakeType);
   const totalEVLost = mistakes.reduce((a, m) => a + (m.evLost || 0), 0);
 
   return {
-    handsPlayed: records.length,
+    handsPlayed: new Set(records.map(r => r.handNumber)).size,
     vpip: Math.round(vpip * 100),
     pfr: Math.round(pfr * 100),
     totalMistakes: mistakes.length,

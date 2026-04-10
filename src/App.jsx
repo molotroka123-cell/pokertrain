@@ -654,35 +654,43 @@ function Game({ director, onExit }) {
     const hero = gs.players?.find(p => p.isHero);
     if (!hero) return;
 
-    // Find hero actions from the log — use DECISION-TIME snapshots, not end-of-hand
+    // Find hero actions from the log
     const heroActions = (gs.actionLog || []).filter(a => a.isHero && a.action !== 'win');
-    for (const ha of heroActions) {
-      // Use decision-time community from action meta (not end-of-hand board!)
-      const decisionCommunity = ha._phase === 'preflop' ? []
-        : ha._phase === 'flop' ? (gs.community || []).slice(0, 3)
-        : ha._phase === 'turn' ? (gs.community || []).slice(0, 4)
-        : gs.community || [];
 
+    // Record BB walks (hero had no decisions — everyone folded to BB)
+    if (heroActions.length === 0) {
       recordDecision({
-        handNumber: handCount + 1, // 1-indexed to match UI
-        blindLevel: tState.blindLevel,
-        blinds: tState.blinds,
-        playersRemaining: tState.playersRemaining,
-        totalPlayers: tState.totalPlayers,
-        averageStack: tState.averageStack,
-        isBubble: tState.isBubble,
-        isFinalTable: tState.isFinalTable,
-        tableId: tState.heroTable?.id,
-        playersAtTable: gs.players?.length || 9,
+        handNumber: handCount + 1,
+        blindLevel: tState.blindLevel, blinds: tState.blinds,
+        playersRemaining: tState.playersRemaining, totalPlayers: tState.totalPlayers,
+        averageStack: tState.averageStack, isBubble: tState.isBubble, isFinalTable: tState.isFinalTable,
+        tableId: tState.heroTable?.id, playersAtTable: gs.players?.length || 9,
+        stage: 'preflop', position: gs.heroPosition || 'BB',
+        holeCards: gs.heroCards || [], community: [],
+        potSize: gs.pot || 0, currentBet: 0, toCall: 0,
+        myChips: hero.chips, myBet: 0, opponents: [],
+        action: 'bb_walk', raiseAmount: null, decisionTimeMs: 0,
+        tournamentFormat: tState.formatKey || null,
+      });
+    }
+
+    // Record each hero action with DECISION-TIME snapshots from GameEngine meta
+    for (const ha of heroActions) {
+      recordDecision({
+        handNumber: handCount + 1,
+        blindLevel: tState.blindLevel, blinds: tState.blinds,
+        playersRemaining: tState.playersRemaining, totalPlayers: tState.totalPlayers,
+        averageStack: tState.averageStack, isBubble: tState.isBubble, isFinalTable: tState.isFinalTable,
+        tableId: tState.heroTable?.id, playersAtTable: gs.players?.length || 9,
         stage: ha._phase || 'preflop',
         position: ha.position || gs.heroPosition,
         holeCards: gs.heroCards || [],
-        community: decisionCommunity,                  // FIX: decision-time board
-        potSize: ha._pot || gs.pot || 0,               // FIX: decision-time pot
-        currentBet: gs.currentBet || 0,
+        community: ha._community || [],                // Decision-time board from meta
+        potSize: ha._pot || 0,                         // Decision-time pot
+        currentBet: ha._currentBet || 0,               // Decision-time bet
         toCall: ha._toCall || 0,
-        myChips: ha._heroChips || hero.chips,           // FIX: decision-time chips
-        myBet: ha.amount || 0,
+        myChips: ha._myChips ?? hero.chips,             // Decision-time chips
+        myBet: ha._myBet ?? ha.amount ?? 0,
         opponents: gs.players?.filter(p => !p.isHero && !p.folded).map(p => ({
           name: p.name, position: p.position, chips: p.chips,
           style: p.profile?.style, observedVpip: p.profile?.vpip,
@@ -690,7 +698,7 @@ function Game({ director, onExit }) {
         action: ha.action,
         raiseAmount: ha.action === 'raise' ? ha.amount : null,
         decisionTimeMs: ha._decisionTimeMs || 0,
-        tournamentFormat: tState.formatKey || null,     // FIX: format saved
+        tournamentFormat: tState.formatKey || null,
       });
     }
 
