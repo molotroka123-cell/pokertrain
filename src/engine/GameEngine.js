@@ -260,7 +260,13 @@ export class GameEngine {
   }
 
   _handEnded() {
-    return this._activePlayers().length <= 1 || this._canAct().length === 0;
+    const active = this._activePlayers();
+    if (active.length <= 1) return true;
+    const canAct = this._canAct();
+    if (canAct.length === 0) return true;
+    // If only 1 player can act and all others are all-in → no more betting possible
+    if (canAct.length === 1 && active.filter(p => this.allIn.has(p.id)).length === active.length - 1) return true;
+    return false;
   }
 
   // Run one betting street
