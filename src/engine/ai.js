@@ -348,7 +348,7 @@ export class BaseAI {
     return { action: 'check' };
   }
 
-  // ═══ FACING A BET ═══
+  // ═══ FACING A BET — EV-based decisions ═══
   postflopFacingBet(gs, strength, texture, rand, isIP, spr, isAggressor) {
     const { pot, toCall, myChips, currentBet, stage } = gs;
     const p = this.profile;
@@ -358,6 +358,9 @@ export class BaseAI {
     const isFT = gs.isFinalTable;
     const isBubble = gs.isBubble;
     const commitRatio = myChips > 0 ? toCall / myChips : 1;
+
+    // EV calculation — core of every decision
+    const evOfCall = strength * (pot + toCall) - (1 - strength) * toCall;
 
     // Pot-committed: jam if committing >33% with decent hand
     if (commitRatio > 0.33 && strength > 0.50) {
@@ -399,26 +402,29 @@ export class BaseAI {
       return { action: 'call' };
     }
 
-    // ═══ MEDIUM: math-based call/fold ═══
+    // ═══ MEDIUM: EV-based call/fold ═══
     if (strength > 0.40) {
       if (p.style === 'STATION') return { action: 'call' };
       // Fold medium vs overbets — correct, not scared
       if (betSizePot > 0.80 && strength < 0.50) return { action: 'fold' };
-      // Bubble ICM: fold medium in big pots
-      if (isBubble && commitRatio > 0.25 && strength < 0.55) return { action: 'fold' };
-      // Pot odds decision
-      if (strength > odds + 0.04) return { action: 'call' };
+      // Bubble ICM: fold medium in big pots (chips worth 1.5x)
+      if (isBubble && commitRatio > 0.25 && evOfCall < toCall * 0.3) return { action: 'fold' };
+      // EV-based: only call when +EV
+      if (evOfCall > 0) return { action: 'call' };
+      // Slightly -EV but good implied odds (not river)
+      if (stage !== 'river' && evOfCall > -toCall * 0.1) return { action: 'call' };
       return { action: 'fold' };
     }
 
-    // ═══ DRAW: call/raise on flop/turn ═══
+    // ═══ DRAW: EV-based call/raise on flop/turn ═══
     if (strength > 0.25 && stage !== 'river') {
       // Semi-bluff raise IP (8%)
       if (isIP && af > 2.5 && rand < 0.08 && strength > 0.28) {
         return { action: 'raise', amount: Math.min(Math.floor(currentBet * 2.8), myChips) };
       }
       if (p.style === 'STATION' || p.style === 'LAG' || p.style === 'Maniac') return { action: 'call' };
-      if (strength > odds - 0.04) return { action: 'call' };
+      // Call draws with +EV or near-zero EV (implied odds)
+      if (evOfCall > -toCall * 0.15) return { action: 'call' };
       return { action: 'fold' };
     }
 

@@ -152,9 +152,9 @@ export class TournamentDirector {
       const loser = active[loserIdx];
       // Key fix: cap loss at 25% of loser's stack (prevents instant bust)
       // Full bust only happens ~5% of postflop hands (realistic all-in frequency)
-      const maxLoss = cryptoRandomFloat() < 0.12
-        ? loser.chips // All-in bust (~12% of postflop hands)
-        : Math.floor(loser.chips * (0.08 + cryptoRandomFloat() * 0.25)); // Lose 8-33% of stack
+      const maxLoss = cryptoRandomFloat() < 0.06
+        ? loser.chips // All-in bust (~6% of postflop hands)
+        : Math.floor(loser.chips * (0.05 + cryptoRandomFloat() * 0.15)); // Lose 5-20% of stack
       const amount = Math.min(potSize, maxLoss);
       loser.chips -= amount;
       winner.chips += amount;
@@ -199,9 +199,9 @@ export class TournamentDirector {
   // ~10 min to final table target
   // handsPerTable scales with blind level for acceleration
   simulateBackgroundTick(handsPerTable = 5) {
-    // More hands per tick at higher blind levels (pressure increases)
-    const levelBoost = Math.floor(this.blindLevel / 3);
-    handsPerTable = handsPerTable + levelBoost;
+    // Slight acceleration at higher blind levels
+    const levelBoost = Math.floor(this.blindLevel / 5);
+    handsPerTable = handsPerTable + Math.min(levelBoost, 3);
     const nonHeroTables = this.tableManager.getNonHeroTables();
     const results = { eliminations: [], moves: [] };
 

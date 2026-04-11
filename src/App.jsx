@@ -736,7 +736,7 @@ function Game({ director, onExit }) {
 
   useEffect(() => {
     const iv = setInterval(() => {
-      dirRef.current.simulateBackgroundTick(6);
+      dirRef.current.simulateBackgroundTick(3);
       dirRef.current.checkBlindLevel();
       setTourn(dirRef.current.getState());
     }, 3000); // Background sim every 3s — ~10 min to final table
@@ -1247,19 +1247,22 @@ function AppInner() {
   }
   if (screen === 'tournament' && director) {
     return <Game director={director} onExit={(finish) => {
-      const records = getRecords();
-      if (records.length > 0) {
+      try {
+        const records = getRecords();
         saveSession();
-        // Collect AI exploit data — what AI learned about hero
         let aiExploit = null;
         try {
           const bots = Object.values(finish?.aiBots || {});
           const bot = bots.find(b => b.getHeroSummary);
           if (bot) aiExploit = bot.getHeroSummary();
         } catch (e) {}
-        setDebriefData({ debrief: generateDebrief(records), finish: finish || {}, records, aiExploit });
+        const debrief = records.length > 0 ? generateDebrief(records) : { totalMistakes: 0, criticalMistakes: 0, top5: [], estimatedEVLost: 0, summary: 'No data.', patterns: [] };
+        setDebriefData({ debrief, finish: finish || {}, records, aiExploit });
         setScreen('debrief');
-      } else { setDirector(null); setScreen('lobby'); }
+      } catch (e) {
+        console.error('Exit error:', e);
+        setDirector(null); setScreen('lobby');
+      }
     }} />;
   }
 
