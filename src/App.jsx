@@ -724,6 +724,7 @@ function Game({ director, onExit }) {
   const [showRange, setShowRange] = useState(false);
   const [selectedOpponent, setSelectedOpponent] = useState(null);
   const [postHandTip, setPostHandTip] = useState(null);
+  const [botChat, setBotChat] = useState(null);
 
   const dirRef = useRef(director);
   const engineRef = useRef(new GameEngine());
@@ -971,13 +972,36 @@ function Game({ director, onExit }) {
           icm_error: 'Bubble — survival matters more',
           draw_fold_error: 'Draw with correct odds to continue',
         };
-        setPostHandTip({ type: lastMistake.mistakeType, text: tips[lastMistake.mistakeType] || 'Review this decision', evLost: lastMistake.evLost });
+        setPostHandTip({
+          type: lastMistake.mistakeType,
+          text: tips[lastMistake.mistakeType] || 'Review this decision',
+          evLost: lastMistake.evLost,
+          gtoAction: lastMistake.gtoAction,
+          gtoFreq: lastMistake.solverResult?.bestFrequency,
+        });
         setTimeout(() => setPostHandTip(null), 4000);
       } else if (heroWon) {
         setPostHandTip({ type: 'good', text: 'Well played!', evLost: 0 });
         setTimeout(() => setPostHandTip(null), 2000);
       }
     } catch (e) { /* post-hand analysis is non-critical */ }
+
+    // Bot chat messages (realistic table talk)
+    try {
+      if (gs.winner && !gs.winner.isHero && gs.potWon > (bl.bb || 200) * 10) {
+        const msgs = ['nh 🃏', 'ty', 'gg', 'ez', 'lol', 'wp'];
+        setBotChat({ name: gs.winner.name, msg: msgs[Math.floor(Math.random() * msgs.length)] });
+        setTimeout(() => setBotChat(null), 3000);
+      }
+      if (gs.winner?.isHero && gs.potWon > (bl.bb || 200) * 20) {
+        const tiltMsgs = ['nice hand...', 'so lucky 😤', 'every time', 'rigged'];
+        const loser = gs.players?.find(p => !p.isHero && !p.folded && p.id !== gs.winner?.id);
+        if (loser) {
+          setBotChat({ name: loser.name, msg: tiltMsgs[Math.floor(Math.random() * tiltMsgs.length)] });
+          setTimeout(() => setBotChat(null), 3500);
+        }
+      }
+    } catch(e) {}
 
     // Save session after every hand
     saveSession();
@@ -1204,7 +1228,7 @@ function Game({ director, onExit }) {
         </div>
       )}
 
-      {/* Post-hand mini analysis popup */}
+      {/* Post-hand analysis + GTO overlay */}
       {postHandTip && (
         <div style={{
           textAlign: 'center', padding: '8px 14px',
@@ -1220,6 +1244,11 @@ function Game({ director, onExit }) {
           </span>
           {postHandTip.evLost > 0 && (
             <span style={{ fontSize: '11px', color: '#e74c3c', marginLeft: '8px' }}>(-{postHandTip.evLost} EV)</span>
+          )}
+          {postHandTip.gtoAction && postHandTip.type !== 'good' && (
+            <div style={{ fontSize: '11px', color: '#5a8a5a', marginTop: '3px' }}>
+              GTO: {postHandTip.gtoAction.toUpperCase()}{postHandTip.gtoFreq ? ` (${postHandTip.gtoFreq}%)` : ''}
+            </div>
           )}
         </div>
       )}
@@ -1237,6 +1266,18 @@ function Game({ director, onExit }) {
            gs.heroPosition === 'BB' ? 'BB — defend wide vs steals, you close the action' :
            gs.heroPosition === 'UTG' ? 'UTG — play tight, 5 players behind you' :
            'Play your position and stack depth'}
+        </div>
+      )}
+
+      {/* Bot chat */}
+      {botChat && (
+        <div style={{
+          textAlign: 'center', padding: '6px 12px', fontSize: '12px',
+          background: 'rgba(20,20,30,0.7)', borderTop: '1px solid #1a2230',
+          animation: 'winPopup 0.3s ease',
+        }}>
+          <span style={{ color: '#6b7b8d' }}>{botChat.name}: </span>
+          <span style={{ color: '#c0d0e0' }}>{botChat.msg}</span>
         </div>
       )}
 

@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import HandReplay from '../replay/HandReplay.jsx';
 
+const RANKS_ORDER = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+
 const s = {
   container: { padding: '16px', maxWidth: '500px', margin: '0 auto' },
   header: {
@@ -278,6 +280,47 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
       )}
 
       {/* AI Exploit Report — What AI learned about you */}
+      {/* Error Heatmap — 13x13 hands colored by mistake frequency */}
+      {records?.length > 10 && (() => {
+        try {
+          const errMap = {};
+          for (const r of records) {
+            if (!r.holeCards || !r.mistakeType) continue;
+            const parts = r.holeCards.split(' ');
+            if (parts.length < 2) continue;
+            const r1 = parts[0][0], r2 = parts[1][0], suited = parts[0][1] === parts[1][1];
+            const key = r1 === r2 ? r1+r2 : suited ? (RANKS_ORDER.indexOf(r1) < RANKS_ORDER.indexOf(r2) ? r1+r2+'s' : r2+r1+'s') : (RANKS_ORDER.indexOf(r1) < RANKS_ORDER.indexOf(r2) ? r1+r2+'o' : r2+r1+'o');
+            errMap[key] = (errMap[key] || 0) + 1;
+          }
+          if (Object.keys(errMap).length < 2) return null;
+          const maxErr = Math.max(...Object.values(errMap));
+          return (
+            <div style={s.section}>
+              <div style={s.sectionTitle}>Error Heatmap</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: '1px', justifyContent: 'center' }}>
+                {RANKS_ORDER.map((r1, row) => RANKS_ORDER.map((r2, col) => {
+                  const isPair = row === col, isSuited = row < col;
+                  const label = isPair ? r1+r2 : isSuited ? r1+r2+'s' : r2+r1+'o';
+                  const errs = errMap[label] || 0;
+                  const intensity = maxErr > 0 ? errs / maxErr : 0;
+                  const bg = errs === 0 ? '#0a1a0a' : `rgba(231,76,60,${0.15 + intensity * 0.7})`;
+                  return (
+                    <div key={`${row}-${col}`} style={{
+                      width: '100%', aspectRatio: '1', background: bg, borderRadius: '1px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '6px', color: errs > 0 ? '#fff' : '#2a3a2a', fontWeight: 600,
+                    }}>{label}</div>
+                  );
+                }))}
+              </div>
+              <div style={{ fontSize: '10px', color: '#5a6a7a', textAlign: 'center', marginTop: '6px' }}>
+                Red = frequent mistakes | Green = clean
+              </div>
+            </div>
+          );
+        } catch(e) { return null; }
+      })()}
+
       {debrief.tiltIndicator && (
         <div style={s.section}>
           <div style={s.sectionTitle}>Tilt Analysis</div>

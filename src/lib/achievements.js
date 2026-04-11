@@ -133,5 +133,15 @@ export function getLeaderboard(sessions) {
     avgFinish: results.length > 0 ? Math.round(results.reduce((a, r) => a + r.finish, 0) / results.length) : 0,
     bestFinish: results.length > 0 ? Math.min(...results.map(r => r.finish)) : null,
     results: results.slice(-20).reverse(),
+    // Skill rating
+    skillRating: (() => {
+      if (sessions.length === 0) return 1000;
+      const last = sessions[sessions.length - 1];
+      const sm = last.summary || {};
+      const hands = sm.handsPlayed || 1;
+      const mistakeRate = (sm.totalMistakes || 0) / hands;
+      const vpipDev = Math.abs((sm.vpip || 25) - 25) / 25;
+      return Math.max(0, Math.round(1000 + (1 - mistakeRate) * 400 - vpipDev * 200));
+    })(),
   };
 }

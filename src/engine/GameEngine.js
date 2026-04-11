@@ -79,6 +79,8 @@ export class GameEngine {
   }
 
   // Start a new hand
+  setSpeedMultiplier(mult) { this._speedMult = mult || 1; }
+
   setTournamentContext(stage, isFinalTable, isBubble) {
     this._tournamentStage = stage || 'early';
     this._isFinalTable = isFinalTable || false;
@@ -126,12 +128,22 @@ export class GameEngine {
       }
     }
 
-    // Post antes
+    // Post antes (BB ante = modern standard, BB pays for all)
     if (blinds.ante > 0) {
-      for (const p of this.players) {
-        const ante = Math.min(blinds.ante, p.chips);
-        p.chips -= ante;
-        this.pot += ante;
+      if (blinds.bbAnte) {
+        // Big Blind Ante: BB pays total ante for whole table
+        const bbIdx = this.players.length === 2 ? (this.dealerIdx + 1) % this.players.length : (this.dealerIdx + 2) % this.players.length;
+        const bbPlayer = this.players[bbIdx];
+        const totalAnte = Math.min(blinds.ante * this.players.length, bbPlayer.chips);
+        bbPlayer.chips -= totalAnte;
+        this.pot += totalAnte;
+      } else {
+        // Traditional: everyone posts ante
+        for (const p of this.players) {
+          const ante = Math.min(blinds.ante, p.chips);
+          p.chips -= ante;
+          this.pot += ante;
+        }
       }
     }
 
@@ -783,7 +795,9 @@ export class GameEngine {
   }
 
   _delay(ms) {
-    const actual = this._heroFolded ? Math.floor(ms / 2) : ms;
+    const speedMult = this._speedMult || 1;
+    const foldMult = this._heroFolded ? 0.5 : 1;
+    const actual = Math.floor(ms * speedMult * foldMult);
     return new Promise(r => setTimeout(r, actual));
   }
 }
