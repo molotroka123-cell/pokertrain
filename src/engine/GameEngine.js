@@ -66,6 +66,7 @@ export class GameEngine {
     this.showdownResults = null;
     this.winner = null;
     this.potWon = 0;
+    this.isSplitPot = false;
     this._heroFolded = false; // 2x speed after hero folds
 
     // Action queue for sequential resolution
@@ -684,30 +685,40 @@ export class GameEngine {
           }
         }
       } else {
-        // Split pot between multiple winners
-        const share = Math.floor(this.pot / winners.length);
+        // Split pot — each winner gets own money back + equal share of dead money
+        // Dead money = pot contributions from folded players + any excess
+        const winnersInvested = winners.reduce((a, w) => a + (invested[w.player.id] || 0), 0);
+        const deadMoney = Math.max(0, this.pot - winnersInvested);
+        const deadShare = Math.floor(deadMoney / winners.length);
+
         for (const w of winners) {
-          w.won = share;
-          w.player.chips += share;
+          const myInvested = invested[w.player.id] || 0;
+          w.won = myInvested + deadShare;
+          w.player.chips += w.won;
         }
-        // Remainder chip to first winner
-        const remainder = this.pot - share * winners.length;
+
+        // Remainder chip to first winner (rounding)
+        const totalGiven = winners.reduce((a, w) => a + w.won, 0);
+        const remainder = this.pot - totalGiven;
         if (remainder > 0) { winners[0].player.chips += remainder; winners[0].won += remainder; }
       }
 
-      this.winner = winners[0].player;
-      this.potWon = winners[0].won;
+      this.winner = winners.length === 1 ? winners[0].player : winners.find(w => w.player.isHero)?.player || winners[0].player;
+      this.potWon = winners.find(w => w.player.isHero)?.won || winners[0].won;
+      this.isSplitPot = winners.length > 1;
       // Include folded players' cards too (for AI debrief)
       const foldedResults = this.players
         .filter(p => this.folded.has(p.id) && this.holeCards[p.id])
         .map(p => ({ player: p, cards: this.holeCards[p.id], hand: null, won: 0, folded: true }));
       this.showdownResults = [...results, ...foldedResults];
 
+      const isSplit = winners.length > 1;
       for (const r of results) {
         const name = r.player.isHero ? 'Hero' : r.player.name;
         const cardStr = r.cards ? r.cards.join(' ') : '??';
         if (r.won > 0) {
-          this._log(`${name} shows ${cardStr} — ${r.hand?.name || '?'} — WINS ${r.won}`, r.player, r.won);
+          const verb = isSplit ? 'SPLITS' : 'WINS';
+          this._log(`${name} shows ${cardStr} — ${r.hand?.name || '?'} — ${verb} ${r.won}`, r.player, r.won);
         } else {
           this._log(`${name} shows ${cardStr} — ${r.hand?.name || '?'}`, r.player);
         }
@@ -770,6 +781,7 @@ export class GameEngine {
       showdownResults: this.showdownResults,
       winner: this.winner,
       potWon: this.potWon,
+      isSplitPot: this.isSplitPot || false,
       actionLog: [...this.actionLog],
       blinds: this.blinds,
       // All hole cards — exposed at showdown/hand_over for AI debrief

@@ -601,7 +601,7 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
               animation: 'winPopup 0.5s cubic-bezier(0.34,1.56,0.64,1)',
             }}>
               <span style={{ fontSize: '16px', fontWeight: 800, color: T.accent }}>
-                {gs.winner.isHero ? 'You win ' : `${gs.winner.name} wins `}
+                {gs.isSplitPot ? 'Split pot ' : gs.winner.isHero ? 'You win ' : `${gs.winner.name} wins `}
               </span>
               <span style={{ fontSize: '16px', fontWeight: 800, color: '#e0e0e0' }}>+{gs.winner.isHero ? fmt(gs.heroChips - (chipsBeforeHand || 0)) : fmt(gs.potWon)}</span>
             </div>
@@ -988,8 +988,9 @@ function Game({ director, onExit }) {
     // Update ALL records for this hand (not just last one)
     const allRecs = getRecords().filter(r => r.handNumber === handCount + 1);
     for (const rec of allRecs) {
-      rec.handResult = heroWon ? 'won' : 'lost';
+      rec.handResult = gs.isSplitPot && heroWon ? 'split' : heroWon ? 'won' : 'lost';
       rec.potWon = heroWon ? gs.potWon : 0;
+      rec.isSplitPot = gs.isSplitPot || false;
       rec.chipsAfter = hero.chips;
       if (gs.allHoleCards) {
         rec.opponentCards = {};
