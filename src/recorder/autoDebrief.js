@@ -362,14 +362,19 @@ function computeSessionStats(records) {
   const allRaises = records.filter(r => r.action === 'raise').length;
   const af = allCalls > 0 ? Math.round((allRaises / allCalls) * 10) / 10 : allRaises > 0 ? 99 : 0;
 
-  // WTSD%: went to showdown (hands with handResult set and player saw flop)
+  // WTSD%: went to showdown = saw flop AND did NOT fold on any postflop street
   const handsSeenFlop = new Set();
   for (const r of records) {
     if (r.stage !== 'preflop' && r.action !== 'fold') handsSeenFlop.add(r.handNumber);
   }
-  const handsWithShowdown = new Set();
+  // Remove hands where hero folded postflop
+  const handsFolded = new Set();
   for (const r of records) {
-    if (handsSeenFlop.has(r.handNumber) && r.handResult) handsWithShowdown.add(r.handNumber);
+    if (r.stage !== 'preflop' && r.action === 'fold') handsFolded.add(r.handNumber);
+  }
+  const handsWithShowdown = new Set();
+  for (const hn of handsSeenFlop) {
+    if (!handsFolded.has(hn)) handsWithShowdown.add(hn);
   }
   const wtsd = handsSeenFlop.size > 0 ? Math.round((handsWithShowdown.size / handsSeenFlop.size) * 100) : 0;
 
@@ -413,7 +418,26 @@ function computeSessionStats(records) {
   const riverBets = riverCheckedTo.filter(r => r.action === 'raise').length;
   const riverBetFreq = riverCheckedTo.length > 0 ? Math.round((riverBets / riverCheckedTo.length) * 100) : 0;
 
-  return { vpip, pfr, af, flopAF, turnAF, riverAF, wtsd, wsd, cbet, foldToCbet, riverBetFreq, totalHands };
+  // ═══ NEW METRICS ═══
+
+  // 1. VPIP-PFR gap (>10% = leak, calling too much without raising)
+  const vpipPfrGap = vpip - pfr;
+
+  // 2. Calling station score: % of postflop actions that are calls (not raises)
+  const postflopCalls = records.filter(r => r.stage !== 'preflop' && r.action === 'call').length;
+  const postflopActions = records.filter(r => r.stage !== 'preflop' && (r.action === 'call' || r.action === 'raise')).length;
+  const callingStationScore = postflopActions > 0 ? Math.round((postflopCalls / postflopActions) * 100) : 0;
+
+  // 3. Leak score: 0-100 composite quality score (100 = perfect GTO)
+  const vpipDev = Math.abs(vpip - 25) / 25; // deviation from 25% VPIP
+  const pfrDev = Math.abs(pfr - 20) / 20;
+  const afDev = af > 0 ? Math.abs(af - 3) / 3 : 1;
+  const ftcDev = Math.abs(foldToCbet - 45) / 45;
+  const gapDev = Math.min(1, vpipPfrGap / 20);
+  const leakScore = Math.max(0, Math.round(100 - (vpipDev + pfrDev + afDev + ftcDev + gapDev) * 20));
+
+  return { vpip, pfr, af, flopAF, turnAF, riverAF, wtsd, wsd, cbet, foldToCbet, riverBetFreq, totalHands,
+           vpipPfrGap, callingStationScore, leakScore };
 }
 
 // Tournament stage dynamics — how play changes across early/mid/late/bubble/FT

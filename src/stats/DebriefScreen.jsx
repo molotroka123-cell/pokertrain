@@ -200,6 +200,10 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
               { label: 'Turn AF', val: debrief.sessionStats.turnAF || 0 },
               { label: 'River AF', val: debrief.sessionStats.riverAF || 0 },
               { label: 'Riv Bet%', val: (debrief.sessionStats.riverBetFreq || 0) + '%' },
+              { label: 'V-P Gap', val: (debrief.sessionStats.vpipPfrGap || 0) + '%', good: (debrief.sessionStats.vpipPfrGap || 0) <= 6 },
+              { label: 'Call Stn', val: (debrief.sessionStats.callingStationScore || 0) + '%', good: (debrief.sessionStats.callingStationScore || 0) <= 55 },
+              { label: 'Quality', val: debrief.sessionStats.leakScore || 0, good: (debrief.sessionStats.leakScore || 0) >= 70 },
+              { label: 'Fld cbet', val: (debrief.sessionStats.foldToCbet || 0) + '%', good: (debrief.sessionStats.foldToCbet || 0) <= 50 },
             ].map((s2, i) => (
               <div key={i} style={{ textAlign: 'center', padding: '8px', background: '#0d1118', borderRadius: '8px', border: '1px solid #1a2230' }}>
                 <div style={{ fontSize: '10px', color: '#5a6a7a', textTransform: 'uppercase' }}>{s2.label}</div>

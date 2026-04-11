@@ -384,17 +384,39 @@ export class GameEngine {
     if (!cards || cards.length < 2) return 0.5;
 
     if (this.community.length >= 3) {
-      const eval_ = evaluateHand(cards, this.community);
-      if (eval_) {
-        // Proper hand strength mapping:
-        // 1=High Card→0.15, 2=Pair→0.45, 3=TwoPair→0.6, 4=Trips→0.7,
-        // 5=Straight→0.78, 6=Flush→0.83, 7=FullHouse→0.88, 8=Quads→0.93,
-        // 9=StraightFlush→0.97, 10=Royal→1.0
-        const strengthMap = [0, 0.15, 0.45, 0.60, 0.70, 0.78, 0.83, 0.88, 0.93, 0.97, 1.0];
-        const base = strengthMap[eval_.rank] || 0.15;
-        // Add kicker bonus (0-0.1 range based on value within rank)
-        const kicker = Math.min(0.1, (eval_.value % 1e6) / 1e7);
-        return Math.min(1, base + kicker);
+      // Monte Carlo equity vs 1 opponent (fast, 200 iterations for AI speed)
+      try {
+        const used = new Set([...cards, ...this.community]);
+        const deck = [];
+        for (const s of ['s','h','d','c']) for (const r of ['2','3','4','5','6','7','8','9','T','J','Q','K','A']) {
+          const c = r + s;
+          if (!used.has(c)) deck.push(c);
+        }
+        let wins = 0, total = 0;
+        const boardNeeded = 5 - this.community.length;
+        for (let i = 0; i < 200; i++) {
+          // Fisher-Yates partial shuffle
+          const d = [...deck];
+          for (let j = d.length - 1; j > 0; j--) {
+            const k = Math.floor(Math.random() * (j + 1));
+            [d[j], d[k]] = [d[k], d[j]];
+          }
+          let idx = 0;
+          const board = [...this.community];
+          for (let b = 0; b < boardNeeded; b++) board.push(d[idx++]);
+          const opp = [d[idx++], d[idx++]];
+          const heroHand = evaluateHand(cards, board);
+          const oppHand = evaluateHand(opp, board);
+          if (heroHand && oppHand) {
+            const cmp = compareHands(heroHand, oppHand);
+            if (cmp > 0) wins++;
+            else if (cmp === 0) wins += 0.5;
+          }
+          total++;
+        }
+        return total > 0 ? wins / total : 0.5;
+      } catch (e) {
+        return 0.5;
       }
     }
 
