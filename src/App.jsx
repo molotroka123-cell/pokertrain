@@ -38,6 +38,8 @@ function fmt(n) {
 function Lobby({ onStart, onDrills, onStats, onCoach }) {
   const [format, setFormat] = useState('WSOP_Main');
   const [name, setName] = useState('');
+  const [showChecklist, setShowChecklist] = useState(false);
+  const [checklist, setChecklist] = useState({ sleep: true, focus: true, tilt: true, goal: true });
 
   return (
     <div style={{
@@ -110,7 +112,7 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
         ))}
 
         {/* Start button */}
-        <button onClick={() => onStart(format, name || 'Hero')} style={{
+        <button onClick={() => { if (!showChecklist) { setShowChecklist(true); return; } onStart(format, name || 'Hero'); }} style={{
           width: '100%', padding: '18px', border: 'none', borderRadius: '14px', cursor: 'pointer',
           background: 'linear-gradient(135deg, #1a6a3a, #27ae60, #2ecc71)',
           color: '#fff', fontWeight: 800, fontSize: '18px', letterSpacing: '1px',
@@ -119,7 +121,38 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
         }}
         onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
         onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
-        >START TOURNAMENT</button>
+        >{showChecklist ? 'GO' : 'START TOURNAMENT'}</button>
+
+        {/* Mental game checklist */}
+        {showChecklist && (
+          <div style={{
+            padding: '12px', background: '#0a0e14', borderRadius: '12px', marginTop: '8px',
+            border: '1px solid #1a2230',
+          }}>
+            <div style={{ fontSize: '12px', color: '#d4af37', fontWeight: 700, marginBottom: '8px' }}>Mental Game Check</div>
+            {[
+              { key: 'sleep', label: 'Well rested' },
+              { key: 'focus', label: 'Can focus 30+ min' },
+              { key: 'tilt', label: 'Not tilted / frustrated' },
+              { key: 'goal', label: 'Have a session goal' },
+            ].map(item => (
+              <div key={item.key} onClick={() => setChecklist(c => ({ ...c, [item.key]: !c[item.key] }))} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px', cursor: 'pointer', borderRadius: '8px', marginBottom: '4px',
+                background: checklist[item.key] ? 'rgba(39,174,96,0.1)' : 'rgba(231,76,60,0.1)',
+                border: `1px solid ${checklist[item.key] ? '#27ae6033' : '#e74c3c33'}`,
+              }}>
+                <span style={{ fontSize: '13px', color: '#c0d0e0' }}>{item.label}</span>
+                <span style={{ fontSize: '16px' }}>{checklist[item.key] ? '✓' : '✗'}</span>
+              </div>
+            ))}
+            {Object.values(checklist).filter(v => !v).length >= 2 && (
+              <div style={{ fontSize: '11px', color: '#e74c3c', marginTop: '6px', textAlign: 'center' }}>
+                Not recommended to play — consider warming up with drills first
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Drills button */}
         <button onClick={onDrills} style={{
@@ -422,9 +455,9 @@ function PremiumTable({ gs, theme: T }) {
                   }}>ALL IN</div>
                 )}
 
-                {/* Avatar — dark photo-style circle */}
-                <div style={{
-                  width: 46, height: 46, borderRadius: '50%', margin: '0 auto',
+                {/* Avatar — dark photo-style circle (tappable for stats) */}
+                <div onClick={() => { if (typeof gs._onSelectOpponent === 'function') gs._onSelectOpponent(p); }} style={{
+                  width: 46, height: 46, borderRadius: '50%', margin: '0 auto', cursor: 'pointer',
                   background: isWinner ? T.avatarWin : p._isBoss ? 'linear-gradient(145deg, #4a3510, #b8922a)' : T.avatarBot,
                   border: `2.5px solid ${isWinner ? T.accent : p._isBoss ? '#c8a230' : '#3a4a5a44'}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -646,6 +679,7 @@ function Game({ director, onExit }) {
   const [handActive, setHandActive] = useState(false);
   const [handCount, setHandCount] = useState(0);
   const [showRange, setShowRange] = useState(false);
+  const [selectedOpponent, setSelectedOpponent] = useState(null);
 
   const dirRef = useRef(director);
   const engineRef = useRef(new GameEngine());
@@ -955,11 +989,53 @@ function Game({ director, onExit }) {
       )}
 
       {/* Table */}
-      <PremiumTable theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)} gs={gs || {
+      <PremiumTable theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)} gs={{ ...(gs || {
         players: tournState.heroTable?.players.filter(p => !p.eliminated).map(p => ({ ...p, position: '', bet: 0, folded: false, allIn: false })) || [],
         community: [], pot: 0, heroCards: [], heroIndex: tournState.heroTable?.players.findIndex(p => p.isHero) || 0,
         dealerIdx: tournState.heroTable?.dealer || 0, phase: 'idle', showdownResults: null, winner: null, potWon: 0,
-      }} />
+      }), _onSelectOpponent: setSelectedOpponent }} />
+
+      {/* Opponent Profile Popup */}
+      {selectedOpponent && (
+        <div onClick={() => setSelectedOpponent(null)} style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#0d1118', borderRadius: '16px', padding: '20px',
+            border: '1px solid #1a2230', width: '85%', maxWidth: '320px',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: '#ffd700' }}>{selectedOpponent.name}</div>
+              <div onClick={() => setSelectedOpponent(null)} style={{
+                width: '28px', height: '28px', borderRadius: '50%', cursor: 'pointer',
+                background: '#1a2230', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#6b7b8d', fontSize: '14px', fontWeight: 700,
+              }}>X</div>
+            </div>
+            <div style={{ fontSize: '13px', color: selectedOpponent.style === 'TAG' ? '#27ae60' : selectedOpponent.style === 'LAG' ? '#f39c12' : selectedOpponent.style === 'Nit' ? '#3498db' : '#e74c3c', marginBottom: '10px', fontWeight: 600 }}>
+              {selectedOpponent.style || 'Unknown'} — {selectedOpponent.profile?.style || selectedOpponent.style || '?'}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+              {[
+                { label: 'VPIP', val: selectedOpponent.observedVpip ? Math.round(selectedOpponent.observedVpip * 100) + '%' : selectedOpponent.profile?.vpip ? Math.round(selectedOpponent.profile.vpip * 100) + '%' : '?' },
+                { label: 'PFR', val: selectedOpponent.profile?.pfr ? Math.round(selectedOpponent.profile.pfr * 100) + '%' : '?' },
+                { label: 'AF', val: selectedOpponent.profile?.af?.toFixed(1) || '?' },
+                { label: '3-Bet', val: selectedOpponent.profile?.threeBet ? Math.round(selectedOpponent.profile.threeBet * 100) + '%' : '?' },
+                { label: 'Stack', val: fmt(selectedOpponent.chips) },
+                { label: 'Position', val: selectedOpponent.position || '?' },
+              ].map((s, i) => (
+                <div key={i} style={{ padding: '8px', background: '#0a0d12', borderRadius: '8px', border: '1px solid #141a22' }}>
+                  <div style={{ fontSize: '10px', color: '#5a6a7a', textTransform: 'uppercase' }}>{s.label}</div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#c0d0e0', marginTop: '2px' }}>{s.val}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Controls + Range button */}
       {gs?.waitingForHero && (
@@ -1011,6 +1087,22 @@ function Game({ director, onExit }) {
               boxShadow: '0 4px 20px rgba(39,174,96,0.25)',
             }}>DEAL</button>
           )}
+        </div>
+      )}
+
+      {/* Coaching tip — shows when hero is deciding */}
+      {gs?.waitingForHero && gs?.heroPosition && (
+        <div style={{
+          textAlign: 'center', padding: '4px 10px', fontSize: '11px',
+          color: '#6a8a6a', background: 'rgba(10,20,10,0.6)',
+          borderTop: '1px solid #1a2a1a',
+        }}>
+          {gs.heroPosition === 'BTN' ? 'BTN — open wide, you have position' :
+           gs.heroPosition === 'CO' ? 'CO — second best position, open 30%+' :
+           gs.heroPosition === 'SB' ? 'SB — 3-bet or fold, calling is -EV' :
+           gs.heroPosition === 'BB' ? 'BB — defend wide vs steals, you close the action' :
+           gs.heroPosition === 'UTG' ? 'UTG — play tight, 5 players behind you' :
+           'Play your position and stack depth'}
         </div>
       )}
 

@@ -33,7 +33,9 @@ export default function Controls({ canCheck, canCall, toCall, pot, myChips, minR
 
   const presets = [
     { label: '3-Bet', val: Math.floor(threeBet), show: currentBet > 0 && currentBet <= bb * 5 },
-    { label: '4-Bet', val: Math.floor(fourBet), show: currentBet > bb * 5 },
+    { label: '4-Bet', val: Math.floor(fourBet), show: currentBet > bb * 5 && currentBet <= bb * 20 },
+    { label: '5-Bet', val: Math.min(Math.floor(currentBet * 2.5), myChips), show: currentBet > bb * 20 },
+    { label: '2.5x', val: Math.floor(currentBet * 2.5), show: currentBet > 0 && currentBet <= bb * 5 },
     { label: '50%', val: Math.floor(pot * 0.5), show: true },
     { label: '75%', val: Math.floor(pot * 0.75), show: true },
     { label: 'Pot', val: pot, show: true },
