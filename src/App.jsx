@@ -398,7 +398,7 @@ const BET_OFFSETS = [
   { dx: -35, dy: -25 }, // 8
 ];
 
-function PremiumTable({ gs, theme: T }) {
+function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
   if (!gs || !gs.players) return null;
   if (!T) T = getTheme('WSOP_Main');
   const heroIdx = gs.heroIndex;
@@ -691,7 +691,7 @@ function PremiumTable({ gs, theme: T }) {
               <span style={{ fontSize: '16px', fontWeight: 800, color: T.accent }}>
                 {gs.winner.isHero ? 'You win ' : `${gs.winner.name} wins `}
               </span>
-              <span style={{ fontSize: '16px', fontWeight: 800, color: '#e0e0e0' }}>+{gs.winner.isHero ? fmt(gs.heroChips - chipsBeforeHandRef.current) : fmt(gs.potWon)}</span>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: '#e0e0e0' }}>+{gs.winner.isHero ? fmt(gs.heroChips - (chipsBeforeHand || 0)) : fmt(gs.potWon)}</span>
             </div>
           </>
         )}
@@ -1261,7 +1261,7 @@ function Game({ director, onExit }) {
       )}
 
       {/* Table */}
-      <PremiumTable theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)} gs={{ ...(gs || {
+      <PremiumTable chipsBeforeHand={chipsBeforeHandRef.current} theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)} gs={{ ...(gs || {
         players: tournState.heroTable?.players.filter(p => !p.eliminated).map(p => ({ ...p, position: '', bet: 0, folded: false, allIn: false })) || [],
         community: [], pot: 0, heroCards: [], heroIndex: tournState.heroTable?.players.findIndex(p => p.isHero) || 0,
         dealerIdx: tournState.heroTable?.dealer || 0, phase: 'idle', showdownResults: null, winner: null, potWon: 0,
