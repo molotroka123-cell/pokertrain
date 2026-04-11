@@ -36,8 +36,10 @@ export class AdaptiveAI extends BaseAI {
       _currentHandActions: [],
     };
     this.exploitLevel = 0;
-    this.minHandsToExploit = 3; // Fast adaptation: exploit after 3 hands (was 10)
-    this.respectLevel = 0; // +0.20 after hero shows nuts, -0.30 after hero shows bluff
+    this.minHandsToExploit = 3;
+    this.respectLevel = 0;
+    this.tiltLevel = 0;       // (#18) Bot tilt: increases after losing pots to hero
+    this.tiltHandsLeft = 0;   // Hands remaining in tilt mode
   }
 
   // Load hero profile from past sessions — exploit from hand 1
@@ -186,18 +188,38 @@ export class AdaptiveAI extends BaseAI {
     if (heroHandStrength !== undefined) {
       if (heroHandStrength < 0.3) {
         this.heroModel.bluffsDetected++;
-        this.respectLevel = Math.max(-0.50, this.respectLevel - 0.30); // disrespect bluffer
+        this.respectLevel = Math.max(-0.50, this.respectLevel - 0.30);
       }
       if (heroHandStrength > 0.6) {
         this.heroModel.valueBetsDetected++;
-        if (heroHandStrength > 0.85) this.respectLevel = Math.min(0.40, this.respectLevel + 0.20); // respect monster
+        if (heroHandStrength > 0.85) this.respectLevel = Math.min(0.40, this.respectLevel + 0.20);
       }
     }
+    // (#18) Bot tilt: lost to hero → tilt for 10 hands
+    if (heroWon) {
+      this.tiltLevel = Math.min(1.0, this.tiltLevel + 0.3);
+      this.tiltHandsLeft = 10;
+    } else {
+      this.tiltLevel = Math.max(0, this.tiltLevel - 0.15);
+    }
+    if (this.tiltHandsLeft > 0) this.tiltHandsLeft--;
   }
 
-  // ═══ MAIN DECISION ═══
+  // ═══ MAIN DECISION — with tilt + fatigue (#14, #18) ═══
   decide(gameState) {
     try {
+      // (#14) Bot fatigue: after 50+ hands, play looser + more mistakes
+      if (this.heroModel.handsPlayed > 50) {
+        const fatigue = Math.min(0.5, (this.heroModel.handsPlayed - 50) / 100);
+        this.noise = 0.04 * (1 + fatigue);
+      }
+
+      // (#18) Bot tilt: play looser + more aggressive when tilted
+      if (this.tiltHandsLeft > 0 && gameState) {
+        // Override handStrength slightly upward (overvalues hand)
+        if (gameState.handStrength) gameState.handStrength = Math.min(0.95, gameState.handStrength + this.tiltLevel * 0.10);
+      }
+
       const baseDecision = super.decide(gameState);
       if (!baseDecision || !baseDecision.action) return { action: 'check' };
       if (this.heroModel.handsPlayed < this.minHandsToExploit) return baseDecision;

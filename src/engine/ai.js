@@ -130,7 +130,7 @@ export class BaseAI {
     // Multiway tightening: each extra player = ~15% tighter range
     const mwPenalty = Math.max(0, (playersInHand - 2) * 0.04);
 
-    // ═══ PUSH/FOLD (M < 12) ═══
+    // ═══ PUSH/FOLD (M < 12) — with human error (#15) ═══
     if (m < 12) {
       let threshold;
       if (m < 3) threshold = 0.55;
@@ -148,6 +148,18 @@ export class BaseAI {
       if (p.style === 'Nit') threshold -= 0.08;
       if (isBubble) threshold -= 0.12;
       if (isFT && stackBB > 30) threshold += 0.05;
+
+      // Human error: 10% push too loose, 10% fold too tight (#15)
+      if (p.style !== 'TAG') {
+        if (rand < 0.10) threshold += 0.08;
+        else if (rand > 0.90) threshold -= 0.08;
+      }
+
+      // Re-steal: M=10-15 facing late position open → push wider (#11)
+      if (m >= 10 && m <= 15 && toCall > bigBlind && toCall <= bigBlind * 4) {
+        const facingLate = gs.facingAction?.position === 'BTN' || gs.facingAction?.position === 'CO';
+        if (facingLate && (position === 'BB' || position === 'SB')) threshold += 0.08;
+      }
 
       if (toCall <= bigBlind && handVal <= threshold) return { action: 'raise', amount: myChips };
       if (toCall > 0) {
@@ -167,10 +179,12 @@ export class BaseAI {
       };
       const baseThreshold = gtoOpenThreshold[position] || 0.30;
       // Scale by style: Nit=0.65x, TAG=0.85x, SemiLAG=1.0x, LAG=1.15x, Maniac=1.4x
-      const styleScale = p.style === 'Nit' ? 0.70 : p.style === 'TAG' ? 1.0 :
-        p.style === 'SemiLAG' ? 1.10 : p.style === 'LAG' ? 1.25 :
+      // BTN/SB steal wider (#9): extra scale for steal positions
+      const stealBonus = (position === 'BTN' || position === 'SB') ? 0.10 : 0;
+      const styleScale = (p.style === 'Nit' ? 0.70 : p.style === 'TAG' ? 1.05 :
+        p.style === 'SemiLAG' ? 1.10 : p.style === 'LAG' ? 1.35 :
         p.style === 'Maniac' ? 1.50 : p.style === 'STATION' ? 1.30 :
-        p.style === 'LIMPER' ? 1.40 : p.style === 'SCARED_MONEY' ? 0.75 : 1.0;
+        p.style === 'LIMPER' ? 1.40 : p.style === 'SCARED_MONEY' ? 0.75 : 1.0) + stealBonus;
       const openThreshold = baseThreshold * styleScale + (rand - 0.5) * this.noise;
 
       if (handVal > openThreshold) return { action: 'fold' };
@@ -185,8 +199,14 @@ export class BaseAI {
       if (p.style === 'Maniac' && rand < 0.50) {
         return { action: 'raise', amount: Math.min(Math.floor(bigBlind * (2.5 + cryptoRandomFloat() * 1.5)), myChips) };
       }
-      // Standard raise (regs raise-or-fold)
-      const size = Math.floor(bigBlind * (2.2 + cryptoRandomFloat() * 0.5 + (playersInHand > 4 ? 0.3 : 0)));
+      // Isolation raise vs limpers (#8): 4-6x BB instead of 2.2x
+      const limpers = playersInHand > 2 ? playersInHand - 2 : 0;
+      let size;
+      if (limpers > 0 && (p.style === 'TAG' || p.style === 'LAG' || p.style === 'SemiLAG')) {
+        size = Math.floor(bigBlind * (4 + limpers)); // iso: 4x + 1x per limper
+      } else {
+        size = Math.floor(bigBlind * (2.2 + cryptoRandomFloat() * 0.5));
+      }
       return { action: 'raise', amount: Math.min(size, myChips) };
     }
 
@@ -559,6 +579,11 @@ export class BaseAI {
       return { action: 'fold' };
     }
 
+    // ═══ CHECK-CALL TRAP: strong OOP vs aggressor — induce bluffs (#13) ═══
+    if (!isIP && strength > 0.58 && strength < 0.80 && isAggressor === false) {
+      if (rand < 0.30) return { action: 'call' }; // flat-call to trap, don't raise
+    }
+
     // ═══ MONSTER (equity > 0.75): raise for value ═══
     if (strength > 0.75) {
       const raiseFreq = isFT ? 0.80 : 0.55 + (af - 2) / 8;
@@ -643,20 +668,20 @@ export class BaseAI {
 
     // Weak hand with no draw: fold (but check style-specific exceptions)
     if (stage !== 'river') {
+      // (#7) Multiway fish: STATION calls with any pair in multiway ("big pot, must see")
+      if (p.style === 'STATION' && multiway && strength > 0.18) return { action: 'call' };
       if (p.style === 'STATION' && strength > 0.25) return { action: 'call' };
       if (p.style === 'Maniac' && rand < 0.15) return { action: 'call' };
       return { action: 'fold' };
     }
 
-    // ═══ RIVER: bluff-catching (GTO ~30% vs pot-sized bet) ═══
+    // ═══ RIVER: bluff-catching with blocker awareness (#12) ═══
     if (stage === 'river') {
       if (p.style === 'STATION' && strength > 0.25) return { action: 'call' };
-      // MDF (minimum defense freq): 1 - bet/(pot+bet)
-      // vs 50% pot bet → defend 67%. vs 75% pot bet → defend 57%. vs pot-sized → defend 50%.
       const mdf = 1 - betSizePot / (1 + betSizePot);
-      // Bluff-catch with showdown value using MDF-weighted frequency
-      if (strength > 0.35 && rand < mdf * 0.55) return { action: 'call' };
-      // Small river bet: call wider
+      // Blocker adjustment: if we block villain's value → call wider
+      const blockerAdj = hi.hasBlockers ? 1.25 : 0.90;
+      if (strength > 0.35 && rand < mdf * 0.55 * blockerAdj) return { action: 'call' };
       if (betSizePot < 0.40 && strength > 0.30 && rand < 0.35) return { action: 'call' };
     }
 
