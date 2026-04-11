@@ -532,21 +532,34 @@ function PremiumTable({ gs, theme: T }) {
           );
         })}
 
-        {/* Winner popup */}
+        {/* Winner popup + chip animation */}
         {gs.phase === 'showdown' && gs.winner && (
-          <div style={{
-            position: 'absolute', bottom: '4%', left: '50%', transform: 'translateX(-50%)',
-            background: T.winBg, backdropFilter: 'blur(12px)',
-            padding: '10px 30px', borderRadius: '20px', zIndex: 30,
-            border: '1.5px solid ' + T.winBorder,
-            boxShadow: T.winGlow,
-            animation: 'winPopup 0.5s cubic-bezier(0.34,1.56,0.64,1)',
-          }}>
-            <span style={{ fontSize: '16px', fontWeight: 800, color: T.accent }}>
-              {gs.winner.isHero ? 'You win ' : `${gs.winner.name} wins `}
-            </span>
-            <span style={{ fontSize: '16px', fontWeight: 800, color: '#e0e0e0' }}>{fmt(gs.potWon)}</span>
-          </div>
+          <>
+            {/* Flying chip particles */}
+            {[0,1,2,3,4].map(i => (
+              <div key={i} style={{
+                position: 'absolute', top: '40%', left: '50%',
+                width: '14px', height: '14px', borderRadius: '50%', zIndex: 25,
+                background: `linear-gradient(135deg, ${i % 2 === 0 ? '#ffd700' : '#e8a800'}, ${i % 2 === 0 ? '#e8a800' : '#d4af37'})`,
+                border: '1px solid rgba(255,255,255,0.3)',
+                animation: `chipFly${i} 0.8s ease-out ${i * 0.1}s forwards`,
+                opacity: 0,
+              }} />
+            ))}
+            <div style={{
+              position: 'absolute', bottom: '4%', left: '50%', transform: 'translateX(-50%)',
+              background: T.winBg, backdropFilter: 'blur(12px)',
+              padding: '10px 30px', borderRadius: '20px', zIndex: 30,
+              border: '1.5px solid ' + T.winBorder,
+              boxShadow: T.winGlow,
+              animation: 'winPopup 0.5s cubic-bezier(0.34,1.56,0.64,1)',
+            }}>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: T.accent }}>
+                {gs.winner.isHero ? 'You win ' : `${gs.winner.name} wins `}
+              </span>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: '#e0e0e0' }}>{fmt(gs.potWon)}</span>
+            </div>
+          </>
         )}
       </div>
 
@@ -680,6 +693,7 @@ function Game({ director, onExit }) {
   const [handCount, setHandCount] = useState(0);
   const [showRange, setShowRange] = useState(false);
   const [selectedOpponent, setSelectedOpponent] = useState(null);
+  const [postHandTip, setPostHandTip] = useState(null);
 
   const dirRef = useRef(director);
   const engineRef = useRef(new GameEngine());
@@ -880,6 +894,25 @@ function Game({ director, onExit }) {
       allHoleCards: gs.allHoleCards || null,
     });
 
+    // Post-hand mini analysis
+    const lastRecs = getRecords().filter(r => r.handNumber === handCount + 1);
+    const lastMistake = lastRecs.find(r => r.mistakeType);
+    if (lastMistake) {
+      const tips = {
+        bad_fold: 'You had enough equity to call — don\'t fold +EV spots',
+        bad_call: 'Calling was -EV here — save chips by folding',
+        too_passive: 'Your hand was strong enough to raise for value',
+        push_fold_error: 'Short stack — should have shoved',
+        icm_error: 'Bubble play — survival matters more than chips',
+        draw_fold_error: 'You had a draw with correct odds to continue',
+      };
+      setPostHandTip({ type: lastMistake.mistakeType, text: tips[lastMistake.mistakeType] || 'Review this decision', evLost: lastMistake.evLost });
+      setTimeout(() => setPostHandTip(null), 4000);
+    } else if (heroWon) {
+      setPostHandTip({ type: 'good', text: 'Well played!', evLost: 0 });
+      setTimeout(() => setPostHandTip(null), 2000);
+    }
+
     // Save session after every hand
     saveSession();
 
@@ -925,6 +958,11 @@ function Game({ director, onExit }) {
           60% { opacity:1; transform:translate(-50%,-50%) scale(1.1) translateY(-3px); }
           100% { transform:translate(-50%,-50%) scale(1) translateY(0); }
         }
+        @keyframes chipFly0 { 0% { opacity:1; transform:translate(-50%,-50%); } 100% { opacity:0; transform:translate(-80px,60px) scale(0.5); } }
+        @keyframes chipFly1 { 0% { opacity:1; transform:translate(-50%,-50%); } 100% { opacity:0; transform:translate(60px,70px) scale(0.5); } }
+        @keyframes chipFly2 { 0% { opacity:1; transform:translate(-50%,-50%); } 100% { opacity:0; transform:translate(-30px,80px) scale(0.4); } }
+        @keyframes chipFly3 { 0% { opacity:1; transform:translate(-50%,-50%); } 100% { opacity:0; transform:translate(40px,50px) scale(0.5); } }
+        @keyframes chipFly4 { 0% { opacity:1; transform:translate(-50%,-50%); } 100% { opacity:0; transform:translate(0px,90px) scale(0.3); } }
         @keyframes winPopup {
           0% { opacity:0; transform:translateX(-50%) scale(0.5) translateY(15px); }
           60% { transform:translateX(-50%) scale(1.08) translateY(-2px); }
@@ -950,7 +988,7 @@ function Game({ director, onExit }) {
           <button onClick={() => setView('dashboard')} style={{
             padding: '6px 14px', background: '#0d1118', border: '1px solid #1a2230',
             borderRadius: '8px', color: '#5a7a8a', fontSize: '11px', cursor: 'pointer', fontWeight: 600,
-          }}>Dashboard</button>
+          }}>{tournState.tables > 1 ? `${tournState.tables} Tables` : 'Dashboard'}</button>
           <button onClick={() => onExit({ position: tournState.heroRank, total: tournState.totalPlayers, apiCalls: ClaudeBossBot.totalCalls, aiBots: aiBotsRef.current })} style={{
             padding: '6px 14px', background: '#1a1015', border: '1px solid #3a1a20',
             borderRadius: '8px', color: '#8a5a5a', fontSize: '11px', cursor: 'pointer', fontWeight: 600,
@@ -1090,6 +1128,26 @@ function Game({ director, onExit }) {
         </div>
       )}
 
+      {/* Post-hand mini analysis popup */}
+      {postHandTip && (
+        <div style={{
+          textAlign: 'center', padding: '8px 14px',
+          background: postHandTip.type === 'good' ? 'rgba(39,174,96,0.15)' : 'rgba(231,76,60,0.12)',
+          borderTop: `1px solid ${postHandTip.type === 'good' ? '#27ae6033' : '#e74c3c33'}`,
+          animation: 'winPopup 0.3s ease',
+        }}>
+          <span style={{
+            fontSize: '12px', fontWeight: 700,
+            color: postHandTip.type === 'good' ? '#27ae60' : '#f39c12',
+          }}>
+            {postHandTip.type === 'good' ? '✓ ' : '⚠ '}{postHandTip.text}
+          </span>
+          {postHandTip.evLost > 0 && (
+            <span style={{ fontSize: '11px', color: '#e74c3c', marginLeft: '8px' }}>(-{postHandTip.evLost} EV)</span>
+          )}
+        </div>
+      )}
+
       {/* Coaching tip — shows when hero is deciding */}
       {gs?.waitingForHero && gs?.heroPosition && (
         <div style={{
@@ -1147,6 +1205,12 @@ export default function App() {
     return <div style={appBg}><DebriefScreen debrief={debriefData.debrief} finish={debriefData.finish}
       records={debriefData.records} aiExploit={debriefData.aiExploit}
       onClose={() => { setDebriefData(null); setScreen('lobby'); }}
+      onDrill={(mistakeType) => {
+        const drillMap = { bad_fold: 'potodds', bad_call: 'potodds', too_passive: 'sizing', push_fold_error: 'pushfold', icm_error: 'pushfold', draw_fold_error: 'potodds' };
+        const drillId = drillMap[mistakeType] || 'rfi';
+        setActiveDrill(drillId);
+        setScreen('drill');
+      }}
       onExport={() => {
         const data = exportSession();
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

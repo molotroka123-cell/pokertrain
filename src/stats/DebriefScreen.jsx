@@ -54,7 +54,7 @@ const s = {
   },
 };
 
-export default function DebriefScreen({ debrief, finish, records, onClose, onExport, aiExploit }) {
+export default function DebriefScreen({ debrief, finish, records, onClose, onExport, aiExploit, onDrill }) {
   const [selectedMistake, setSelectedMistake] = useState(null);
 
   if (!debrief) return null;
@@ -131,8 +131,15 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
               <div style={{ fontSize: '12px', color: '#8899aa', marginTop: '4px' }}>
                 {m.explanation?.what?.slice(0, 100)}...
               </div>
-              <div style={{ fontSize: '11px', color: '#f39c12', marginTop: '4px' }}>
-                EV lost: ~{m.evLost} | {m.drillRecommendation?.icon} {m.drillRecommendation?.drill}
+              <div style={{ fontSize: '11px', color: '#f39c12', marginTop: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>EV lost: ~{m.evLost} | {m.drillRecommendation?.icon} {m.drillRecommendation?.drill}</span>
+                {onDrill && m.drillRecommendation?.drill && (
+                  <span onClick={(e) => { e.stopPropagation(); onDrill(m.mistakeType); }} style={{
+                    padding: '3px 8px', background: '#1a3a1a', border: '1px solid #2a5a2a',
+                    borderRadius: '6px', fontSize: '10px', color: '#27ae60', fontWeight: 700,
+                    cursor: 'pointer',
+                  }}>Practice</span>
+                )}
               </div>
             </div>
           ))}
