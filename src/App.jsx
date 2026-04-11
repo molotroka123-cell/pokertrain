@@ -39,300 +39,212 @@ function fmt(n) {
 // PREMIUM LOBBY — V3 Design
 // ════════════════════════════════════════════
 function Lobby({ onStart, onDrills, onStats, onCoach }) {
-  const [tab, setTab] = useState('mtt');
   const [format, setFormat] = useState('WSOP_Main');
   const [name, setName] = useState('');
-  const [showChecklist, setShowChecklist] = useState(false);
-  const [checklist, setChecklist] = useState({ sleep: true, focus: true, tilt: true, goal: true });
-  const [sessionGoal, setSessionGoal] = useState('');
+  const [showFormats, setShowFormats] = useState(false);
 
-  // Quick stats from localStorage
+  // Bankroll from localStorage
   const sessions = JSON.parse(localStorage.getItem('wsop_sessions') || '[]');
-  const totalSessions = sessions.length;
-  const totalHands = sessions.reduce((a, s) => a + (s.totalHands || 0), 0);
-  const bestFinish = sessions.length > 0 ? Math.min(...sessions.filter(s => s.records?.[0]?.totalPlayers).map(s => {
-    const last = s.records?.[s.records.length - 1];
-    return last?.playersRemaining || 999;
-  })) : null;
+  const bankroll = 10000 + sessions.length * 500;
 
-  const tabStyle = (active) => ({
-    flex: 1, padding: '11px 0', border: 'none', borderRadius: 0, cursor: 'pointer',
-    background: active ? 'transparent' : 'transparent',
-    color: active ? '#ffd700' : '#4a5a6a', fontWeight: 700, fontSize: '12px',
-    letterSpacing: '1.5px', textTransform: 'uppercase', transition: 'color 0.2s',
-    borderBottom: active ? '2px solid #ffd700' : '2px solid transparent',
-  });
-
-  const cardBtn = (isSelected) => ({
-    padding: '14px 16px', borderRadius: '12px', marginBottom: '6px', cursor: 'pointer',
-    background: isSelected ? 'linear-gradient(135deg, #10192a, #162040)' : '#080c14',
-    border: `1px solid ${isSelected ? 'rgba(212,175,55,0.25)' : '#111820'}`,
-    transition: 'all 0.2s', position: 'relative', overflow: 'hidden',
-    boxShadow: isSelected ? '0 2px 16px rgba(212,175,55,0.08)' : 'none',
-  });
+  const btnPress = (e) => { e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.filter = 'brightness(1.1)'; };
+  const btnRelease = (e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none'; };
 
   return (
     <div style={{
-      minHeight: '100dvh',
-      background: '#060810',
-      color: '#e0e0e0', fontFamily: "'Segoe UI', -apple-system, sans-serif",
-      paddingTop: 'env(safe-area-inset-top, 0px)', display: 'flex', flexDirection: 'column',
+      minHeight: '100dvh', color: '#e0e0e0',
+      fontFamily: "'Segoe UI', -apple-system, sans-serif",
+      background: '#080a0f', position: 'relative', overflow: 'hidden',
     }}>
-      {/* ═══ TOP BAR ═══ */}
-      <div style={{
-        padding: '16px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: 'linear-gradient(180deg, #0c1018 0%, #060810 100%)',
-      }}>
-        <div>
+      {/* ═══ ANIMATED BACKGROUND ═══ */}
+      <style>{`
+        @keyframes bgGlow {
+          0%, 100% { opacity: 0.4; transform: scale(1) translateY(0); }
+          50% { opacity: 0.7; transform: scale(1.1) translateY(-10px); }
+        }
+        @keyframes bgGlow2 {
+          0%, 100% { opacity: 0.3; transform: scale(1.1) translateX(10px); }
+          50% { opacity: 0.5; transform: scale(1) translateX(-10px); }
+        }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        @keyframes floatUp {
+          0% { opacity: 0; transform: translateY(20px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      {/* Fire/amber glow orbs */}
+      <div style={{ position: 'absolute', top: '-20%', left: '20%', width: '300px', height: '300px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(212,160,40,0.15), transparent 70%)', animation: 'bgGlow 6s ease-in-out infinite', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '10%', right: '-10%', width: '250px', height: '250px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(180,80,20,0.12), transparent 70%)', animation: 'bgGlow2 8s ease-in-out infinite', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '20%', left: '-5%', width: '200px', height: '200px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(160,120,40,0.10), transparent 70%)', animation: 'bgGlow 10s ease-in-out infinite 2s', pointerEvents: 'none' }} />
+
+      {/* Dark gradient overlay */}
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,10,15,0.3) 0%, rgba(8,10,15,0.7) 50%, rgba(8,10,15,0.95) 100%)', pointerEvents: 'none' }} />
+
+      {/* ═══ CONTENT ═══ */}
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: '500px', margin: '0 auto', padding: '0 20px' }}>
+
+        {/* ═══ LOGO ═══ */}
+        <div style={{ textAlign: 'center', paddingTop: '40px', marginBottom: '24px' }}>
+          <div style={{ fontSize: '42px', lineHeight: 1, color: '#2a3a5a', marginBottom: '-4px' }}>♠</div>
           <div style={{
-            fontSize: '22px', fontWeight: 900, letterSpacing: '2px',
-            background: 'linear-gradient(135deg, #ffd700, #f0c030, #d4af37)',
+            fontSize: '32px', fontWeight: 900, letterSpacing: '4px',
+            background: 'linear-gradient(135deg, #ffd700, #e8b830, #c8961a, #ffd700)',
+            backgroundSize: '200% auto',
+            animation: 'shimmer 4s linear infinite',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>POKERTRAIN</div>
+            filter: 'drop-shadow(0 2px 12px rgba(212,175,55,0.25))',
+          }}>POKER TRAINER</div>
         </div>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Hero"
-          style={{
-            width: '110px', padding: '8px 12px', background: '#0c1018', border: '1px solid #1a2230',
-            borderRadius: '8px', color: '#c0d0e0', fontSize: '13px', outline: 'none',
-            textAlign: 'right', boxSizing: 'border-box',
-          }}
-          onFocus={e => e.target.style.borderColor = '#d4af37'}
-          onBlur={e => e.target.style.borderColor = '#1a2230'}
-        />
-      </div>
 
-      {/* ═══ QUICK STATS ROW ═══ */}
-      {totalSessions > 0 && (
+        {/* ═══ PLAYER CARD ═══ */}
         <div style={{
-          display: 'flex', gap: '1px', margin: '10px 16px 0', borderRadius: '10px', overflow: 'hidden',
-          background: '#111820',
+          display: 'flex', alignItems: 'center', gap: '14px',
+          padding: '14px 18px', borderRadius: '14px', marginBottom: '16px',
+          background: 'linear-gradient(135deg, rgba(15,20,30,0.9), rgba(20,28,40,0.9))',
+          border: '1px solid #1a2a3a', backdropFilter: 'blur(8px)',
         }}>
-          {[
-            { label: 'Sessions', val: totalSessions },
-            { label: 'Hands', val: totalHands > 999 ? (totalHands / 1000).toFixed(1) + 'K' : totalHands },
-            { label: 'Best', val: bestFinish && bestFinish < 999 ? '#' + bestFinish : '-' },
-          ].map((s, i) => (
-            <div key={i} style={{ flex: 1, padding: '8px 4px', textAlign: 'center', background: '#0a0e14' }}>
-              <div style={{ fontSize: '15px', fontWeight: 800, color: '#c0d0e0' }}>{s.val}</div>
-              <div style={{ fontSize: '9px', color: '#4a5a6a', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '1px' }}>{s.label}</div>
-            </div>
-          ))}
+          {/* Avatar */}
+          <div style={{
+            width: '50px', height: '50px', borderRadius: '50%',
+            background: 'linear-gradient(145deg, #1a2a40, #0a1520)',
+            border: '2px solid #2a4060', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '20px', color: '#4a6a8a', flexShrink: 0,
+          }}>♠</div>
+          <div style={{ flex: 1 }}>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Hero"
+              style={{
+                width: '100%', padding: 0, background: 'transparent', border: 'none',
+                color: '#e0e0e0', fontSize: '18px', fontWeight: 700, outline: 'none',
+              }} />
+          </div>
+          <div style={{
+            fontSize: '16px', fontWeight: 800,
+            color: '#ffd700', textShadow: '0 0 10px rgba(212,175,55,0.3)',
+          }}>${bankroll.toLocaleString()}</div>
         </div>
-      )}
 
-      {/* ═══ TAB BAR ═══ */}
-      <div style={{
-        display: 'flex', margin: '12px 16px 0', borderBottom: '1px solid #141a22',
-      }}>
-        {[
-          { id: 'mtt', label: 'Tournaments' },
-          { id: 'cash', label: 'Cash' },
-          { id: 'train', label: 'Training' },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={tabStyle(tab === t.id)}>{t.label}</button>
-        ))}
-      </div>
-
-      {/* ═══ CONTENT AREA ═══ */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 100px' }}>
-
-        {/* ═══ MTT TAB ═══ */}
-        {tab === 'mtt' && (<>
-          {/* HARDCORE — featured card */}
-          <div onClick={() => onStart('HARDCORE', name || 'Hero')} style={{
-            padding: '18px', borderRadius: '14px', cursor: 'pointer', marginBottom: '12px',
-            background: 'linear-gradient(135deg, #1a0808, #2a0a0a, #1a0505)',
-            border: '1px solid rgba(220,40,40,0.25)', position: 'relative', overflow: 'hidden',
-          }}
-          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}>
-            <div style={{ position: 'absolute', top: 0, right: 0, width: '120px', height: '100%', background: 'radial-gradient(circle at 100% 50%, rgba(220,40,40,0.12), transparent 70%)' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '11px', color: '#cc3030', fontWeight: 800, letterSpacing: '3px', marginBottom: '4px' }}>FEATURED</div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: '#ff4040', letterSpacing: '2px' }}>HARDCORE 6-Max</div>
-                <div style={{ fontSize: '11px', color: '#6a3030', marginTop: '4px' }}>5 AI Pro bots vs You — no mercy</div>
-              </div>
-              <div style={{
-                width: '44px', height: '44px', borderRadius: '12px',
-                background: 'linear-gradient(135deg, #cc2020, #ff4040)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '18px', fontWeight: 900, color: '#fff',
-                boxShadow: '0 0 20px rgba(220,40,40,0.3)',
-              }}>VS</div>
-            </div>
-          </div>
-
-          {/* Tournament list */}
-          {Object.entries(FORMATS).map(([key, f]) => (
-            <div key={key} onClick={() => setFormat(key)} style={cardBtn(format === key)}>
-              {format === key && <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: '#d4af37' }} />}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '14px', color: format === key ? '#ffd700' : '#a0b0c0' }}>
-                    {f.name}
-                    {f.speed && <span style={{
-                      fontSize: '9px', fontWeight: 700, marginLeft: '8px',
-                      padding: '2px 6px', borderRadius: '4px',
-                      background: f.speed === 'Turbo' || f.speed === 'Hyper Turbo' ? 'rgba(220,53,69,0.15)' : 'rgba(90,106,122,0.1)',
-                      color: f.speed === 'Turbo' || f.speed === 'Hyper Turbo' ? '#ff5040' : '#6a7a8a',
-                    }}>{f.speed}</span>}
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#3a4a5a', marginTop: '3px' }}>
-                    {f.players} entrants  ·  {f.startingChips.toLocaleString()} chips  ·  {f.blindLevels[0].mins}m levels
-                  </div>
-                </div>
-                <div style={{
-                  fontSize: '14px', fontWeight: 800,
-                  color: format === key ? '#ffd700' : '#2a3a4a',
-                  minWidth: '60px', textAlign: 'right',
-                }}>${f.buyIn.toLocaleString()}</div>
-              </div>
-            </div>
-          ))}
-
-          {/* Register button */}
-          <button onClick={() => { if (!showChecklist) { setShowChecklist(true); return; } onStart(format, name || 'Hero'); }} style={{
-            width: '100%', padding: '16px', border: 'none', borderRadius: '12px', cursor: 'pointer',
-            background: 'linear-gradient(135deg, #1a6a3a, #22a050)',
-            color: '#fff', fontWeight: 800, fontSize: '16px', letterSpacing: '1px',
-            boxShadow: '0 4px 20px rgba(34,160,80,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
-            transition: 'transform 0.12s', marginTop: '8px',
-          }}
-          onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
-          onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
-          >{showChecklist ? 'REGISTER & PLAY' : 'REGISTER'}</button>
-
-          {/* Mental game checklist — collapsed by default */}
-          {showChecklist && (
-            <div style={{ padding: '12px', background: '#080c14', borderRadius: '12px', marginTop: '8px', border: '1px solid #141a22' }}>
-              <div style={{ fontSize: '11px', color: '#d4af37', fontWeight: 700, marginBottom: '8px', letterSpacing: '1px' }}>PRE-GAME CHECK</div>
-              {[
-                { key: 'sleep', label: 'Well rested' },
-                { key: 'focus', label: 'Can focus 30+ min' },
-                { key: 'tilt', label: 'Not tilted' },
-                { key: 'goal', label: 'Have a goal' },
-              ].map(item => (
-                <div key={item.key} onClick={() => setChecklist(c => ({ ...c, [item.key]: !c[item.key] }))} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '7px 10px', cursor: 'pointer', borderRadius: '8px', marginBottom: '3px',
-                  background: checklist[item.key] ? 'rgba(34,160,80,0.08)' : 'rgba(200,50,50,0.06)',
-                  border: `1px solid ${checklist[item.key] ? '#22a05020' : '#c8323220'}`,
-                }}>
-                  <span style={{ fontSize: '12px', color: '#a0b0c0' }}>{item.label}</span>
-                  <span style={{ fontSize: '14px', color: checklist[item.key] ? '#22a050' : '#c03030' }}>{checklist[item.key] ? '✓' : '✗'}</span>
-                </div>
-              ))}
-              <input value={sessionGoal} onChange={e => setSessionGoal(e.target.value)} placeholder="Session goal..."
-                style={{ width: '100%', padding: '8px 10px', background: '#060810', border: '1px solid #141a22', borderRadius: '8px', color: '#a0b0c0', fontSize: '12px', marginTop: '6px', boxSizing: 'border-box', outline: 'none' }} />
-            </div>
-          )}
-        </>)}
-
-        {/* ═══ CASH TAB ═══ */}
-        {tab === 'cash' && (<>
-          <div style={{ fontSize: '11px', color: '#3a5a4a', fontWeight: 700, letterSpacing: '2px', marginBottom: '10px' }}>SELECT STAKES</div>
-          {Object.entries(CASH_FORMATS).map(([key, f]) => (
-            <div key={key} onClick={() => onStart(key, name || 'Hero')} style={{
-              padding: '16px', borderRadius: '12px', marginBottom: '6px', cursor: 'pointer',
-              background: '#080c14', border: '1px solid #0a1a14',
-              transition: 'all 0.2s',
-            }}
-            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.borderColor = '#1a4a2a'; }}
-            onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = '#0a1a14'; }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#27ae60' }}>{f.name}</div>
-                  <div style={{ fontSize: '11px', color: '#3a5a4a', marginTop: '2px' }}>{f.playersPerTable}-max  ·  {f.buyIn} chips  ·  Rake {f.rake * 100}%</div>
-                </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a4a2a' }}>PLAY</div>
-              </div>
-            </div>
-          ))}
-        </>)}
-
-        {/* ═══ TRAINING TAB ═══ */}
-        {tab === 'train' && (<>
-          {/* Warm up */}
-          <div onClick={() => {
-            const allRecs = sessions.flatMap(s => s.records || []);
-            const mistakes = allRecs.filter(r => r.mistakeType);
-            const typeCounts = {};
-            for (const m of mistakes) typeCounts[m.mistakeType] = (typeCounts[m.mistakeType] || 0) + 1;
-            const worst = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
-            const drillMap = { bad_fold: 'potodds', bad_call: 'potodds', too_passive: 'sizing', push_fold_error: 'pushfold', icm_error: 'pushfold', draw_fold_error: 'potodds' };
-            window.__quickDrill = worst ? (drillMap[worst[0]] || 'rfi') : 'rfi';
-            onDrills();
-          }} style={{
-            padding: '18px', borderRadius: '14px', cursor: 'pointer', marginBottom: '12px',
-            background: 'linear-gradient(135deg, #140a20, #1a1030)',
-            border: '1px solid rgba(120,60,180,0.2)',
-          }}
-          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; }}
-          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}>
-            <div style={{ fontSize: '11px', color: '#7a4aaa', fontWeight: 800, letterSpacing: '2px', marginBottom: '4px' }}>SMART WARMUP</div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: '#b080e0' }}>Practice Your Weak Spots</div>
-            <div style={{ fontSize: '11px', color: '#5a3a7a', marginTop: '3px' }}>Auto-detects your most common mistakes</div>
-          </div>
-
-          {/* All drills button */}
+        {/* ═══ MAIN BUTTONS ROW ═══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+          <button onClick={() => { setShowFormats(!showFormats); }} style={{
+            padding: '18px 14px', borderRadius: '14px', border: '1px solid #1a4a2a',
+            background: 'linear-gradient(160deg, #0a2a14, #1a5a30, #0a3018)',
+            color: '#fff', fontWeight: 800, fontSize: '13px', letterSpacing: '0.5px',
+            cursor: 'pointer', transition: 'transform 0.12s, filter 0.12s',
+            boxShadow: '0 4px 20px rgba(30,100,50,0.2)',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
+            <div style={{ fontSize: '12px', marginBottom: '2px' }}>♛</div>
+            START TOURNAMENT
+          </button>
           <button onClick={onDrills} style={{
-            width: '100%', padding: '16px', border: 'none', borderRadius: '12px', cursor: 'pointer',
-            background: 'linear-gradient(135deg, #0a1a3a, #1a3a6a)',
-            color: '#70a0d0', fontWeight: 700, fontSize: '15px',
-            boxShadow: '0 2px 12px rgba(40,120,190,0.15)',
-            marginBottom: '12px',
-          }}
-          onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
-          onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
-          >ALL TRAINING DRILLS</button>
+            padding: '18px 14px', borderRadius: '14px', border: '1px solid #1a3060',
+            background: 'linear-gradient(160deg, #0a1a3a, #1a4080, #0a2050)',
+            color: '#fff', fontWeight: 800, fontSize: '13px', letterSpacing: '0.5px',
+            cursor: 'pointer', transition: 'transform 0.12s, filter 0.12s',
+            boxShadow: '0 4px 20px rgba(30,60,130,0.2)',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
+            <div style={{ fontSize: '12px', marginBottom: '2px' }}>◎</div>
+            TRAINING DRILLS
+          </button>
+        </div>
 
-          {/* Quick drills grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-            {[
-              { id: 'rfi', label: 'Preflop Ranges', sub: 'Open/Fold by position', color: '#27ae60', bg: '#0a1a12' },
-              { id: 'pushfold', label: 'Push/Fold', sub: 'Short stack ICM', color: '#e74c3c', bg: '#1a0a0a' },
-              { id: 'potodds', label: 'Pot Odds', sub: 'Call/fold math', color: '#3498db', bg: '#0a1220' },
-              { id: 'postflop', label: 'Postflop Play', sub: 'Flop/Turn/River', color: '#9b59b6', bg: '#140a1a' },
-              { id: 'sizing', label: 'Bet Sizing', sub: 'Value & protection', color: '#f39c12', bg: '#1a1408' },
-              { id: 'threebet', label: '3-Bet Pots', sub: 'Defend & attack', color: '#e74c3c', bg: '#1a0c0c' },
-            ].map(d => (
-              <div key={d.id} onClick={() => { window.__quickDrill = d.id; onDrills(); }} style={{
-                padding: '14px', background: d.bg, border: `1px solid ${d.color}15`,
-                borderRadius: '12px', cursor: 'pointer', transition: 'transform 0.12s',
-              }}
-              onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
-              onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: d.color }}>{d.label}</div>
-                <div style={{ fontSize: '10px', color: '#4a5a6a', marginTop: '2px' }}>{d.sub}</div>
+        {/* ═══ FORMAT SELECTOR (expandable) ═══ */}
+        {showFormats && (
+          <div style={{
+            padding: '12px', borderRadius: '14px', marginBottom: '10px',
+            background: 'rgba(10,14,20,0.95)', border: '1px solid #141e2a',
+            animation: 'floatUp 0.25s ease-out',
+          }}>
+            {Object.entries(FORMATS).map(([key, f]) => (
+              <div key={key} onClick={() => setFormat(key)} style={{
+                padding: '10px 12px', borderRadius: '10px', marginBottom: '4px', cursor: 'pointer',
+                background: format === key ? 'rgba(212,175,55,0.08)' : 'transparent',
+                border: format === key ? '1px solid rgba(212,175,55,0.2)' : '1px solid transparent',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: '13px', color: format === key ? '#ffd700' : '#8a9aaa' }}>{f.name}</span>
+                    {f.speed && <span style={{ fontSize: '9px', marginLeft: '6px', color: '#5a6a7a' }}>{f.speed}</span>}
+                  </div>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: format === key ? '#ffd700' : '#2a3a4a' }}>${f.buyIn.toLocaleString()}</span>
+                </div>
+                <div style={{ fontSize: '10px', color: '#3a4a5a', marginTop: '2px' }}>{f.players} players · {f.startingChips.toLocaleString()} chips</div>
               </div>
             ))}
+            <button onClick={() => { onStart(format, name || 'Hero'); setShowFormats(false); }} style={{
+              width: '100%', padding: '14px', border: 'none', borderRadius: '10px', cursor: 'pointer', marginTop: '6px',
+              background: 'linear-gradient(135deg, #1a6a3a, #22a050)',
+              color: '#fff', fontWeight: 800, fontSize: '15px',
+              boxShadow: '0 4px 16px rgba(34,160,80,0.25)',
+            }} onMouseDown={btnPress} onMouseUp={btnRelease}>REGISTER — {FORMATS[format]?.name}</button>
           </div>
-        </>)}
-      </div>
+        )}
 
-      {/* ═══ BOTTOM NAV ═══ */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: 'linear-gradient(180deg, #080c14, #060810)',
-        borderTop: '1px solid #111820', display: 'flex',
-        paddingBottom: 'env(safe-area-inset-bottom, 8px)',
-        zIndex: 100,
-      }}>
-        {[
-          { label: 'Play', icon: '♠', action: () => setTab('mtt') , active: tab === 'mtt' || tab === 'cash' },
-          { label: 'Train', icon: '◎', action: () => setTab('train'), active: tab === 'train' },
-          { label: 'Stats', icon: '▤', action: onStats, active: false },
-          { label: 'Coach', icon: '☆', action: onCoach, active: false },
-        ].map((n, i) => (
-          <button key={i} onClick={n.action} style={{
-            flex: 1, padding: '8px 0 6px', border: 'none', background: 'transparent', cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
-          }}>
-            <span style={{ fontSize: '20px', color: n.active ? '#ffd700' : '#2a3a4a', lineHeight: 1 }}>{n.icon}</span>
-            <span style={{ fontSize: '9px', fontWeight: 700, color: n.active ? '#ffd700' : '#2a3a4a', letterSpacing: '0.5px' }}>{n.label}</span>
-          </button>
-        ))}
+        {/* ═══ HARDCORE ═══ */}
+        <div onClick={() => onStart('HARDCORE', name || 'Hero')} style={{
+          padding: '16px 18px', borderRadius: '14px', cursor: 'pointer', marginBottom: '14px',
+          background: 'linear-gradient(135deg, #1a0505, #3a0a0a, #2a0808)',
+          border: '1px solid rgba(200,30,30,0.25)', position: 'relative', overflow: 'hidden',
+          transition: 'transform 0.12s',
+        }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
+          <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '100%', background: 'radial-gradient(circle at 100% 50%, rgba(200,30,30,0.12), transparent)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ fontSize: '24px' }}>☠</div>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 900, color: '#ff4040', letterSpacing: '1px' }}>HARDCORE — 5 AI PRO vs YOU</div>
+              <div style={{ fontSize: '10px', color: '#5a2a2a', marginTop: '2px' }}>6-Max, no mercy, adaptive opponents</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ═══ CASH GAME ═══ */}
+        <div style={{ fontSize: '10px', color: '#3a4a5a', fontWeight: 700, letterSpacing: '2px', marginBottom: '8px' }}>CASH GAME</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+          {Object.entries(CASH_FORMATS).map(([key, f]) => (
+            <div key={key} onClick={() => onStart(key, name || 'Hero')} style={{
+              padding: '14px', borderRadius: '12px', cursor: 'pointer',
+              background: 'linear-gradient(160deg, #081410, #0c2418)',
+              border: '1px solid #1a3020', transition: 'transform 0.12s',
+            }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#27ae60' }}>{f.name}</div>
+              <div style={{ fontSize: '10px', color: '#2a4a30', marginTop: '2px' }}>{f.playersPerTable}-max | {f.buyIn} chips</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ═══ STATS & COACH ═══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+          <button onClick={onStats} style={{
+            padding: '16px', borderRadius: '12px', border: '1px solid #1a2230', cursor: 'pointer',
+            background: 'rgba(10,14,20,0.8)', color: '#8a9aaa', fontWeight: 700, fontSize: '14px',
+            transition: 'transform 0.12s',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease}>Statistics</button>
+          <button onClick={onCoach} style={{
+            padding: '16px', borderRadius: '12px', border: '1px solid #1a2230', cursor: 'pointer',
+            background: 'rgba(10,14,20,0.8)', color: '#8a9aaa', fontWeight: 700, fontSize: '14px',
+            transition: 'transform 0.12s',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease}>AI Coach</button>
+        </div>
+
+        {/* ═══ QUICK DRILLS ═══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', paddingBottom: '40px' }}>
+          {[
+            { id: 'rfi', label: 'RFI', color: '#27ae60' },
+            { id: 'pushfold', label: 'Push', color: '#e74c3c' },
+            { id: 'potodds', label: 'Odds', color: '#3498db' },
+            { id: 'postflop', label: 'Flop', color: '#9b59b6' },
+          ].map(d => (
+            <div key={d.id} onClick={() => { window.__quickDrill = d.id; onDrills(); }} style={{
+              padding: '12px 4px', borderRadius: '10px', cursor: 'pointer', textAlign: 'center',
+              background: 'rgba(10,14,20,0.8)', border: '1px solid #141a22',
+              transition: 'transform 0.12s',
+            }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: d.color }}>{d.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
