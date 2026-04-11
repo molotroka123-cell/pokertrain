@@ -1303,15 +1303,17 @@ function Game({ director, onExit }) {
         </div>
       )}
 
+      </div>{/* end flex table area */}
+
       {/* Live tell hint */}
       {tellHint && liveMode && gs?.waitingForHero && (
         <div style={{
           background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)',
-          borderRadius: '8px', padding: '8px 12px', margin: '4px 12px',
-          fontSize: '12px', color: '#c4b5fd', textAlign: 'center', fontStyle: 'italic',
+          borderRadius: '8px', padding: '6px 12px', margin: '2px 12px',
+          fontSize: '11px', color: '#c4b5fd', textAlign: 'center', fontStyle: 'italic',
         }}>
           <span>👁 {tellHint.text}</span>
-          <span style={{ fontSize: '10px', color: '#7c6faa', marginLeft: '6px' }}>({tellHint.reliability})</span>
+          <span style={{ fontSize: '9px', color: '#7c6faa', marginLeft: '6px' }}>({tellHint.reliability})</span>
         </div>
       )}
 
@@ -1319,15 +1321,13 @@ function Game({ director, onExit }) {
       {showTrainer && gs?.waitingForHero && gs?.toCall > 0 && (
         <div style={{
           background: 'rgba(39,174,96,0.12)', border: '1px solid rgba(39,174,96,0.25)',
-          borderRadius: '8px', padding: '8px 12px', margin: '4px 12px',
-          fontSize: '12px', color: '#a0d8b0', textAlign: 'center',
+          borderRadius: '8px', padding: '6px 12px', margin: '2px 12px',
+          fontSize: '11px', color: '#a0d8b0', textAlign: 'center',
         }}>
-          <div>Pot odds: <b>{Math.round((gs.toCall / (gs.pot + gs.toCall)) * 100)}%</b> — you need {Math.round((gs.toCall / (gs.pot + gs.toCall)) * 100)}% equity to call</div>
-          {gs.heroCards?.length === 2 && <div style={{ fontSize: '11px', color: '#6a9a7a', marginTop: '2px' }}>Your equity: ~{Math.round((gs.handStrength || 0.5) * 100)}%{(gs.handStrength || 0) > (gs.toCall / (gs.pot + gs.toCall)) ? ' ✓ +EV call' : ' ✗ -EV fold'}</div>}
+          <div>Pot odds: <b>{Math.round((gs.toCall / (gs.pot + gs.toCall)) * 100)}%</b> — need {Math.round((gs.toCall / (gs.pot + gs.toCall)) * 100)}% equity</div>
+          {gs.heroCards?.length === 2 && <div style={{ fontSize: '10px', color: '#6a9a7a', marginTop: '1px' }}>Equity: ~{Math.round((gs.handStrength || 0.5) * 100)}%{(gs.handStrength || 0) > (gs.toCall / (gs.pot + gs.toCall)) ? ' ✓ +EV' : ' ✗ -EV'}</div>}
         </div>
       )}
-
-      </div>{/* end flex table area */}
 
       {/* Controls + Range button + toggles */}
       {gs?.waitingForHero && (
