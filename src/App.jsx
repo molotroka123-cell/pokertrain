@@ -6,6 +6,7 @@ import { AdaptiveAI } from './engine/adaptiveAI.js';
 import { mRatio } from './engine/equity.js';
 import Card from './components/Card.jsx';
 import Controls from './tournament/Controls.jsx';
+import RangeGrid from './components/RangeGrid.jsx';
 import TournamentDashboard from './tournament/TournamentDashboard.jsx';
 import DebriefScreen from './stats/DebriefScreen.jsx';
 import { startSession, recordDecision, recordHandHistory, updateHandResult, saveSession, exportSession, getRecords } from './recorder/ActionRecorder.js';
@@ -600,6 +601,7 @@ function Game({ director, onExit }) {
   const [gs, setGs] = useState(null);
   const [handActive, setHandActive] = useState(false);
   const [handCount, setHandCount] = useState(0);
+  const [showRange, setShowRange] = useState(false);
 
   const dirRef = useRef(director);
   const engineRef = useRef(new GameEngine());
@@ -909,12 +911,31 @@ function Game({ director, onExit }) {
         dealerIdx: tournState.heroTable?.dealer || 0, phase: 'idle', showdownResults: null, winner: null, potWon: 0,
       }} />
 
-      {/* Controls */}
+      {/* Controls + Range button */}
       {gs?.waitingForHero && (
-        <Controls canCheck={gs.canCheck} canCall={gs.toCall > 0} toCall={gs.toCall}
-          pot={gs.pot} myChips={gs.heroChips} minRaise={gs.minRaise} maxRaise={gs.maxRaise}
-          bigBlind={bl.bb} onAction={handleAction}
-          theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)} />
+        <>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
+            <button onClick={() => setShowRange(true)} style={{
+              padding: '6px 16px', background: '#0d1118', border: '1px solid #1a2230',
+              borderRadius: '8px', color: '#6b7b8d', fontSize: '11px', fontWeight: 600,
+              cursor: 'pointer',
+            }}>Range Chart</button>
+          </div>
+          <Controls canCheck={gs.canCheck} canCall={gs.toCall > 0} toCall={gs.toCall}
+            pot={gs.pot} myChips={gs.heroChips} minRaise={gs.minRaise} maxRaise={gs.maxRaise}
+            bigBlind={bl.bb} onAction={handleAction}
+            theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)} />
+        </>
+      )}
+
+      {/* Range Grid Overlay */}
+      {showRange && (
+        <RangeGrid
+          position={gs?.heroPosition || 'BTN'}
+          heroCards={gs?.heroCards}
+          facingRaise={gs?.toCall > (bl.bb || 0)}
+          onClose={() => setShowRange(false)}
+        />
       )}
 
       {/* Deal / Eliminated button */}

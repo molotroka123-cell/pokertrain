@@ -299,6 +299,31 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
       {onExport && (
         <button onClick={onExport} style={s.exportBtn}>Export Session JSON (for Claude analysis)</button>
       )}
+      <button onClick={() => {
+        if (!records?.length) return;
+        const hands = new Map();
+        for (const r of records) {
+          if (!hands.has(r.handNumber)) hands.set(r.handNumber, []);
+          hands.get(r.handNumber).push(r);
+        }
+        let text = '';
+        for (const [hn, recs] of hands) {
+          const first = recs[0];
+          text += `\n--- Hand #${hn} ---\n`;
+          text += `Position: ${first.position} | Blinds: ${first.blinds} | Stack: ${first.myChips}\n`;
+          text += `Cards: ${first.holeCards}\n`;
+          for (const r of recs) {
+            text += `  ${r.stage}: ${r.action}${r.raiseAmount ? ' ' + r.raiseAmount : ''}`;
+            text += r.facingAction ? ` (vs ${r.facingAction.action} ${r.facingAction.amount || ''} from ${r.facingAction.position})` : '';
+            text += r.community ? ` [${r.community}]` : '';
+            text += ` | Equity: ${Math.round(r.equity * 100)}%`;
+            text += r.mistakeType ? ` *** ${r.mistakeType} (EV lost: ${r.evLost}) ***` : '';
+            text += '\n';
+          }
+          if (recs[recs.length - 1].handResult) text += `  Result: ${recs[recs.length - 1].handResult} | Pot: ${recs[recs.length - 1].potWon || 0}\n`;
+        }
+        navigator.clipboard?.writeText(text).then(() => alert('Hand history copied!')).catch(() => {});
+      }} style={s.exportBtn}>Copy Hand History to Clipboard</button>
     </div>
   );
 }
