@@ -326,7 +326,12 @@ export function recordDecision({
   // Async: request CFR solver solution (non-blocking, updates record later)
   if (hCards.length === 2 && stage !== 'preflop') {
     import('../engine/solver.js').then(({ solve }) => {
-      const oppRange = (opponents || []).length > 0 ? 0.5 : 0.5;
+      // Estimate villain range strength from position + action
+      // Tighter position or stronger action = higher range strength
+      const vPos = facingAction?.position || (opponents || [])[0]?.position || 'CO';
+      const posStrength = { UTG: 0.8, 'UTG+1': 0.75, MP: 0.65, HJ: 0.55, CO: 0.4, BTN: 0.3, SB: 0.45, BB: 0.35 };
+      const actionBoost = facingAction?.action === 'raise' ? 0.15 : facingAction?.action === 'call' ? -0.1 : 0;
+      const oppRange = Math.max(0.1, Math.min(0.9, (posStrength[vPos] || 0.5) + actionBoost));
       solve(hCards, board, potSize, toCall, myChips, {
         villainRangeStrength: oppRange,
         numOpponents,

@@ -124,14 +124,24 @@ function solveCFR(heroCards, board, pot, toCall, heroStack, villainRangeStrength
   const regrets = new Float64Array(n);
   const strategySum = new Float64Array(n);
   const actionEVs = new Float64Array(n);
+  const actionEVSum = new Float64Array(n); // accumulated EVs for averaging
+  let evCount = 0;
 
-  // Villain fold model: position-aware, bet-size-aware
-  const baseFoldProb = Math.max(0.1, Math.min(0.65, 0.45 - (villainRangeStrength || 0.5) * 0.25));
+  // Villain fold model: range-strength-aware, bet-size-aware
+  // villainRangeStrength: 0 = very wide/weak (UTG open vs BTN 3bet), 1 = very strong (3bet range)
+  const vrs = villainRangeStrength || 0.5;
+  const baseFoldProb = Math.max(0.08, Math.min(0.65, 0.50 - vrs * 0.35));
 
   // Pre-compute equity samples for stability
+  // Adjust equity based on villain range strength:
+  // vs strong range (vrs→1) = equity drops, vs weak range (vrs→0) = equity stays high
   const equitySamples = [];
   for (let i = 0; i < 20; i++) {
-    equitySamples.push(calcEquity(heroCards, board, numOpponents, 150));
+    let rawEq = calcEquity(heroCards, board, numOpponents, 150);
+    // Range adjustment: vs tighter range, hero equity drops
+    // A rough model: equity vs top X% ≈ rawEquity * (1 - rangeStrength * 0.25)
+    const rangeAdjustedEq = rawEq * (1 - vrs * 0.2) + (1 - rawEq) * vrs * 0.05;
+    equitySamples.push(Math.max(0, Math.min(1, rangeAdjustedEq)));
   }
   const avgEquity = equitySamples.reduce((a, b) => a + b, 0) / equitySamples.length;
 
@@ -171,14 +181,21 @@ function solveCFR(heroCards, board, pot, toCall, heroStack, villainRangeStrength
         const callP = Math.max(0, 1 - foldP - reraiseP);
 
         const foldEV = pot;
-        const callEV = eq * (pot + action.cost * 2) - (1 - eq) * action.cost;
-        // Against reraise: need stronger hand, simplified
-        const reraiseCallEq = Math.max(0, eq - 0.1); // equity drops vs reraise range
+        // When villain calls our raise, their range is STRONGER (folded weak hands)
+        // Equity drops proportional to how much of range calls
+        const callRangeEq = Math.max(0.05, eq - (1 - foldP) * 0.08 - vrs * 0.05);
+        const callEV = callRangeEq * (pot + action.cost * 2) - (1 - callRangeEq) * action.cost;
+        // Against reraise: villain has very strong range
+        const reraiseCallEq = Math.max(0, eq - 0.15 - vrs * 0.05);
         const reraiseEV = reraiseCallEq * (pot + action.cost * 4) - (1 - reraiseCallEq) * action.cost * 2;
 
         actionEVs[a] = foldP * foldEV + callP * callEV + reraiseP * reraiseEV;
       }
     }
+
+    // Accumulate EVs for averaging
+    for (let a = 0; a < n; a++) actionEVSum[a] += actionEVs[a];
+    evCount++;
 
     // Node value
     let nodeValue = 0;
@@ -199,15 +216,16 @@ function solveCFR(heroCards, board, pot, toCall, heroStack, villainRangeStrength
     }
   }
 
-  // Build final strategy
+  // Build final strategy with AVERAGED EVs (not last iteration)
   const totalStrat = strategySum.reduce((a, b) => a + b, 0);
   const result = [];
   for (let a = 0; a < n; a++) {
     const freq = totalStrat > 0 ? strategySum[a] / totalStrat : 1 / n;
+    const avgEV = evCount > 0 ? actionEVSum[a] / evCount : 0;
     result.push({
       action: actions[a].id,
       frequency: Math.round(freq * 100),
-      ev: Math.round(actionEVs[a]),
+      ev: Math.round(avgEV),
       cost: actions[a].cost,
     });
   }
