@@ -168,10 +168,19 @@ export class BaseAI {
       return { action: 'fold' };
     }
 
-    // ═══ FACING RAISE — 3-bet, BB defense, call, fold ═══
+    // ═══ FACING RAISE — 4-bet/5-bet, 3-bet, BB defense, call, fold ═══
     const raiseBBs = toCall / bigBlind;
     const odds = potOdds(toCall, pot);
     const strength = 1 - handVal;
+
+    // 4-bet / 5-bet detection
+    const is4Bet = currentBet > bigBlind * 12;
+    if (is4Bet) {
+      // Only continue with premium: AA, KK (5-bet jam), QQ/AKs (call)
+      if (cat === 'premium' && handVal <= 0.04) return { action: 'raise', amount: myChips }; // 5-bet jam AA/KK
+      if (cat === 'premium' && handVal <= 0.08) return { action: 'call' }; // QQ, AKs flat
+      return { action: 'fold' }; // Fold everything else vs 4-bet
+    }
 
     // BB DEFENSE (wide)
     if (position === 'BB') {
@@ -233,6 +242,8 @@ export class BaseAI {
     const af = p.af || 2.5;
     const isFT = gs.isFinalTable;
     const multiway = (gs.playersInHand || 2) > 2;
+    const hi = gs.handInfo || {}; // structured hand info
+    const hasDraw = hi.drawType && hi.drawOuts > 0;
     const isBubble = gs.isBubble;
 
     // SPR < 2: pot-committed, jam with any decent hand
@@ -290,20 +301,25 @@ export class BaseAI {
       const turnCard = gs.community?.[3];
       const goodTurn = turnCard ? isTurnGoodForAggressor(turnCard, texture.highCard) : false;
 
-      if (strength > 0.50) {
-        // Strong hand: barrel for value
+      // Range narrowing: after flop cbet called, only ~40% of range continues
+      if (strength > 0.50 || (hasDraw && hi.drawOuts >= 8)) {
+        // Strong hands + good draws: barrel
         const purpose = goodTurn ? 'protection' : 'thin_value';
         if (rand < 0.70) return { action: 'raise', amount: getSizing(purpose, pot, myChips) };
       }
-      if (strength > 0.25 && goodTurn) {
-        // Draw or medium on good card: barrel as semi-bluff
-        if (rand < 0.45 + (af - 2) / 8) return { action: 'raise', amount: getSizing('protection', pot, myChips) };
+      if (strength > 0.35 && strength <= 0.50) {
+        // Medium hands: pot control (check for deception / protect stack)
+        if (goodTurn && rand < 0.30) return { action: 'raise', amount: getSizing('thin_value', pot, myChips) };
+        return { action: 'check' }; // Pot control with medium
       }
-      if (strength < 0.15 && rand < 0.18 * (af / 3)) {
-        // Bluff barrel on good turn card
-        if (goodTurn) return { action: 'raise', amount: getSizing('polarized', pot, myChips) };
+      if (strength < 0.15 && goodTurn && rand < 0.22 * (af / 3)) {
+        // Bluff barrel on good card (balanced with value bets)
+        const bluffBoost = hi.hasBlockers ? 1.4 : 1.0;
+        if (rand < 0.22 * (af / 3) * bluffBoost) {
+          return { action: 'raise', amount: getSizing('polarized', pot, myChips) };
+        }
       }
-      return { action: 'check' }; // Give up or pot control
+      return { action: 'check' };
     }
 
     // River as aggressor (triple barrel)
@@ -335,18 +351,47 @@ export class BaseAI {
       return { action: 'raise', amount: getSizing('thin_value', pot, myChips) };
     }
 
-    // Draw: semi-bluff from IP
-    if (strength > 0.25 && stage !== 'river' && isIP && rand < 0.20) {
-      return { action: 'raise', amount: getSizing('protection', pot, myChips) };
+    // Draw: semi-bluff using hand info
+    if (hasDraw && stage !== 'river' && !multiway) {
+      const semiFreq = hi.drawType === 'combo_draw' ? 0.70 :
+        hi.drawType === 'flush_draw' ? 0.55 :
+        hi.drawType === 'oesd' ? 0.45 :
+        hi.drawType === 'gutshot' ? 0.20 : 0.15;
+      const posBonus = isIP ? 0.10 : 0;
+      if (rand < semiFreq + posBonus) {
+        const sizing = hi.drawOuts >= 12 ? 'polarized' : 'protection';
+        return { action: 'raise', amount: getSizing(sizing, pot, myChips) };
+      }
+      return { action: 'check' };
     }
 
-    // River: thin value or bluff
+    // Non-aggressor OOP: donk bet on favorable boards (low connected)
+    if (!isAggressor && !isIP && stage === 'flop' && !multiway) {
+      const boardFavorsDefender = texture.highCard <= 8 && texture.connected >= 2;
+      if (boardFavorsDefender && strength > 0.45 && rand < 0.35) {
+        return { action: 'raise', amount: getSizing('protection', pot, myChips) };
+      }
+    }
+
+    // Probe bet: when aggressor checked (their range is capped)
+    if (isIP && !isAggressor && stage === 'turn' && strength > 0.30 && rand < 0.45) {
+      return { action: 'raise', amount: getSizing('thin_value', pot, myChips) };
+    }
+
+    // River: thin value + balanced bluffs (GTO ~33% bluff ratio)
     if (stage === 'river') {
-      if (strength > 0.35 && rand < 0.22 * (af / 3)) {
+      // Top pair+ → value bet
+      if (strength > 0.45 && rand < 0.35 * (af / 3)) {
         return { action: 'raise', amount: getSizing('thin_value', pot, myChips) };
       }
-      if (strength < 0.10 && rand < 0.08 * (af / 3) && p.style !== 'STATION') {
-        return { action: 'raise', amount: getSizing('polarized', pot, myChips) };
+      // Bluff with blockers preferred, GTO frequency
+      const riverBluffFreq = p.style === 'TAG' ? 0.28 : p.style === 'LAG' ? 0.35 :
+        p.style === 'Maniac' ? 0.45 : p.style === 'SemiLAG' ? 0.25 : 0.05;
+      if (strength < 0.12 && rand < riverBluffFreq) {
+        const bluffBoost = hi.hasBlockers ? 1.5 : 1.0;
+        if (rand < riverBluffFreq * bluffBoost) {
+          return { action: 'raise', amount: getSizing('polarized', pot, myChips) };
+        }
       }
     }
 

@@ -331,6 +331,7 @@ export class GameEngine {
     }
 
     const handStr = this._getHandStrength(player.id);
+    const handInfo = this._getHandInfo(player.id);
 
     const activePlayers = this._activePlayers();
     const gs = {
@@ -348,6 +349,7 @@ export class GameEngine {
       playersAtTable: this.players.length,
       currentBet: this.currentBet,
       handStrength: handStr,
+      handInfo, // structured: { madeHand, drawType, drawOuts, pairType, kicker }
       // Tournament context
       tournamentStage: this._tournamentStage || 'early',
       isFinalTable: this._isFinalTable || false,
@@ -422,6 +424,77 @@ export class GameEngine {
 
     // Preflop: use range grid
     return 1 - getHandValue(cards[0], cards[1]);
+  }
+
+  _getHandInfo(playerId) {
+    const cards = this.holeCards[playerId];
+    if (!cards || cards.length < 2 || this.community.length < 3) return null;
+    try {
+      const RV = { '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'T':10,'J':11,'Q':12,'K':13,'A':14 };
+      const hRanks = cards.map(c => RV[c[0]] || 0);
+      const bRanks = this.community.map(c => RV[c[0]] || 0);
+      const boardMax = Math.max(...bRanks);
+      const ev = evaluateHand(cards, this.community);
+      if (!ev) return null;
+
+      // Made hand
+      let madeHand = 'high_card', pairType = null, kicker = 'weak';
+      if (ev.rank >= 9) madeHand = 'straight_flush';
+      else if (ev.rank === 8) madeHand = 'quads';
+      else if (ev.rank === 7) madeHand = 'full_house';
+      else if (ev.rank === 6) madeHand = 'flush';
+      else if (ev.rank === 5) madeHand = 'straight';
+      else if (ev.rank === 4) { madeHand = (hRanks[0] === hRanks[1] && bRanks.includes(hRanks[0])) ? 'set' : 'trips'; }
+      else if (ev.rank === 3) madeHand = 'two_pair';
+      else if (ev.rank === 2) {
+        if (hRanks[0] === hRanks[1] && hRanks[0] > boardMax) { madeHand = 'overpair'; pairType = 'overpair'; }
+        else {
+          const allRanks = [...hRanks, ...bRanks];
+          const counts = {};
+          allRanks.forEach(r => { counts[r] = (counts[r] || 0) + 1; });
+          const pr = +Object.entries(counts).find(([, c]) => c >= 2)?.[0] || 0;
+          if (pr === boardMax && hRanks.includes(pr)) { madeHand = 'top_pair'; pairType = 'top'; }
+          else if (pr === Math.min(...bRanks)) { madeHand = 'bottom_pair'; pairType = 'bottom'; }
+          else { madeHand = 'middle_pair'; pairType = 'middle'; }
+          // Kicker
+          const kick = hRanks.find(r => r !== pr) || 0;
+          kicker = kick >= 12 ? 'top' : kick >= 9 ? 'good' : 'weak';
+        }
+      } else {
+        const overcards = hRanks.filter(r => r > boardMax).length;
+        if (overcards === 2) madeHand = 'two_overcards';
+        else if (overcards === 1) madeHand = 'one_overcard';
+      }
+
+      // Draws (only flop/turn)
+      let drawType = null, drawOuts = 0;
+      if (this.community.length < 5) {
+        const allCards = [...cards, ...this.community];
+        const suitCounts = {};
+        allCards.forEach(c => { suitCounts[c[1]] = (suitCounts[c[1]] || 0) + 1; });
+        const heroSuits = cards.map(c => c[1]);
+        const hasFD = Object.entries(suitCounts).some(([s, c]) => c === 4 && heroSuits.includes(s));
+        const vals = [...new Set(allCards.map(c => RV[c[0]] || 0))].sort((a, b) => a - b);
+        let hasOESD = false, hasGS = false;
+        for (let i = 0; i <= vals.length - 4; i++) {
+          if (vals[i+3] - vals[i] === 3) hasOESD = true;
+          if (vals[i+3] - vals[i] === 4) hasGS = true;
+        }
+        if (hasFD && (hasOESD || hasGS)) { drawType = 'combo_draw'; drawOuts = 12 + (hasOESD ? 3 : 0); }
+        else if (hasFD) { drawType = 'flush_draw'; drawOuts = 9; }
+        else if (hasOESD) { drawType = 'oesd'; drawOuts = 8; }
+        else if (hasGS) { drawType = 'gutshot'; drawOuts = 4; }
+      }
+
+      // Blockers
+      const boardSuits = this.community.map(c => c[1]);
+      const sc = {};
+      boardSuits.forEach(s => { sc[s] = (sc[s] || 0) + 1; });
+      const hasBlockers = Object.entries(sc).some(([s, c]) => c >= 3 && cards.some(cd => cd[0] === 'A' && cd[1] === s))
+        || bRanks.some(br => hRanks.includes(br));
+
+      return { madeHand, drawType, drawOuts, pairType, kicker, hasBlockers };
+    } catch (e) { return null; }
   }
 
   _applyAction(player, action, position) {
