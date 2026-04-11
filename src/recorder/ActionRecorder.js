@@ -161,8 +161,65 @@ export function recordDecision({
     af: 2.0,
   } : {};
 
+  // Build villain action history from streetActions for range narrowing
+  // Count villain barrels (postflop bets/raises ONLY — each = range narrower)
+  // A "barrel" = villain initiated aggression on a new street
+  const villainActions = [];
+  const sActs = streetActions || [];
+  let villainBarrels = 0;
+  let villain3Bet = false;
+  const seenStreets = new Set(); // Track unique streets villain bet on
+
+  for (const a of sActs) {
+    if (typeof a === 'string') {
+      // String format: "[SB] Phil raise 1200"
+      const isVillain = !a.includes('Hero');
+      const isAgg = a.includes('raise') || a.includes('ALL-IN');
+      if (isVillain) {
+        if (isAgg) {
+          villainActions.push({ type: 'raise', amount: 0, pot: potSize });
+          // Detect which street this action is on (preflop vs postflop)
+          // Preflop 3-bet detection: villain raised AND it's before any community cards
+          // In streetActions, early raises = preflop
+        } else if (a.includes('call')) {
+          villainActions.push({ type: 'call' });
+        } else if (a.includes('check')) {
+          villainActions.push({ type: 'check' });
+        }
+      }
+    } else if (a && !a.isHero) {
+      if (a.action === 'raise') {
+        villainActions.push({ type: 'raise', amount: a.amount || 0, pot: a.pot || potSize });
+        // Count postflop barrels by unique street
+        if (a.street && a.street !== 'preflop') {
+          seenStreets.add(a.street);
+        }
+      } else if (a.action === 'call') {
+        villainActions.push({ type: 'call' });
+      } else if (a.action === 'check') {
+        villainActions.push({ type: 'check' });
+      }
+    }
+  }
+
+  // Detect 3-bet: look for TWO+ preflop raises in streetActions (hero open + villain re-raise)
+  const preflopRaises = sActs.filter(a => {
+    if (typeof a === 'string') return a.includes('raise') && !a.includes('Hero');
+    return a && !a.isHero && a.action === 'raise' && a.street === 'preflop';
+  });
+  if (preflopRaises.length >= 1 && stage !== 'preflop') {
+    // Villain raised preflop (either 3-bet or open from blinds)
+    villain3Bet = true;
+  }
+
+  // Count current facing action as a barrel if it's a postflop bet
+  if (facingAction?.action === 'raise' && toCall > 0 && stage !== 'preflop') {
+    seenStreets.add(stage);
+  }
+  villainBarrels = seenStreets.size; // Unique postflop streets villain bet on
+
   // Range-weighted equity via evEngine (like real poker software)
-  // Falls back to raw Monte Carlo if evEngine fails
+  // Now passes villain's actual actions for range narrowing
   let equity = 0.5;
   let raiseEV = null;
   let bestActionEV = null;
@@ -170,9 +227,50 @@ export function recordDecision({
 
   if (hCards.length === 2) {
     try {
-      const evResult = calculateQuickEV(hCards, board, potSize, toCall, villainProfile, position, [], myChips);
-      equity = evResult.equity; // Range-weighted equity vs villain's likely hands
+      const evResult = calculateQuickEV(hCards, board, potSize, toCall, villainProfile, position, villainActions, myChips);
+      equity = evResult.equity;
       equitySource = 'range';
+
+      // Apply barrel discount: each barrel = villain's range narrows to stronger hands
+      // Research: triple barrel range typically < 15% of starting range
+      // 1 barrel: ~35% of range continues (mild narrowing)
+      // 2 barrels: ~20% of range (significant narrowing)
+      // 3 barrels: ~10% of range (only value + some bluffs)
+      // Barrel discount: each barrel = villain's range narrows to value-heavy
+      // 1 barrel: 85% of raw equity (mild)
+      // 2 barrels: 70% (significant — only top of range continues)
+      // 3 barrels: 50% (only nuts + some bluffs — real triple-barrel range ~10% of combos)
+      const barrelDiscount = villainBarrels >= 3 ? 0.50 :
+        villainBarrels >= 2 ? 0.70 :
+        villainBarrels >= 1 ? 0.85 : 1.0;
+      equity = equity * barrelDiscount;
+
+      // 3-bet pot: villain started with ~8-12% range (vs ~25% open range)
+      if (villain3Bet) {
+        equity = equity * 0.78;
+      }
+
+      // Board texture: paired board + flush = villain's value range dominates hard
+      if (board.length >= 3) {
+        const bRanks = board.map(c => {
+          const rv = { '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'T':10,'J':11,'Q':12,'K':13,'A':14 };
+          return rv[c[0]] || 0;
+        });
+        const bSuits = board.map(c => c[1]);
+        const isPaired = new Set(bRanks).size < bRanks.length;
+        const suitCounts = {};
+        bSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
+        const flushPossible = Object.values(suitCounts).some(c => c >= 3);
+        // Paired + flush board: villain barrels almost only with boats/flushes/trips
+        if (isPaired && flushPossible && villainBarrels >= 2) {
+          equity = equity * 0.80;
+        } else if (isPaired && villainBarrels >= 2) {
+          equity = equity * 0.88;
+        } else if (flushPossible && villainBarrels >= 2) {
+          equity = equity * 0.85;
+        }
+      }
+
       bestActionEV = { action: evResult.bestAction, ev: evResult.bestEV, confidence: evResult.bestConfidence };
       const raiseKeys = Object.keys(evResult.actions).filter(k => k.startsWith('raise_'));
       if (raiseKeys.length > 0) {
@@ -255,13 +353,21 @@ export function recordDecision({
     }
   }
 
-  // Detect mistakes — stack-aware, proper EV math
+  // Detect mistakes — stack-aware, action-aware EV math
+  // Villain strength signal: more barrels/3-bet = stronger range = higher bar for calling
+  const villainStrength = villainBarrels + (villain3Bet ? 1 : 0);
+  // Required EV threshold scales with villain aggression:
+  // 0 barrels: standard (2% stack), 2 barrels: 4%, 3+ barrels: 6%+
+  const evThresholdMult = 1 + villainStrength * 0.5;
+
   // bad_fold: folded when calling was +EV
+  // BUT: against heavy action (3-bet + 3 barrels), fold is usually correct
   if (action === 'fold' && toCall > 0 && evOfCall > 0) {
-    // Severity scales with how much EV was left on the table vs stack
     const evFraction = myChips > 0 ? evOfCall / myChips : 0;
-    // Don't flag marginal spots (<2% of stack EV) as mistakes
-    if (evFraction > 0.02 || evOfCall > (blinds?.bb || 100) * 3) {
+    const bbThreshold = (blinds?.bb || 100) * 3 * evThresholdMult;
+    const stackThreshold = 0.02 * evThresholdMult;
+    // Triple barrel or 3-bet+2barrels: only flag as mistake with very high EV
+    if (evFraction > stackThreshold || evOfCall > bbThreshold) {
       mistakeType = 'bad_fold';
       mistakeSeverity = evFraction > 0.10 ? 'critical' : 'medium';
       evLost = Math.round(evOfCall);
@@ -379,6 +485,8 @@ export function recordDecision({
     myBet,
     equity: Math.round(equity * 100) / 100,
     equitySource,
+    villainBarrels,
+    villain3Bet,
     potOdds: Math.round(odds * 100) / 100,
     spr: Math.round(sprVal * 10) / 10,
     mRatio: Math.round(m * 10) / 10,
