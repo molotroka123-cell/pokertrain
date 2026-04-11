@@ -463,6 +463,16 @@ function PremiumTable({ gs, theme: T }) {
                   }}>{sd.hand.name}</div>
                 )}
 
+                {/* AI PRO badge */}
+                {p._isBoss && (
+                  <div style={{
+                    fontSize: '8px', fontWeight: 800, color: '#d4af37',
+                    background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)',
+                    padding: '1px 6px', borderRadius: '6px', display: 'inline-block',
+                    letterSpacing: '1px', marginTop: '2px',
+                  }}>AI PRO</div>
+                )}
+
                 {/* Stack badge */}
                 <div style={{
                   fontSize: '12px', fontWeight: 700, color: T.chipColor,
