@@ -581,21 +581,29 @@ function PremiumTable({ gs, theme: T }) {
                   }}>ALL IN</div>
                 )}
 
-                {/* Avatar — dark photo-style circle (tappable for stats) */}
+                {/* Avatar — style-colored circle (tappable for stats) */}
                 <div onClick={() => { if (typeof gs._onSelectOpponent === 'function') gs._onSelectOpponent(p); }} style={{
                   width: 46, height: 46, borderRadius: '50%', margin: '0 auto', cursor: 'pointer',
-                  background: isWinner ? T.avatarWin : p._isBoss ? 'linear-gradient(145deg, #4a3510, #b8922a)' : T.avatarBot,
-                  border: `2.5px solid ${isWinner ? T.accent : p._isBoss ? '#c8a230' : '#3a4a5a44'}`,
+                  background: isWinner ? T.avatarWin : (() => {
+                    const sc = { TAG: '#0a2040', LAG: '#3a1800', Nit: '#1a1a1a', SemiLAG: '#1a1040', STATION: '#0a2a0a', LIMPER: '#1a2a10', Maniac: '#3a0a0a', SCARED_MONEY: '#2a2a1a', TILTER: '#3a1a00' };
+                    const baseC = p._isBoss ? '#4a3510' : (sc[p.profile?.style] || '#1a2030');
+                    const lightC = p._isBoss ? '#b8922a' : baseC.replace(/0/g, '4').replace(/1/g, '3');
+                    return `linear-gradient(145deg, ${baseC}, ${lightC})`;
+                  })(),
+                  border: `2.5px solid ${isWinner ? T.accent : p._isBoss ? '#c8a230' : (() => {
+                    const bc = { TAG: '#2a60a0', LAG: '#c06020', Nit: '#5a5a5a', SemiLAG: '#6a40a0', STATION: '#2a6a2a', Maniac: '#c02020' };
+                    return (bc[p.profile?.style] || '#3a4a5a') + '88';
+                  })()}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '17px', fontWeight: 800,
-                  color: isWinner ? '#fff' : p._isBoss ? '#1a0a00' : '#6a7a8a',
+                  color: isWinner ? '#fff' : p._isBoss ? '#1a0a00' : '#8a9aaa',
                   boxShadow: isWinner
                     ? `0 0 24px ${T.accentGlow}, 0 0 48px ${T.ambientColor}`
                     : p._isBoss ? '0 0 18px rgba(212,175,55,0.5), inset 0 -4px 8px rgba(0,0,0,0.3)' : '0 4px 14px rgba(0,0,0,0.6), inset 0 -4px 8px rgba(0,0,0,0.2)',
                   willChange: 'transform',
                   position: 'relative', overflow: 'hidden',
                 }}>
-                  {(p.name || 'P')[0].toUpperCase()}
+                  {p.emoji || (p.name || 'P')[0].toUpperCase()}
                   {/* Glossy top highlight */}
                   <div style={{
                     position: 'absolute', top: 0, left: '10%', width: '80%', height: '45%',
@@ -703,6 +711,16 @@ function PremiumTable({ gs, theme: T }) {
             <Card key={c} card={c} hero glow delay={ci * 300} />
           ))}
         </div>
+        {/* Hand strength meter */}
+        {gs.waitingForHero && gs.heroCards?.length > 0 && (() => {
+          const str = gs.handStrength ?? 0.5;
+          const barColor = str > 0.7 ? '#27ae60' : str > 0.5 ? '#f1c40f' : str > 0.3 ? '#e67e22' : '#e74c3c';
+          return (
+            <div style={{ width: '80%', margin: '4px auto 0', height: '3px', background: '#1a2230', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${Math.round(str * 100)}%`, background: barColor, borderRadius: '2px', transition: 'width 0.4s ease' }} />
+            </div>
+          );
+        })()}
         {/* Stack label */}
         <div style={{
           fontSize: '13px', fontWeight: 700, color: T.chipColor, marginTop: '4px',
@@ -741,6 +759,20 @@ function HUDBar({ heroChips, pot, mVal, position, rank, blinds, theme, level, pl
               1st: ${fmt(payouts[0])}  2nd: ${fmt(payouts[1])}  3rd: ${fmt(payouts[2])}
             </div>
           )}
+        </div>
+      )}
+      {/* Tournament progress bar */}
+      {playersRemaining && totalPlayers > 1 && (
+        <div style={{ padding: '0 12px 4px' }}>
+          <div style={{ height: '3px', background: '#0a0e14', borderRadius: '2px', overflow: 'hidden', position: 'relative' }}>
+            <div style={{
+              height: '100%', borderRadius: '2px', transition: 'width 0.8s ease',
+              width: `${Math.max(2, (1 - (rank || playersRemaining) / totalPlayers) * 100)}%`,
+              background: rank <= Math.ceil(totalPlayers * 0.15) ? 'linear-gradient(90deg, #27ae60, #2ecc71)' :
+                rank <= Math.ceil(totalPlayers * 0.20) ? 'linear-gradient(90deg, #f39c12, #e67e22)' :
+                'linear-gradient(90deg, #3498db, #2980b9)',
+            }} />
+          </div>
         </div>
       )}
       {/* Main info row */}

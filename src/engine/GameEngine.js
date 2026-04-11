@@ -764,6 +764,7 @@ export class GameEngine {
       canCheck: hero ? (this.bets[hero.id] || 0) >= this.currentBet : false,
       heroChips: hero ? hero.chips : 0,
       heroPosition: hero ? this.positions[heroIdx] : '',
+      handStrength: hero && this._waitingForHero ? this._getHandStrength(hero.id) : null,
       minRaise: Math.min(this.currentBet + this.blinds.bb, hero ? hero.chips + (this.bets[hero.id] || 0) : 0),
       maxRaise: hero ? hero.chips + (this.bets[hero.id] || 0) : 0,
       showdownResults: this.showdownResults,
