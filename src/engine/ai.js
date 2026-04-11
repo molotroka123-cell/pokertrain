@@ -113,7 +113,8 @@ export class BaseAI {
   }
 
   // ═══════════════════════════════════════
-  // PREFLOP — BB defense, stack awareness, ICM
+  // PREFLOP — Real MTT statistics based
+  // Average MTT stats: VPIP 21%, PFR 17%, 3-bet 6.5%, BB def 33%, WTSD 27%
   // ═══════════════════════════════════════
   preflopDecision(gs, rand) {
     const { holeCards, position, toCall, myChips, bigBlind, pot, currentBet, playersInHand } = gs;
@@ -125,6 +126,9 @@ export class BaseAI {
     const isFT = gs.isFinalTable;
     const isBubble = gs.isBubble;
     const stackBB = myChips / Math.max(bigBlind, 1);
+
+    // Multiway tightening: each extra player = ~15% tighter range
+    const mwPenalty = Math.max(0, (playersInHand - 2) * 0.04);
 
     // ═══ PUSH/FOLD (M < 12) ═══
     if (m < 12) {
@@ -138,39 +142,55 @@ export class BaseAI {
       if (position === 'BTN') threshold += 0.15;
       else if (position === 'CO') threshold += 0.10;
       else if (position === 'SB') threshold += 0.08;
-      else if (position === 'BB' && toCall <= bigBlind) threshold += 0.20;
+      else if (position === 'BB' && toCall <= bigBlind) threshold += 0.12;
 
-      if (p.style === 'LAG' || p.style === 'Maniac') threshold += 0.08;
-      if (p.style === 'Nit') threshold -= 0.06;
-      if (isBubble) threshold -= 0.10;
+      if (p.style === 'LAG' || p.style === 'Maniac') threshold += 0.06;
+      if (p.style === 'Nit') threshold -= 0.08;
+      if (isBubble) threshold -= 0.12;
       if (isFT && stackBB > 30) threshold += 0.05;
 
       if (toCall <= bigBlind && handVal <= threshold) return { action: 'raise', amount: myChips };
       if (toCall > 0) {
         if (cat === 'premium' || cat === 'strong') return { action: 'raise', amount: myChips };
-        if (m < 5 && handVal <= threshold + 0.05) return { action: 'call' };
+        if (m < 5 && handVal <= threshold + 0.03) return { action: 'call' };
         return { action: 'fold' };
       }
       return { action: 'fold' };
     }
 
-    // ═══ DEEP STACK — Open or fold ═══
+    // ═══ DEEP STACK — Open raise or fold (no limp for regs) ═══
     if (toCall <= bigBlind) {
-      const vpipThreshold = p.vpip + (rand - 0.5) * this.noise;
-      if (handVal > vpipThreshold) return { action: 'fold' };
+      // GTO position thresholds from ranges.js scaled by style
+      // Real MTT open ranges: UTG ~13%, MP ~18%, HJ ~24%, CO ~32%, BTN ~42%, SB ~36%
+      const gtoOpenThreshold = {
+        UTG: 0.15, 'UTG+1': 0.18, MP: 0.22, HJ: 0.30, CO: 0.42, BTN: 0.55, SB: 0.45
+      };
+      const baseThreshold = gtoOpenThreshold[position] || 0.30;
+      // Scale by style: Nit=0.65x, TAG=0.85x, SemiLAG=1.0x, LAG=1.15x, Maniac=1.4x
+      const styleScale = p.style === 'Nit' ? 0.70 : p.style === 'TAG' ? 1.0 :
+        p.style === 'SemiLAG' ? 1.10 : p.style === 'LAG' ? 1.25 :
+        p.style === 'Maniac' ? 1.50 : p.style === 'STATION' ? 1.30 :
+        p.style === 'LIMPER' ? 1.40 : p.style === 'SCARED_MONEY' ? 0.75 : 1.0;
+      const openThreshold = baseThreshold * styleScale + (rand - 0.5) * this.noise;
 
-      if (p.pfr > 0 && handVal <= p.pfr + (rand - 0.5) * this.noise) {
-        const size = Math.floor(bigBlind * (2.2 + cryptoRandomFloat() * 0.6 + (playersInHand > 4 ? 0.5 : 0)));
-        return { action: 'raise', amount: Math.min(size, myChips) };
+      if (handVal > openThreshold) return { action: 'fold' };
+
+      // Fish limp with medium, raise premium
+      if (p.style === 'STATION' || p.style === 'LIMPER') {
+        if (handVal <= baseThreshold * 0.4) {
+          return { action: 'raise', amount: Math.min(Math.floor(bigBlind * (2.2 + cryptoRandomFloat() * 0.5)), myChips) };
+        }
+        return { action: 'call' }; // limp
       }
-      if (p.style === 'STATION' || p.style === 'LIMPER') return { action: 'call' };
-      if (p.style === 'Maniac' && rand < 0.55) {
-        return { action: 'raise', amount: Math.min(Math.floor(bigBlind * (3 + cryptoRandomFloat() * 2)), myChips) };
+      if (p.style === 'Maniac' && rand < 0.50) {
+        return { action: 'raise', amount: Math.min(Math.floor(bigBlind * (2.5 + cryptoRandomFloat() * 1.5)), myChips) };
       }
-      return { action: 'fold' };
+      // Standard raise (regs raise-or-fold)
+      const size = Math.floor(bigBlind * (2.2 + cryptoRandomFloat() * 0.5 + (playersInHand > 4 ? 0.3 : 0)));
+      return { action: 'raise', amount: Math.min(size, myChips) };
     }
 
-    // ═══ FACING RAISE — 4-bet/5-bet, 3-bet, BB defense, call, fold ═══
+    // ═══ FACING RAISE — style-dependent defense ═══
     const raiseBBs = toCall / bigBlind;
     const odds = potOdds(toCall, pot);
     const strength = 1 - handVal;
@@ -178,52 +198,73 @@ export class BaseAI {
     // 4-bet / 5-bet detection
     const is4Bet = currentBet > bigBlind * 12;
     if (is4Bet) {
-      // Only continue with premium: AA, KK (5-bet jam), QQ/AKs (call)
       if (cat === 'premium' && handVal <= 0.04) return { action: 'raise', amount: myChips }; // 5-bet jam AA/KK
       if (cat === 'premium' && handVal <= 0.08) return { action: 'call' }; // QQ, AKs flat
-      return { action: 'fold' }; // Fold everything else vs 4-bet
+      return { action: 'fold' };
     }
 
-    // BB DEFENSE (wide)
+    // BB DEFENSE — GTO: ~40% vs 2.5x open, style-scaled
+    // BB threshold from ranges.js = 0.60, meaning top 48% of hands
     if (position === 'BB') {
+      const bbScale = p.style === 'STATION' ? 1.3 : p.style === 'Nit' ? 0.50 :
+        p.style === 'LAG' ? 1.1 : p.style === 'Maniac' ? 1.35 :
+        p.style === 'SCARED_MONEY' ? 0.45 : p.style === 'LIMPER' ? 1.2 :
+        0.85; // TAG/SemiLAG = ~34% defense
+      const bbDefThreshold = 0.60 * bbScale; // base: top 48%, TAG: top 34%
+
       if (raiseBBs <= 3.5) {
-        if (isIn3BetRange(holeCards[0], holeCards[1], 'BB') && rand < (p.threeBet || 0.12) + 0.08) {
+        if (isIn3BetRange(holeCards[0], holeCards[1], 'BB') && rand < (p.threeBet || 0.08)) {
           return { action: 'raise', amount: Math.min(Math.floor(currentBet * (3 + cryptoRandomFloat() * 0.5)), myChips) };
         }
-        if (handVal <= 0.50 + (rand - 0.5) * 0.06) return { action: 'call' };
+        const adjWidth = bbDefThreshold - mwPenalty * 3;
+        if (handVal <= adjWidth + (rand - 0.5) * 0.04) return { action: 'call' };
       }
       if (raiseBBs > 3.5 && raiseBBs <= 10) {
         if (cat === 'premium') return { action: 'raise', amount: Math.min(Math.floor(currentBet * 2.8), myChips) };
-        if (cat === 'strong' && strength > odds + 0.03) return { action: 'call' };
+        if (cat === 'strong' && strength > odds + 0.05) return { action: 'call' };
         return { action: 'fold' };
       }
+      return { action: 'fold' };
     }
 
-    // SB DEFENSE (tighter)
+    // SB DEFENSE — tighter: ~24% (OOP, no closing action)
     if (position === 'SB') {
-      if (isIn3BetRange(holeCards[0], holeCards[1], 'SB') && rand < (p.threeBet || 0.12) + 0.04) {
+      const sbScale = p.style === 'STATION' ? 1.2 : p.style === 'Nit' ? 0.45 :
+        p.style === 'LAG' ? 1.0 : 0.75;
+      const sbDefThreshold = 0.45 * sbScale;
+
+      if (isIn3BetRange(holeCards[0], holeCards[1], 'SB') && rand < (p.threeBet || 0.08) + 0.02) {
         return { action: 'raise', amount: Math.min(Math.floor(currentBet * (3.2 + cryptoRandomFloat() * 0.5)), myChips) };
       }
-      if (raiseBBs <= 3 && handVal <= 0.35) return { action: 'call' };
+      if (raiseBBs <= 3 && handVal <= sbDefThreshold - mwPenalty * 3) return { action: 'call' };
+      if (cat === 'premium') return { action: 'raise', amount: Math.min(Math.floor(currentBet * 3), myChips) };
+      return { action: 'fold' };
     }
 
-    // 3-bet from other positions
-    if (isIn3BetRange(holeCards[0], holeCards[1], position) && rand < (p.threeBet || 0.10)) {
+    // 3-bet from other positions — tighter, position-aware
+    if (isIn3BetRange(holeCards[0], holeCards[1], position) && rand < (p.threeBet || 0.06)) {
       return { action: 'raise', amount: Math.min(Math.floor(currentBet * (2.8 + cryptoRandomFloat() * 0.5)), myChips) };
     }
     if (cat === 'premium') return { action: 'raise', amount: Math.min(Math.floor(currentBet * 3), myChips) };
-    if (p.style === 'STATION' && cat !== 'trash') return { action: 'call' };
-    if (p.style === 'Maniac' && rand < 0.28) {
+
+    // Cold call range — tighter than opening. Use position-aware thresholds.
+    // IP (BTN/CO) can call wider, EP very tight
+    const posCallBase = { UTG: 0.10, 'UTG+1': 0.12, MP: 0.15, HJ: 0.22, CO: 0.30, BTN: 0.38 };
+    const ccBase = posCallBase[position] || 0.20;
+    const ccScale = p.style === 'STATION' ? 1.4 : p.style === 'Maniac' ? 1.2 :
+      p.style === 'LAG' ? 1.1 : p.style === 'Nit' ? 0.5 : p.style === 'SCARED_MONEY' ? 0.55 : 0.80;
+    const adjColdCall = ccBase * ccScale - mwPenalty * 3;
+
+    if (p.style === 'Maniac' && rand < 0.20) {
       return { action: 'raise', amount: Math.min(Math.floor(currentBet * (2.5 + cryptoRandomFloat())), myChips) };
     }
-    if (cat === 'strong' && strength > odds) return { action: 'call' };
-    if (cat === 'medium' && strength > odds + 0.06) return { action: 'call' };
+    if (handVal <= adjColdCall && strength > odds) return { action: 'call' };
     if (isBubble && raiseBBs > 3) return { action: 'fold' };
     return { action: 'fold' };
   }
 
   // ═══════════════════════════════════════
-  // POSTFLOP — Multi-street aware
+  // POSTFLOP — Multi-street, draw-aware, pot-odds based
   // ═══════════════════════════════════════
   postflopDecision(gs, rand) {
     const { toCall } = gs;
@@ -232,6 +273,19 @@ export class BaseAI {
     const isIP = IP_POSITIONS.has(gs.position);
     const spr = gs.spr || (gs.pot > 0 ? gs.myChips / gs.pot : 20);
     const isAggressor = gs.isAggressor;
+
+    // Draw equity calculation (rule of 2/4)
+    const hi = gs.handInfo || {};
+    const drawOuts = hi.drawOuts || 0;
+    const streetsLeft = gs.stage === 'flop' ? 2 : gs.stage === 'turn' ? 1 : 0;
+    // Rule of 2 (one street) or rule of 4 (two streets, only if can see both)
+    const drawEquity = drawOuts > 0 ? Math.min(0.60, drawOuts * (streetsLeft >= 2 && toCall === 0 ? 4 : 2) / 100) : 0;
+    // Combine made hand equity with draw equity
+    const totalEquity = Math.min(0.95, strength + drawEquity * (1 - strength));
+
+    gs._drawEquity = drawEquity;
+    gs._totalEquity = totalEquity;
+    gs._drawOuts = drawOuts;
 
     if (toCall === 0) return this.postflopAct(gs, strength, texture, rand, isIP, spr, isAggressor);
     return this.postflopFacingBet(gs, strength, texture, rand, isIP, spr, isAggressor);
@@ -353,45 +407,55 @@ export class BaseAI {
       return { action: 'raise', amount: getSizing('thin_value', pot, myChips, isIP) };
     }
 
-    // Draw: semi-bluff using hand info
+    // Draw: semi-bluff with EV-awareness
     if (hasDraw && stage !== 'river' && !multiway) {
-      const semiFreq = hi.drawType === 'combo_draw' ? 0.70 :
-        hi.drawType === 'flush_draw' ? 0.55 :
-        hi.drawType === 'oesd' ? 0.45 :
-        hi.drawType === 'gutshot' ? 0.20 : 0.15;
-      const posBonus = isIP ? 0.10 : 0;
-      if (rand < semiFreq + posBonus) {
-        const sizing = hi.drawOuts >= 12 ? 'polarized' : 'protection';
+      const drawOuts = hi.drawOuts || 0;
+      // Semi-bluff freq by draw strength (fold equity makes this +EV)
+      const baseSemiFreq = drawOuts >= 12 ? 0.60 : drawOuts >= 8 ? 0.40 : drawOuts >= 4 ? 0.12 : 0.05;
+      const posBonus = isIP ? 0.08 : -0.05;
+      const afBonus = (af - 2.5) / 12;
+      const semiFreq = Math.max(0, baseSemiFreq + posBonus + afBonus);
+
+      if (rand < semiFreq) {
+        // Size by draw strength: bigger with stronger draws (more fold equity needed for weak draws)
+        const sizing = drawOuts >= 12 ? 'polarized' : drawOuts >= 8 ? 'protection' : 'thin_value';
         return { action: 'raise', amount: getSizing(sizing, pot, myChips, isIP) };
       }
       return { action: 'check' };
     }
 
-    // Non-aggressor OOP: donk bet on favorable boards (low connected)
+    // Non-aggressor OOP: donk bet on boards favoring defender's range
     if (!isAggressor && !isIP && stage === 'flop' && !multiway) {
       const boardFavorsDefender = texture.highCard <= 8 && texture.connected >= 2;
-      if (boardFavorsDefender && strength > 0.45 && rand < 0.35) {
+      if (boardFavorsDefender && strength > 0.45 && rand < 0.28) {
         return { action: 'raise', amount: getSizing('protection', pot, myChips, isIP) };
       }
     }
 
-    // Probe bet: when aggressor checked (their range is capped)
-    if (isIP && !isAggressor && stage === 'turn' && strength > 0.30 && rand < 0.45) {
+    // Probe bet: aggressor checked = capped range
+    if (isIP && !isAggressor && stage === 'turn' && strength > 0.32 && rand < 0.38) {
       return { action: 'raise', amount: getSizing('thin_value', pot, myChips, isIP) };
     }
 
-    // River: thin value + balanced bluffs (GTO ~33% bluff ratio)
+    // River: polarized strategy — value bets + balanced bluffs
     if (stage === 'river') {
-      // Top pair+ → value bet
-      if (strength > 0.45 && rand < 0.35 * (af / 3)) {
-        return { action: 'raise', amount: getSizing('thin_value', pot, myChips, isIP) };
+      // Value bet: top pair+ (GTO: value-to-bluff ~2:1 for pot-sized bets)
+      if (strength > 0.50) {
+        const valueBetFreq = isIP ? 0.55 : 0.40; // IP bets more
+        if (rand < valueBetFreq * (af / 3)) {
+          return { action: 'raise', amount: getSizing(strength > 0.70 ? 'polarized' : 'thin_value', pot, myChips, isIP) };
+        }
       }
-      // Bluff with blockers preferred, GTO frequency
-      const riverBluffFreq = p.style === 'TAG' ? 0.28 : p.style === 'LAG' ? 0.35 :
-        p.style === 'Maniac' ? 0.45 : p.style === 'SemiLAG' ? 0.25 : 0.05;
-      if (strength < 0.12 && rand < riverBluffFreq) {
-        const bluffBoost = hi.hasBlockers ? 1.5 : 1.0;
-        if (rand < riverBluffFreq * bluffBoost) {
+      // Bluff: ~33% of bets should be bluffs (GTO for pot-sized)
+      // Only bluff with best bluffing hands (blockers, missed draws, no showdown value)
+      const bluffBase = p.style === 'TAG' ? 0.14 : p.style === 'LAG' ? 0.20 :
+        p.style === 'Maniac' ? 0.28 : p.style === 'SemiLAG' ? 0.16 :
+        p.style === 'Nit' ? 0.04 : 0.03; // Station/Limper rarely bluff river
+      if (strength < 0.12) {
+        const blockerBoost = hi.hasBlockers ? 1.6 : 1.0;
+        // Missed draw = better bluff candidate (looks like value)
+        const missedDrawBoost = hi.drawType && hi.drawOuts > 0 ? 1.3 : 1.0;
+        if (rand < bluffBase * blockerBoost * missedDrawBoost) {
           return { action: 'raise', amount: getSizing('polarized', pot, myChips, isIP) };
         }
       }
@@ -400,107 +464,151 @@ export class BaseAI {
     return { action: 'check' };
   }
 
-  // ═══ FACING A BET — EV-based decisions ═══
+  // ═══ FACING A BET — pot-odds + draw-equity based ═══
   postflopFacingBet(gs, strength, texture, rand, isIP, spr, isAggressor) {
     const { pot, toCall, myChips, currentBet, stage } = gs;
     const p = this.profile;
-    const odds = potOdds(toCall, pot);
+    const odds = potOdds(toCall, pot); // Required equity to call
     const af = p.af || 2.5;
     const betSizePot = pot > 0 ? toCall / pot : 0;
     const isFT = gs.isFinalTable;
     const isBubble = gs.isBubble;
     const commitRatio = myChips > 0 ? toCall / myChips : 1;
-
     const multiway = (gs.playersInHand || 2) > 2;
 
-    // EV calculation — core of every decision
-    const evOfCall = strength * (pot + toCall) - (1 - strength) * toCall;
+    // Use totalEquity (made hand + draw equity combined)
+    const totalEquity = gs._totalEquity || strength;
+    const drawOuts = gs._drawOuts || 0;
+    const drawEquity = gs._drawEquity || 0;
+    const hi = gs.handInfo || {};
 
-    // Check-raise follow-through: if we checked a monster and opponent bet → raise (that was the trap)
+    // EV calculation with draw equity included
+    const evOfCall = totalEquity * (pot + toCall) - (1 - totalEquity) * toCall;
+
+    // Implied odds multiplier (can win more on later streets)
+    const impliedOdds = stage === 'river' ? 1.0 : stage === 'turn' ? 1.15 : 1.30;
+    const impliedEV = totalEquity * (pot + toCall) * impliedOdds - (1 - totalEquity) * toCall;
+
+    // Check-raise follow-through: monster after deliberate check
     if (strength > 0.65 && !isIP && gs.streetActions?.length > 0) {
       try {
-        // Did we check earlier this street?
-        const myChecks = (gs.streetActions || []).filter(a => !a.isHero && a.action === 'raise' && a.street === stage);
-        // If opponent bet into us and we have a monster → check-raise
-        if (myChecks.length > 0 && rand < 0.80) {
+        const oppBets = (gs.streetActions || []).filter(a => !a.isHero && a.action === 'raise' && a.street === stage);
+        if (oppBets.length > 0 && rand < 0.75) {
           return { action: 'raise', amount: Math.min(Math.floor(currentBet * (2.5 + cryptoRandomFloat())), myChips) };
         }
       } catch (e) {}
     }
 
-    // Pot-committed: jam if committing >33% with decent hand
-    if (commitRatio > 0.33 && strength > 0.50) {
+    // Pot-committed: jam if committing >33% with decent equity
+    if (commitRatio > 0.33 && totalEquity > 0.45) {
       return { action: 'raise', amount: myChips };
     }
 
-    // SPR < 2: commit or fold
+    // SPR < 2: commit or fold (no floating)
     if (spr < 2) {
-      if (strength > 0.40) return { action: 'raise', amount: myChips };
+      if (totalEquity > 0.40) return { action: 'raise', amount: myChips };
       return { action: 'fold' };
     }
 
-    // ═══ MONSTER: raise for value ═══
+    // ═══ MONSTER (equity > 0.75): raise for value ═══
     if (strength > 0.75) {
       const raiseFreq = isFT ? 0.80 : 0.55 + (af - 2) / 8;
       if (rand < raiseFreq) {
         return { action: 'raise', amount: Math.min(Math.floor(currentBet * (2.5 + cryptoRandomFloat())), myChips) };
       }
-      return { action: 'call' }; // Slowplay
+      return { action: 'call' }; // Slowplay occasionally
     }
 
-    // ═══ CHECK-RAISE (OOP with strong hand or as bluff) ═══
+    // ═══ CHECK-RAISE (OOP) ═══
     if (!isIP && !isAggressor) {
-      // Check-raise bluff on dry flops (7%) — NOT multiway
-      if (!multiway && strength < 0.18 && texture.category === 'dry' && stage === 'flop' && af > 2.5 && rand < 0.07) {
+      // Check-raise bluff on dry boards (5%) — heads up only
+      if (!multiway && strength < 0.18 && texture.category === 'dry' && stage === 'flop' && af > 2.5 && rand < 0.05) {
         return { action: 'raise', amount: Math.min(Math.floor(currentBet * 3), myChips) };
       }
-      // Check-raise value with strong hand OOP (25%)
-      if (strength > 0.60 && rand < 0.25) {
+      // Check-raise value (22%)
+      if (strength > 0.60 && rand < 0.22) {
         return { action: 'raise', amount: Math.min(Math.floor(currentBet * 2.8), myChips) };
       }
     }
 
-    // ═══ STRONG: call, raise on wet for protection ═══
+    // ═══ STRONG (equity 0.55-0.75): call/raise ═══
     if (strength > 0.55) {
-      if (texture.wet > 0.5 && rand < 0.25 + (af - 2) / 10) {
+      // Raise for protection on wet boards
+      if (texture.wet > 0.5 && !multiway && rand < 0.20 + (af - 2) / 10) {
         return { action: 'raise', amount: Math.min(Math.floor(currentBet * 2.5), myChips) };
       }
       return { action: 'call' };
     }
 
-    // ═══ MEDIUM: EV-based call/fold ═══
+    // ═══ MEDIUM (0.40-0.55): EV-based ═══
     if (strength > 0.40) {
       if (p.style === 'STATION') return { action: 'call' };
-      // Fold medium vs overbets — correct, not scared
+      // Fold vs overbets with medium
       if (betSizePot > 0.80 && strength < 0.50) return { action: 'fold' };
-      // Bubble ICM: fold medium in big pots (chips worth 1.5x)
-      if (isBubble && commitRatio > 0.25 && evOfCall < toCall * 0.3) return { action: 'fold' };
-      // EV-based: only call when +EV
+      // Bubble: fold medium in big pots
+      if (isBubble && commitRatio > 0.25 && evOfCall < toCall * 0.2) return { action: 'fold' };
+      // Call only if +EV
       if (evOfCall > 0) return { action: 'call' };
-      // Slightly -EV but good implied odds (not river)
-      if (stage !== 'river' && evOfCall > -toCall * 0.1) return { action: 'call' };
+      // Marginal + implied odds (not river)
+      if (stage !== 'river' && impliedEV > 0) return { action: 'call' };
       return { action: 'fold' };
     }
 
-    // ═══ DRAW: EV-based call/raise on flop/turn ═══
-    if (strength > 0.25 && stage !== 'river') {
-      // Semi-bluff raise IP (8%)
-      if (isIP && af > 2.5 && rand < 0.08 && strength > 0.28) {
-        return { action: 'raise', amount: Math.min(Math.floor(currentBet * 2.8), myChips) };
+    // ═══ DRAW: pot-odds calculation (core improvement) ═══
+    if (drawOuts > 0 && stage !== 'river') {
+      // Calculate pot odds needed vs draw equity
+      const potOddsNeeded = toCall / (pot + toCall); // Required equity
+      const effectiveDrawEquity = drawEquity * (isIP ? 1.1 : 0.95); // IP realizes better
+
+      // Combo draw (12+ outs): semi-bluff raise
+      if (drawOuts >= 12 && !multiway) {
+        if (rand < 0.55 + (af - 2) / 10) {
+          return { action: 'raise', amount: Math.min(Math.floor(currentBet * (2.5 + cryptoRandomFloat() * 0.5)), myChips) };
+        }
+        return { action: 'call' }; // Always continue with combo draw
       }
-      if (p.style === 'STATION' || p.style === 'LAG' || p.style === 'Maniac') return { action: 'call' };
-      // Call draws with +EV or near-zero EV (implied odds)
-      if (evOfCall > -toCall * 0.15) return { action: 'call' };
+
+      // Flush draw (9 outs): call if odds are right, semi-bluff sometimes
+      if (drawOuts >= 8) {
+        if (!multiway && isIP && rand < 0.15 * (af / 2.5)) {
+          return { action: 'raise', amount: Math.min(Math.floor(currentBet * 2.5), myChips) };
+        }
+        // Call if pot odds justify (include implied odds on flop)
+        if (effectiveDrawEquity >= potOddsNeeded * 0.85) return { action: 'call' };
+        // Call anyway if bet is small (< 40% pot)
+        if (betSizePot < 0.40) return { action: 'call' };
+        // Station/LAG call wider
+        if (p.style === 'STATION' || p.style === 'LAG') return { action: 'call' };
+        return { action: 'fold' };
+      }
+
+      // Gutshot (4 outs): only call small bets or with extra equity
+      if (drawOuts >= 4) {
+        if (effectiveDrawEquity >= potOddsNeeded * 0.80 || betSizePot < 0.33) {
+          if (p.style !== 'Nit' && p.style !== 'SCARED_MONEY') return { action: 'call' };
+        }
+        // Fold gutshot vs big bets
+        return { action: 'fold' };
+      }
+    }
+
+    // Weak hand with no draw: fold (but check style-specific exceptions)
+    if (stage !== 'river') {
+      if (p.style === 'STATION' && strength > 0.25) return { action: 'call' };
+      if (p.style === 'Maniac' && rand < 0.15) return { action: 'call' };
       return { action: 'fold' };
     }
 
-    // ═══ RIVER: selective hero-calls ═══
+    // ═══ RIVER: bluff-catching (GTO ~30% vs pot-sized bet) ═══
     if (stage === 'river') {
-      if (p.style === 'STATION' && strength > 0.22) return { action: 'call' };
-      // Small river bet: call with showdown value (bluff-catch)
-      if (betSizePot < 0.45 && strength > 0.33 && rand < 0.30) return { action: 'call' };
-      // Hero call vs polarizing big bets with bluff-catcher (12%)
-      if (strength > 0.40 && betSizePot > 0.6 && rand < 0.12 * (af / 3)) return { action: 'call' };
+      if (p.style === 'STATION' && strength > 0.25) return { action: 'call' };
+      // MDF (minimum defense freq): 1 - bet/(pot+bet)
+      // vs 50% pot bet → defend 67%. vs 75% pot bet → defend 57%. vs pot-sized → defend 50%.
+      const mdf = 1 - betSizePot / (1 + betSizePot);
+      // Bluff-catch with showdown value using MDF-weighted frequency
+      if (strength > 0.35 && rand < mdf * 0.55) return { action: 'call' };
+      // Small river bet: call wider
+      if (betSizePot < 0.40 && strength > 0.30 && rand < 0.35) return { action: 'call' };
     }
 
     if (p.style === 'SCARED_MONEY' && toCall > pot * 0.3) return { action: 'fold' };
