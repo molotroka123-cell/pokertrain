@@ -86,34 +86,46 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
 
   return (
     <div style={s.container}>
-      <div style={s.header}>
-        <div style={s.title}>TOURNAMENT DEBRIEF</div>
-        <div style={s.subtitle}>
-          Finish: #{finish?.position || '?'}/{finish?.total || '?'} | Hands: {records?.length || 0}
-          {finish?.apiCalls > 0 && (
-            <span style={{ color: '#d4af37' }}> | AI calls: {finish.apiCalls} (~${(finish.apiCalls * 0.0005).toFixed(3)})</span>
-          )}
+      {/* ═══ SESSION RESULT CARD ═══ */}
+      <div style={{
+        background: 'linear-gradient(135deg, #0c1420, #101828)',
+        borderRadius: '16px', padding: '24px 20px', marginBottom: '16px',
+        border: '1px solid #1a2a3a', position: 'relative', overflow: 'hidden',
+        textAlign: 'center',
+      }}>
+        {/* Decorative glow */}
+        <div style={{
+          position: 'absolute', top: '-50%', left: '50%', transform: 'translateX(-50%)',
+          width: '200px', height: '200px', borderRadius: '50%',
+          background: finish?.position <= 3 ? 'radial-gradient(circle, rgba(212,175,55,0.15), transparent 70%)'
+            : finish?.position <= Math.ceil((finish?.total || 100) * 0.15) ? 'radial-gradient(circle, rgba(39,174,96,0.1), transparent 70%)'
+            : 'radial-gradient(circle, rgba(100,120,140,0.08), transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{ fontSize: '10px', color: '#4a5a6a', letterSpacing: '3px', textTransform: 'uppercase', marginBottom: '6px' }}>Tournament Result</div>
+        <div style={{
+          fontSize: '48px', fontWeight: 900, lineHeight: 1,
+          color: finish?.position <= 3 ? '#ffd700' : finish?.position <= Math.ceil((finish?.total || 100) * 0.15) ? '#27ae60' : '#8a9aaa',
+        }}>
+          #{finish?.position || '?'}
         </div>
-      </div>
+        <div style={{ fontSize: '13px', color: '#5a6a7a', marginTop: '4px' }}>
+          of {finish?.total || '?'} players · {records?.length || 0} hands played
+        </div>
 
-      {/* Quick stats */}
-      <div style={s.statsGrid}>
-        <div style={s.stat}>
-          <div style={s.statLabel}>Mistakes</div>
-          <div style={{ ...s.statVal, color: debrief.totalMistakes > 5 ? '#e74c3c' : '#27ae60' }}>
-            {debrief.totalMistakes}
+        {/* Stats row */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '16px' }}>
+          <div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: debrief.totalMistakes > 5 ? '#e74c3c' : '#27ae60' }}>{debrief.totalMistakes}</div>
+            <div style={{ fontSize: '9px', color: '#4a5a6a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mistakes</div>
           </div>
-        </div>
-        <div style={s.stat}>
-          <div style={s.statLabel}>Critical</div>
-          <div style={{ ...s.statVal, color: debrief.criticalMistakes > 0 ? '#e74c3c' : '#27ae60' }}>
-            {debrief.criticalMistakes}
+          <div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: debrief.criticalMistakes > 0 ? '#e74c3c' : '#27ae60' }}>{debrief.criticalMistakes}</div>
+            <div style={{ fontSize: '9px', color: '#4a5a6a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Critical</div>
           </div>
-        </div>
-        <div style={s.stat}>
-          <div style={s.statLabel}>EV Lost</div>
-          <div style={{ ...s.statVal, color: '#f39c12' }}>
-            ~{debrief.estimatedEVLost.toLocaleString()}
+          <div>
+            <div style={{ fontSize: '20px', fontWeight: 800, color: '#f39c12' }}>~{debrief.estimatedEVLost.toLocaleString()}</div>
+            <div style={{ fontSize: '9px', color: '#4a5a6a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>EV Lost</div>
           </div>
         </div>
       </div>

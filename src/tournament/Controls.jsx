@@ -110,73 +110,77 @@ export default function Controls({ canCheck, canCall, toCall, pot, myChips, minR
         </div>
       )}
 
-      {/* Action buttons — bigger, 44px+ touch targets */}
+      {/* Action buttons — pill style like PokerStars mobile */}
       <div style={{
-        display: 'flex', padding: '8px 8px 10px', gap: '6px',
-        background: 'linear-gradient(180deg, #0a0d12, #060810)',
-        borderTop: '1px solid #1a2230',
+        display: 'flex', padding: '6px 10px 10px', gap: '8px',
+        background: 'linear-gradient(180deg, #080c12, #040608)',
+        borderTop: '1px solid #141a22',
       }}>
-        {/* Fold */}
+        {/* Fold — muted, pill shape */}
         <button className="btn-action" onClick={() => { onAction('fold'); setShowRaise(false); }}
           style={{
-            padding: '14px 0', borderRadius: '14px', border: 'none',
-            fontWeight: 800, fontSize: '14px', letterSpacing: '1px',
-            textTransform: 'uppercase', flex: 0.8, minHeight: '48px',
-            color: '#aaa', cursor: 'pointer',
-            background: 'linear-gradient(160deg, #1a1a1a, #2a2a2a, #1a1a1a)',
-            boxShadow: '0 3px 10px rgba(0,0,0,0.5)',
-          }}>Fold</button>
+            padding: '14px 0', borderRadius: '24px', border: '1px solid #2a2020',
+            fontWeight: 800, fontSize: '13px', letterSpacing: '1px',
+            textTransform: 'uppercase', flex: 0.7, minHeight: '50px',
+            color: '#8a6060', cursor: 'pointer',
+            background: 'linear-gradient(180deg, #1a1214, #120c0e)',
+          }}>FOLD</button>
 
-        {/* Check or Call — widest, theme-colored */}
+        {/* Check or Call — primary action, biggest */}
         {canCheck ? (
           <button className="btn-action" onClick={() => { onAction('check'); setShowRaise(false); }}
             style={{
-              padding: '14px 0', borderRadius: '14px', border: 'none',
+              padding: '14px 0', borderRadius: '24px', border: '1px solid #1a3040',
               fontWeight: 800, fontSize: '14px', letterSpacing: '1px',
-              textTransform: 'uppercase', flex: 1.4, minHeight: '48px',
-              color: '#fff', cursor: 'pointer',
-              background: 'linear-gradient(160deg, #1a2a3a, #2a4050, #1a2a3a)',
-              boxShadow: '0 3px 12px rgba(0,0,0,0.4)',
-            }}>Check</button>
+              textTransform: 'uppercase', flex: 1.5, minHeight: '50px',
+              color: '#e0e0e0', cursor: 'pointer',
+              background: 'linear-gradient(180deg, #14283a, #0c1a28)',
+              boxShadow: '0 2px 12px rgba(20,80,130,0.2)',
+            }}>CHECK</button>
         ) : canCall ? (
           <button className="btn-action" onClick={() => { onAction('call'); setShowRaise(false); }}
             style={{
-              padding: '10px 0', borderRadius: '14px', border: 'none',
-              fontWeight: 800, fontSize: '14px', letterSpacing: '1px',
-              textTransform: 'uppercase', flex: 1.4, minHeight: '48px',
+              padding: '10px 0', borderRadius: '24px', border: '1px solid #1a4030',
+              fontWeight: 800, fontSize: '14px', letterSpacing: '0.5px',
+              textTransform: 'uppercase', flex: 1.5, minHeight: '50px',
               color: '#fff', cursor: 'pointer',
               background: callBg,
-              boxShadow: '0 3px 14px rgba(0,0,0,0.4)',
+              boxShadow: '0 2px 16px rgba(30,100,60,0.25)',
             }}>
-            <div>Call {fmt(toCall)}</div>
+            <div style={{ fontSize: '14px' }}>CALL</div>
+            <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '1px', fontWeight: 600 }}>{fmt(toCall)}</div>
           </button>
         ) : null}
 
-        {/* Raise or All-In */}
+        {/* Raise or All-In — accent colored */}
         {isAllIn ? (
           <button className="btn-action" onClick={() => { onAction('raise', myChips); setShowRaise(false); }}
             style={{
-              padding: '10px 0', borderRadius: '14px', border: 'none',
-              fontWeight: 800, fontSize: '14px', letterSpacing: '1px',
-              textTransform: 'uppercase', flex: 0.8, minHeight: '48px',
-              color: '#fff', cursor: 'pointer',
-              background: 'linear-gradient(160deg, #6a1510, #c0392b, #6a1510)',
-              boxShadow: '0 3px 14px rgba(192,57,43,0.35)',
+              padding: '10px 0', borderRadius: '24px',
+              border: '1.5px solid #c03030',
+              fontWeight: 800, fontSize: '13px', letterSpacing: '1px',
+              textTransform: 'uppercase', flex: 0.8, minHeight: '50px',
+              color: '#ff4040', cursor: 'pointer',
+              background: 'linear-gradient(180deg, #1a0808, #0e0404)',
+              boxShadow: '0 0 16px rgba(200,40,40,0.2)',
+              animation: 'pulse 1.5s infinite',
             }}>
-            <div>All-In</div>
-            <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '1px' }}>{fmt(myChips)}</div>
+            <div>ALL IN</div>
+            <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '1px' }}>{fmt(myChips)}</div>
           </button>
         ) : (
           <button className="btn-action" onClick={handleRaise}
             style={{
-              padding: '14px 0', borderRadius: '14px', border: 'none',
-              fontWeight: 800, fontSize: '14px', letterSpacing: '1px',
-              textTransform: 'uppercase', flex: 0.8, minHeight: '48px',
-              color: '#0a0a00', cursor: 'pointer',
-              background: 'linear-gradient(160deg, #5a4010, #d4af37, #8a6a15)',
-              boxShadow: '0 3px 16px rgba(212,175,55,0.35)',
+              padding: '14px 0', borderRadius: '24px', border: '1px solid #4a3a10',
+              fontWeight: 800, fontSize: '13px', letterSpacing: '1px',
+              textTransform: 'uppercase', flex: 0.8, minHeight: '50px',
+              color: showRaise ? '#0a0800' : '#d4af37', cursor: 'pointer',
+              background: showRaise
+                ? 'linear-gradient(180deg, #d4af37, #a08020)'
+                : 'linear-gradient(180deg, #1a1608, #100e04)',
+              boxShadow: showRaise ? '0 2px 16px rgba(212,175,55,0.3)' : 'none',
             }}>
-            {showRaise ? 'Confirm' : 'Raise'}
+            {showRaise ? 'CONFIRM' : 'RAISE'}
           </button>
         )}
       </div>
