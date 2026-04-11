@@ -1,6 +1,7 @@
-// Dashboard.jsx — Stats + ROI dashboard
+// Dashboard.jsx — Stats + ROI + Achievements + Bankroll + Leaderboard
 import React from 'react';
 import { loadSessions } from '../recorder/ActionRecorder.js';
+import { getAchievements, getLeaderboard, getBankroll } from '../lib/achievements.js';
 
 const s = {
   container: { padding: '16px', maxWidth: '520px', margin: '0 auto' },
@@ -90,6 +91,68 @@ export default function StatsScreen({ onBack }) {
           </div>
         ))}
       </div>
+
+      {/* Achievements */}
+      {(() => {
+        const achs = getAchievements();
+        const unlocked = achs.filter(a => a.unlocked).length;
+        return (
+          <div style={s.section}>
+            <div style={s.secTitle}>Achievements ({unlocked}/{achs.length})</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+              {achs.map(a => (
+                <div key={a.id} style={{
+                  textAlign: 'center', padding: '8px 4px', borderRadius: '8px',
+                  background: a.unlocked ? '#1a2a1a' : '#0a0d12',
+                  border: `1px solid ${a.unlocked ? '#2a4a2a' : '#141a22'}`,
+                  opacity: a.unlocked ? 1 : 0.4,
+                }}>
+                  <div style={{ fontSize: '20px' }}>{a.icon}</div>
+                  <div style={{ fontSize: '9px', color: a.unlocked ? '#c0d0e0' : '#3a4a5a', fontWeight: 600, marginTop: '2px' }}>{a.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Leaderboard / All-Time Results */}
+      {(() => {
+        const lb = getLeaderboard(sessions);
+        return (
+          <div style={s.section}>
+            <div style={s.secTitle}>All-Time Results</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: '10px' }}>
+              <div style={s.stat}><div style={s.label}>Tournaments</div><div style={{ ...s.val, fontSize: '18px', color: '#c0d0e0' }}>{lb.totalTournaments}</div></div>
+              <div style={s.stat}><div style={s.label}>ITM%</div><div style={{ ...s.val, fontSize: '18px', color: lb.itmPct >= 15 ? '#27ae60' : '#f39c12' }}>{lb.itmPct}%</div></div>
+              <div style={s.stat}><div style={s.label}>ROI</div><div style={{ ...s.val, fontSize: '18px', color: lb.roi >= 0 ? '#27ae60' : '#e74c3c' }}>{lb.roi > 0 ? '+' : ''}{lb.roi}%</div></div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0', color: '#6b7b8d' }}>
+              <span>Wins: {lb.wins}</span>
+              <span>Best: #{lb.bestFinish || '—'}</span>
+              <span>Avg: #{lb.avgFinish || '—'}</span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Bankroll */}
+      {(() => {
+        const br = getBankroll();
+        return (
+          <div style={s.section}>
+            <div style={s.secTitle}>Bankroll</div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', fontWeight: 800, color: br.balance >= 10000 ? '#27ae60' : br.balance >= 5000 ? '#d4af37' : '#e74c3c' }}>
+                ${br.balance.toLocaleString()}
+              </div>
+              <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>
+                Peak: ${br.peak.toLocaleString()} | {br.history.length} entries
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
