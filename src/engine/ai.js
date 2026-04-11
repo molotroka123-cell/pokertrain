@@ -291,8 +291,36 @@ export class BaseAI {
     return this.postflopFacingBet(gs, strength, texture, rand, isIP, spr, isAggressor);
   }
 
+  // Fish-specific overrides (Item 4: realistic fish patterns)
+  fishOverride(gs, strength, rand) {
+    const p = this.profile;
+    if (p.style !== 'STATION' && p.style !== 'LIMPER' && p.style !== 'Maniac') return null;
+    const hi = gs.handInfo || {};
+    const mh = hi.madeHand || '';
+    const { stage, pot, myChips, bigBlind } = gs;
+    const bb = bigBlind || 200;
+
+    // Min-raise river with nuts (30%) — "I want you to call"
+    if (stage === 'river' && (mh === 'flush' || mh === 'full_house' || mh === 'straight' || mh === 'set' || mh === 'quads') && rand < 0.30) {
+      return { action: 'raise', amount: Math.min((gs.currentBet || 0) + bb, myChips) };
+    }
+    // Donk overbet with set/two_pair on flop (25%)
+    if (stage === 'flop' && !gs.isAggressor && (mh === 'set' || mh === 'two_pair') && rand < 0.25) {
+      return { action: 'raise', amount: Math.min(Math.floor(pot * 1.5), myChips) };
+    }
+    // Passive call everything then raise river with strong (15%)
+    if (stage === 'river' && gs.toCall > 0 && (mh === 'flush' || mh === 'straight' || mh === 'set') && rand < 0.15) {
+      return { action: 'raise', amount: Math.min(Math.floor(pot * 0.8), myChips) };
+    }
+    return null;
+  }
+
   // ═══ CHECKED TO US (or we're first to act) ═══
   postflopAct(gs, strength, texture, rand, isIP, spr, isAggressor) {
+    // Fish pattern override
+    const fishAction = this.fishOverride(gs, strength, rand);
+    if (fishAction) return fishAction;
+
     const { pot, myChips, stage } = gs;
     const p = this.profile;
     const af = p.af || 2.5;
@@ -437,23 +465,40 @@ export class BaseAI {
       return { action: 'raise', amount: getSizing('thin_value', pot, myChips, isIP) };
     }
 
-    // River: polarized strategy — value bets + balanced bluffs
+    // River: hand-dependent sizing (Item 1 + Item 3: sizing tells + merge bets)
     if (stage === 'river') {
-      // Value bet: top pair+ (GTO: value-to-bluff ~2:1 for pot-sized bets)
-      if (strength > 0.50) {
-        const valueBetFreq = isIP ? 0.55 : 0.40; // IP bets more
+      const mh = hi.madeHand || 'high_card';
+
+      // MONSTER value: overbet or polarized (set+, flush, straight, full house)
+      if (mh === 'set' || mh === 'flush' || mh === 'full_house' || mh === 'straight' || mh === 'quads' || mh === 'straight_flush') {
+        const valueBetFreq = isIP ? 0.65 : 0.50;
         if (rand < valueBetFreq * (af / 3)) {
-          return { action: 'raise', amount: getSizing(strength > 0.70 ? 'polarized' : 'thin_value', pot, myChips, isIP) };
+          // TAG/LAG overbet 15% with monsters
+          const useOverbet = (p.style === 'TAG' || p.style === 'LAG') && rand < 0.15;
+          return { action: 'raise', amount: getSizing(useOverbet ? 'overbet' : 'polarized', pot, myChips, isIP) };
         }
       }
-      // Bluff: ~33% of bets should be bluffs (GTO for pot-sized)
-      // Only bluff with best bluffing hands (blockers, missed draws, no showdown value)
+      // STRONG value: TPTK, overpair → standard protection sizing (55-67%)
+      if ((mh === 'top_pair' && hi.kicker === 'top') || mh === 'overpair' || mh === 'two_pair') {
+        const valueBetFreq = isIP ? 0.55 : 0.40;
+        if (rand < valueBetFreq * (af / 3)) {
+          return { action: 'raise', amount: getSizing('protection', pot, myChips, isIP) };
+        }
+      }
+      // MEDIUM: merge/block bet — top pair weak kicker, mid pair, bottom pair (25-33%)
+      if (strength > 0.35 && strength <= 0.55) {
+        if (mh === 'top_pair' || mh === 'middle_pair' || mh === 'bottom_pair' || mh === 'underpair') {
+          if (rand < 0.45) {
+            return { action: 'raise', amount: getSizing('block_bet', pot, myChips, isIP) };
+          }
+        }
+      }
+      // BLUFF: polarized sizing (75-100%) — need folds
       const bluffBase = p.style === 'TAG' ? 0.14 : p.style === 'LAG' ? 0.20 :
         p.style === 'Maniac' ? 0.28 : p.style === 'SemiLAG' ? 0.16 :
-        p.style === 'Nit' ? 0.04 : 0.03; // Station/Limper rarely bluff river
+        p.style === 'Nit' ? 0.04 : 0.03;
       if (strength < 0.12) {
         const blockerBoost = hi.hasBlockers ? 1.6 : 1.0;
-        // Missed draw = better bluff candidate (looks like value)
         const missedDrawBoost = hi.drawType && hi.drawOuts > 0 ? 1.3 : 1.0;
         if (rand < bluffBase * blockerBoost * missedDrawBoost) {
           return { action: 'raise', amount: getSizing('polarized', pot, myChips, isIP) };
@@ -466,6 +511,10 @@ export class BaseAI {
 
   // ═══ FACING A BET — pot-odds + draw-equity based ═══
   postflopFacingBet(gs, strength, texture, rand, isIP, spr, isAggressor) {
+    // Fish pattern override (min-raise river with nuts, etc.)
+    const fishAction = this.fishOverride(gs, strength, rand);
+    if (fishAction) return fishAction;
+
     const { pot, toCall, myChips, currentBet, stage } = gs;
     const p = this.profile;
     const odds = potOdds(toCall, pot); // Required equity to call

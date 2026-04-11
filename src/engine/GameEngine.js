@@ -310,9 +310,18 @@ export class GameEngine {
         action._heroChips = p.chips;
         action._community = [...this.community];
       } else {
-        // AI decision (may be async if ClaudeBossBot)
-        await this._delay(400 + Math.floor(cryptoRandomFloat() * 600));
+        // AI decision — strength-based timing (tells)
         action = await this._getAIAction(p, toCall, pos);
+        const str = this._getHandStrength(p.id);
+        const isAllIn = action.amount >= p.chips;
+        let thinkMs;
+        if (isAllIn) thinkMs = 4000 + Math.floor(cryptoRandomFloat() * 4000); // tank all-in
+        else if (str > 0.85) thinkMs = 400 + Math.floor(cryptoRandomFloat() * 400); // snap strong
+        else if (str > 0.60) thinkMs = 1000 + Math.floor(cryptoRandomFloat() * 1200);
+        else if (str > 0.35) thinkMs = 1800 + Math.floor(cryptoRandomFloat() * 2000); // normal
+        else if (str > 0.15) thinkMs = 2500 + Math.floor(cryptoRandomFloat() * 2500); // tank weak
+        else thinkMs = 600 + Math.floor(cryptoRandomFloat() * 800); // snap fold/bluff
+        await this._delay(thinkMs);
       }
 
       // FIX: Never fold when toCall is 0 (free check) — preserve meta!

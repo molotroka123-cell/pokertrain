@@ -36,7 +36,8 @@ export class AdaptiveAI extends BaseAI {
       _currentHandActions: [],
     };
     this.exploitLevel = 0;
-    this.minHandsToExploit = 10;
+    this.minHandsToExploit = 3; // Fast adaptation: exploit after 3 hands (was 10)
+    this.respectLevel = 0; // +0.20 after hero shows nuts, -0.30 after hero shows bluff
   }
 
   // Load hero profile from past sessions — exploit from hand 1
@@ -156,10 +157,13 @@ export class AdaptiveAI extends BaseAI {
     if (didVpip) h.vpipHands++;
     if (didPfr) h.pfrHands++;
 
-    // Adapt faster as we gather data — every 10 hands bump exploit
+    // Fast adaptation: ramp exploit over 30 hands (was 60)
     if (h.handsPlayed > this.minHandsToExploit) {
-      this.exploitLevel = Math.min(0.85, (h.handsPlayed - this.minHandsToExploit) / 60);
+      this.exploitLevel = Math.min(0.85, (h.handsPlayed - this.minHandsToExploit) / 30);
     }
+    // Decay respect level towards neutral
+    if (this.respectLevel > 0) this.respectLevel = Math.max(0, this.respectLevel - 0.03);
+    if (this.respectLevel < 0) this.respectLevel = Math.min(0, this.respectLevel + 0.03);
   }
 
   // Legacy compat — called per action from GameEngine
@@ -178,10 +182,16 @@ export class AdaptiveAI extends BaseAI {
   observeShowdown(heroCards, heroWon, heroHandStrength) {
     this.heroModel.showdowns++;
     if (heroWon) this.heroModel.showdownWins++;
-    // Track if hero showed bluff or value
+    // Track if hero showed bluff or value + respect factor
     if (heroHandStrength !== undefined) {
-      if (heroHandStrength < 0.3) this.heroModel.bluffsDetected++;
-      if (heroHandStrength > 0.6) this.heroModel.valueBetsDetected++;
+      if (heroHandStrength < 0.3) {
+        this.heroModel.bluffsDetected++;
+        this.respectLevel = Math.max(-0.50, this.respectLevel - 0.30); // disrespect bluffer
+      }
+      if (heroHandStrength > 0.6) {
+        this.heroModel.valueBetsDetected++;
+        if (heroHandStrength > 0.85) this.respectLevel = Math.min(0.40, this.respectLevel + 0.20); // respect monster
+      }
     }
   }
 
