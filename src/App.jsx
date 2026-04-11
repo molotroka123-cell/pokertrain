@@ -702,10 +702,14 @@ function Game({ director, onExit }) {
     if (!tState.heroTable || tState.heroEliminated) { setHandActive(false); return; }
     const tablePlayers = tState.heroTable.players.filter(p => !p.eliminated && p.chips > 0);
     if (tablePlayers.length < 2) { setHandActive(false); return; }
+    // Capture hero chips BEFORE blinds/antes are posted
+    const heroBeforeHand = tablePlayers.find(p => p.isHero);
+    const chipsBeforeHand = heroBeforeHand?.chips || 0;
     const engine = engineRef.current;
     const blinds = tState.blinds;
     const dealer = tState.heroTable.dealer % tablePlayers.length;
-    if (handCount === 0) ClaudeBossBot.resetCalls(); // Reset API counter for new game
+    if (handCount === 0) ClaudeBossBot.resetCalls();
+    engine.setTournamentContext(tState.stage, tState.isFinalTable, tState.isBubble);
     if (!engine.startHand(tablePlayers, dealer, blinds, aiBotsRef.current)) { setHandActive(false); return; }
     Sounds.deal(); // Deal sound on new hand
     setGs(engine.getState());
@@ -758,6 +762,7 @@ function Game({ director, onExit }) {
         myChips: hero.chips, myBet: 0, opponents: [],
         action: 'bb_walk', raiseAmount: null, decisionTimeMs: 0,
         tournamentFormat: tState.formatKey || null,
+        chipsBeforeHand,
       });
     }
 
@@ -800,6 +805,7 @@ function Game({ director, onExit }) {
         decisionTimeMs: ha._decisionTimeMs || 0,
         tournamentFormat: tState.formatKey || null,
         facingAction,
+        chipsBeforeHand,
       });
     }
 

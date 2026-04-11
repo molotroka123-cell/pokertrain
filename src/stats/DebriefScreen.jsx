@@ -158,7 +158,7 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
         const handNums = [...new Map(records.map(r => [r.handNumber, r])).values()];
         const chips = handNums.filter(r => r.chipsAfter != null).map(r => r.chipsAfter);
         if (chips.length < 3) return null;
-        const startChips = handNums[0]?.myChips || chips[0];
+        const startChips = handNums[0]?.chipsBeforeHand || handNums[0]?.myChips || chips[0];
         const maxC = Math.max(...chips, startChips);
         const minC = Math.min(...chips);
         const range = maxC - minC || 1;

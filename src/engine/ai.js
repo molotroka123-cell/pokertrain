@@ -148,26 +148,36 @@ export class BaseAI {
     const p = this.profile;
     const af = p.af || 2.5;
     const isIP = gs.position === 'BTN' || gs.position === 'CO' || gs.position === 'HJ';
+    const isFT = gs.isFinalTable;
+    const isBubble = gs.isBubble;
+
+    // Final table / bubble adjustments
+    const aggrBoost = isFT ? 0.15 : isBubble ? -0.10 : 0;
 
     // Texture-aware sizing: dry = small (range bet), wet = large (protection)
-    const baseSizing = texture.wet > 0.5 ? 0.65 + cryptoRandomFloat() * 0.15
-      : texture.wet > 0.3 ? 0.45 + cryptoRandomFloat() * 0.2
-      : 0.30 + cryptoRandomFloat() * 0.1; // Dry board range bet
+    // Final table: slightly larger sizing for pressure
+    const ftSizeBoost = isFT ? 0.08 : 0;
+    const baseSizing = texture.wet > 0.5 ? 0.65 + cryptoRandomFloat() * 0.15 + ftSizeBoost
+      : texture.wet > 0.3 ? 0.45 + cryptoRandomFloat() * 0.2 + ftSizeBoost
+      : 0.30 + cryptoRandomFloat() * 0.1 + ftSizeBoost;
 
-    // Monster (set+): bet for value, occasionally slowplay
+    // Monster (set+): ALWAYS bet/raise — never slow-play at final table or high blinds
     if (strength > 0.7) {
-      if ((p.style === 'LAG' || p.style === 'SemiLAG') && rand < 0.20) {
-        return { action: 'check' }; // Trap — check-raise later
+      if (!isFT && (p.style === 'LAG' || p.style === 'SemiLAG') && rand < 0.15) {
+        return { action: 'check' }; // Trap — but NOT at final table
       }
-      const sizing = strength > 0.85 ? 0.65 + cryptoRandomFloat() * 0.35 : baseSizing;
+      // Big hands at final table: overbet for max value
+      const sizing = isFT ? 0.75 + cryptoRandomFloat() * 0.25
+        : strength > 0.85 ? 0.65 + cryptoRandomFloat() * 0.35 : baseSizing;
       return { action: 'raise', amount: Math.min(Math.floor(pot * sizing), myChips) };
     }
 
-    // Strong hand (TPTK+): c-bet at high frequency on dry boards
+    // Strong hand (TPTK+): c-bet at high frequency
     if (strength > 0.45) {
       // C-bet frequency: dry board 70-80%, wet 40-55%
+      // Final table: c-bet MORE (pressure), Bubble: c-bet LESS (risk averse)
       const cbetFreq = texture.wet < 0.3 ? 0.75 : texture.wet < 0.5 ? 0.55 : 0.40;
-      const styleBoost = (af - 2) / 8; // Aggressive players c-bet more
+      const styleBoost = (af - 2) / 8 + aggrBoost;
       if (rand < cbetFreq + styleBoost) {
         return { action: 'raise', amount: Math.min(Math.floor(pot * baseSizing), myChips) };
       }
@@ -215,11 +225,14 @@ export class BaseAI {
     const odds = potOdds(toCall, pot);
     const af = p.af || 2.5;
     const betSizePot = pot > 0 ? toCall / pot : 0;
+    const isFT = gs.isFinalTable;
+    const isBubble = gs.isBubble;
 
-    // Check-raise with monsters and some bluffs (GTO: ~10-15% of checking range)
+    // Check-raise with monsters — ALWAYS at final table (max value)
     if (strength > 0.75) {
-      // Check-raise for value with monsters
-      if (rand < 0.55 + (af - 2) / 8) {
+      // Final table: raise 75%+ with monsters (GTO max value extraction)
+      const raiseFreq = isFT ? 0.75 : 0.55 + (af - 2) / 8;
+      if (rand < raiseFreq) {
         const size = Math.floor(currentBet * (2.5 + cryptoRandomFloat() * 1.0));
         return { action: 'raise', amount: Math.min(size, myChips) };
       }

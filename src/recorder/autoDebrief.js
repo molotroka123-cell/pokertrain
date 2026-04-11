@@ -315,12 +315,14 @@ function computePositionStats(records) {
     const handsWithResult = hands.filter(h => h.chipsAfter != null);
     let totalProfit = 0;
     for (const h of handsWithResult) {
-      // Find all records for this hand to get first myChips and last chipsAfter
+      // Use chipsBeforeHand (before blinds/antes) for accurate profit
       const handRecs = records.filter(r => r.handNumber === h.handNumber);
       const firstRec = handRecs[0];
       const lastRec = handRecs[handRecs.length - 1];
       if (firstRec && lastRec?.chipsAfter != null) {
-        totalProfit += lastRec.chipsAfter - firstRec.myChips;
+        // chipsBeforeHand = chips before blinds posted, chipsAfter = chips after pot awarded
+        const startChips = firstRec.chipsBeforeHand || firstRec.myChips;
+        totalProfit += lastRec.chipsAfter - startChips;
       }
     }
     stats[pos] = {

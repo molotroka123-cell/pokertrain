@@ -74,7 +74,7 @@ export function recordDecision({
   averageStack, isBubble, isFinalTable, tableId, playersAtTable,
   stage, position, holeCards, community, potSize, currentBet, toCall,
   myChips, myBet, opponents, action, raiseAmount, decisionTimeMs, tournamentFormat,
-  facingAction,
+  facingAction, chipsBeforeHand,
 }) {
   const hCards = holeCards || [];
   const board = community || [];
@@ -285,6 +285,7 @@ export function recordDecision({
     currentBet,
     toCall,
     myChips,
+    chipsBeforeHand: chipsBeforeHand || myChips, // chips BEFORE blinds/antes posted
     myBet,
     equity: Math.round(equity * 100) / 100,
     equitySource,

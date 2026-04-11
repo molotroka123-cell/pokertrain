@@ -79,6 +79,12 @@ export class GameEngine {
   }
 
   // Start a new hand
+  setTournamentContext(stage, isFinalTable, isBubble) {
+    this._tournamentStage = stage || 'early';
+    this._isFinalTable = isFinalTable || false;
+    this._isBubble = isBubble || false;
+  }
+
   startHand(players, dealerIdx, blinds, aiBots) {
     this.reset();
     this.players = players.filter(p => !p.eliminated && p.chips > 0);
@@ -335,6 +341,10 @@ export class GameEngine {
       playersAtTable: this.players.length,
       currentBet: this.currentBet,
       handStrength: handStr,
+      // Tournament context for stage-aware play
+      tournamentStage: this._tournamentStage || 'early',
+      isFinalTable: this._isFinalTable || false,
+      isBubble: this._isBubble || false,
     };
 
     const decision = await ai.decide(gs);
