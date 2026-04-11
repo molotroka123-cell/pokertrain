@@ -264,66 +264,91 @@ function PremiumTable({ gs, theme: T }) {
         position: 'relative', width: '100%', height: 'min(340px, 44dvh)',
         overflow: 'visible', contain: 'layout style',
       }}>
-        {/* Ambient light */}
+        {/* Bokeh background lights */}
+        {[
+          { x: '15%', y: '8%', s: 60, o: 0.06 },
+          { x: '80%', y: '12%', s: 45, o: 0.04 },
+          { x: '10%', y: '75%', s: 35, o: 0.03 },
+          { x: '85%', y: '70%', s: 50, o: 0.05 },
+          { x: '50%', y: '5%', s: 80, o: 0.07 },
+          { x: '30%', y: '90%', s: 40, o: 0.03 },
+          { x: '70%', y: '85%', s: 30, o: 0.04 },
+        ].map((b, i) => (
+          <div key={i} style={{
+            position: 'absolute', left: b.x, top: b.y, width: b.s, height: b.s,
+            borderRadius: '50%', pointerEvents: 'none',
+            background: `radial-gradient(circle, ${T.accent}${Math.round(b.o * 255).toString(16).padStart(2, '0')} 0%, transparent 70%)`,
+            filter: 'blur(15px)',
+          }} />
+        ))}
+
+        {/* Ambient top light */}
         <div style={{
-          position: 'absolute', top: '15%', left: '50%', width: '50%', height: '30%',
+          position: 'absolute', top: '10%', left: '50%', width: '60%', height: '35%',
           transform: 'translate(-50%,-30%)',
           background: `radial-gradient(ellipse, ${T.ambientColor} 0%, transparent 70%)`,
-          filter: 'blur(30px)', pointerEvents: 'none',
+          filter: 'blur(25px)', pointerEvents: 'none',
         }} />
 
         {/* Table shadow */}
         <div style={{
-          position: 'absolute', top: '58%', left: '50%', width: '78%', height: '30%',
+          position: 'absolute', top: '58%', left: '50%', width: '80%', height: '32%',
           transform: 'translate(-50%,-50%)',
-          background: 'rgba(0,0,0,0.4)', borderRadius: '50%', filter: 'blur(30px)',
+          background: 'rgba(0,0,0,0.5)', borderRadius: '50%', filter: 'blur(25px)',
         }} />
 
-        {/* Outer metallic rim */}
+        {/* Outer metallic rim — thicker, more pronounced */}
         <div style={{
-          position: 'absolute', top: '10%', left: '6%', width: '88%', height: '72%',
+          position: 'absolute', top: '9%', left: '5%', width: '90%', height: '74%',
           borderRadius: '50%/42%',
           background: T.rimBg,
-          boxShadow: T.rimGlow + ', inset 0 2px 0 ' + T.rimEdge,
-          border: '2px solid ' + T.rimBorder,
+          boxShadow: T.rimGlow + ', inset 0 3px 0 ' + T.rimEdge + ', inset 0 -2px 0 rgba(0,0,0,0.3)',
+          border: '3px solid ' + T.rimBorder,
         }} />
 
-        {/* Inner rim glow */}
+        {/* Inner rim highlight */}
         <div style={{
-          position: 'absolute', top: '10.8%', left: '6.8%', width: '86.4%', height: '70.4%',
+          position: 'absolute', top: '10.2%', left: '6%', width: '88%', height: '71.6%',
           borderRadius: '50%/42%',
-          border: '1px solid ' + T.rimEdge,
-          boxShadow: 'inset 0 0 15px ' + T.ambientColor,
+          border: '1.5px solid ' + T.rimEdge,
+          boxShadow: 'inset 0 0 20px ' + T.ambientColor,
           pointerEvents: 'none',
         }} />
 
-        {/* Felt */}
+        {/* Felt — richer gradient + noise texture overlay */}
         <div style={{
-          position: 'absolute', top: '14%', left: '9%', width: '82%', height: '64%',
+          position: 'absolute', top: '13%', left: '8.5%', width: '83%', height: '66%',
           background: T.feltBg,
           borderRadius: '50%/42%',
-          boxShadow: 'inset 0 0 80px rgba(0,0,0,0.4), inset 0 -8px 30px rgba(0,0,0,0.15)',
+          boxShadow: 'inset 0 0 100px rgba(0,0,0,0.5), inset 0 -12px 40px rgba(0,0,0,0.2), inset 0 6px 20px rgba(255,255,255,0.02)',
         }}>
-          {/* Light spot */}
+          {/* Felt texture grain */}
           <div style={{
-            position: 'absolute', top: '20%', left: '50%', width: '45%', height: '30%',
+            position: 'absolute', inset: 0, borderRadius: '50%/42%',
+            opacity: 0.03, pointerEvents: 'none',
+            backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 200 200\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.65\' numOctaves=\'3\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")',
+            backgroundSize: '100px',
+          }} />
+          {/* Light spot from above */}
+          <div style={{
+            position: 'absolute', top: '15%', left: '50%', width: '50%', height: '35%',
             transform: 'translate(-50%, 0)',
-            background: `radial-gradient(ellipse, ${T.feltLight} 0%, transparent 70%)`,
+            background: `radial-gradient(ellipse, rgba(255,255,255,0.04) 0%, transparent 70%)`,
             borderRadius: '50%', pointerEvents: 'none',
           }} />
-          {/* Inner line */}
+          {/* Inner felt line */}
           <div style={{
             position: 'absolute', top: '6%', left: '5%', width: '90%', height: '88%',
             borderRadius: '50%/42%',
-            border: '1px solid ' + T.feltInner,
+            border: '1.5px solid ' + T.feltInner,
           }} />
           {/* Tournament logo */}
           <div style={{
-            position: 'absolute', top: '70%', left: '50%', transform: 'translate(-50%,-50%)',
-            fontSize: '24px', fontWeight: 900, letterSpacing: '4px',
+            position: 'absolute', top: '68%', left: '50%', transform: 'translate(-50%,-50%)',
+            fontSize: '26px', fontWeight: 900, letterSpacing: '5px',
             fontFamily: T.logoFont || "'Georgia', serif",
-            color: T.logoColor || T.accent, opacity: 0.22,
-            textShadow: `0 0 25px ${T.accentGlow}`,
+            color: T.logoColor || T.accent, opacity: 0.25,
+            textShadow: `0 0 30px ${T.accentGlow}, 0 2px 4px rgba(0,0,0,0.3)`,
             userSelect: 'none', pointerEvents: 'none',
           }}>{T.logo || ''}</div>
         </div>
@@ -348,13 +373,14 @@ function PremiumTable({ gs, theme: T }) {
           </div>
         )}
 
-        {/* ═══ Community cards ═══ */}
+        {/* ═══ Community cards — larger with shadow ═══ */}
         {gs.community.length > 0 && (
           <div style={{
-            position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%,-50%)',
-            display: 'flex', gap: '5px', zIndex: 15,
+            position: 'absolute', top: '51%', left: '50%', transform: 'translate(-50%,-50%)',
+            display: 'flex', gap: '4px', zIndex: 15,
+            filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.5))',
           }}>
-            {gs.community.map((c, i) => <Card key={c + i} card={c} mini delay={i * 220} />)}
+            {gs.community.map((c, i) => <Card key={c + i} card={c} delay={i * 220} />)}
           </div>
         )}
 
@@ -396,20 +422,27 @@ function PremiumTable({ gs, theme: T }) {
                   }}>ALL IN</div>
                 )}
 
-                {/* Avatar circle — initial letter, no emoji */}
+                {/* Avatar — dark photo-style circle */}
                 <div style={{
-                  width: 42, height: 42, borderRadius: '50%', margin: '0 auto',
-                  background: isWinner ? T.avatarWin : p._isBoss ? 'linear-gradient(135deg, #5a4010, #d4af37)' : T.avatarBot,
-                  border: `2.5px solid ${isWinner ? T.accent : p._isBoss ? '#d4af37' : '#2a3a4a55'}`,
+                  width: 46, height: 46, borderRadius: '50%', margin: '0 auto',
+                  background: isWinner ? T.avatarWin : p._isBoss ? 'linear-gradient(145deg, #4a3510, #b8922a)' : T.avatarBot,
+                  border: `2.5px solid ${isWinner ? T.accent : p._isBoss ? '#c8a230' : '#3a4a5a44'}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '16px', fontWeight: 800,
-                  color: isWinner ? '#fff' : p._isBoss ? '#fff' : '#8a9aaa',
+                  fontSize: '17px', fontWeight: 800,
+                  color: isWinner ? '#fff' : p._isBoss ? '#1a0a00' : '#6a7a8a',
                   boxShadow: isWinner
-                    ? `0 0 20px ${T.accentGlow}`
-                    : p._isBoss ? '0 0 14px rgba(212,175,55,0.4)' : '0 3px 10px rgba(0,0,0,0.5)',
+                    ? `0 0 24px ${T.accentGlow}, 0 0 48px ${T.ambientColor}`
+                    : p._isBoss ? '0 0 18px rgba(212,175,55,0.5), inset 0 -4px 8px rgba(0,0,0,0.3)' : '0 4px 14px rgba(0,0,0,0.6), inset 0 -4px 8px rgba(0,0,0,0.2)',
                   willChange: 'transform',
+                  position: 'relative', overflow: 'hidden',
                 }}>
                   {(p.name || 'P')[0].toUpperCase()}
+                  {/* Glossy top highlight */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: '10%', width: '80%', height: '45%',
+                    background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%)',
+                    borderRadius: '50%', pointerEvents: 'none',
+                  }} />
                 </div>
 
                 {/* Showdown cards */}
@@ -432,10 +465,11 @@ function PremiumTable({ gs, theme: T }) {
 
                 {/* Stack badge */}
                 <div style={{
-                  fontSize: '11px', fontWeight: 700, color: T.chipColor,
-                  background: 'rgba(0,0,0,0.7)', padding: '3px 10px', borderRadius: '12px',
+                  fontSize: '12px', fontWeight: 700, color: T.chipColor,
+                  background: 'rgba(0,0,0,0.75)', padding: '4px 12px', borderRadius: '14px',
                   display: 'inline-block', marginTop: '3px',
-                  backdropFilter: 'blur(4px)', border: `1px solid ${T.accent}18`,
+                  backdropFilter: 'blur(6px)', border: `1px solid ${T.accent}25`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                 }}>${fmt(p.chips)}</div>
 
                 {/* Dealer chip */}
