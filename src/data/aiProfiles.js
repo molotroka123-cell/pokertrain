@@ -54,9 +54,30 @@ export function generateCountry() {
 // Fish profile types from CRITICAL-FIXES spec
 const FISH_TYPES = ['STATION', 'LIMPER', 'TILTER', 'SCARED_MONEY', 'MANIAC_FISH'];
 
-export function generateProfile(id) {
-  const roll = cryptoRandomFloat();
+// Field distributions by stake level
+const FIELD_DISTRIBUTIONS = {
+  micro: [['STATION',0.25],['LIMPER',0.20],['MANIAC_FISH',0.10],['SCARED_MONEY',0.15],['TAG',0.15],['LAG',0.08],['Nit',0.05],['SemiLAG',0.02]],
+  low:   [['TAG',0.25],['STATION',0.15],['LAG',0.15],['SemiLAG',0.12],['LIMPER',0.12],['Nit',0.08],['SCARED_MONEY',0.08],['MANIAC_FISH',0.05]],
+  mid:   [['TAG',0.30],['LAG',0.20],['SemiLAG',0.15],['Nit',0.10],['STATION',0.10],['LIMPER',0.05],['SCARED_MONEY',0.05],['MANIAC_FISH',0.05]],
+  high:  [['TAG',0.35],['LAG',0.25],['SemiLAG',0.20],['Nit',0.10],['STATION',0.05],['LIMPER',0.03],['SCARED_MONEY',0.02]],
+};
+
+export function generateProfile(id, fieldLevel) {
+  let roll = cryptoRandomFloat();
   let style, vpip, pfr, af, threeBet, tiltProbability = 0, quirks = [];
+
+  // Use field distribution if specified
+  if (fieldLevel && FIELD_DISTRIBUTIONS[fieldLevel]) {
+    const dist = FIELD_DISTRIBUTIONS[fieldLevel];
+    let cumProb = 0;
+    style = dist[dist.length - 1][0];
+    for (const [s, prob] of dist) {
+      cumProb += prob;
+      if (roll < cumProb) { style = s; break; }
+    }
+    // Generate stats based on selected style
+    return generateProfileForStyle(style, id);
+  }
 
   if (roll < 0.25) {
     // TAG — 25%
@@ -142,10 +163,28 @@ export function generateProfile(id) {
   };
 }
 
-export function generateField(numPlayers) {
+function generateProfileForStyle(style, id) {
+  let vpip, pfr, af, threeBet, tiltProbability = 0, quirks = [];
+  switch (style) {
+    case 'TAG': vpip = 0.15 + cryptoRandomFloat() * 0.08; pfr = vpip - 0.02 - cryptoRandomFloat() * 0.04; af = 2.5 + cryptoRandomFloat() * 1.5; threeBet = 0.04 + cryptoRandomFloat() * 0.05; break;
+    case 'LAG': vpip = 0.25 + cryptoRandomFloat() * 0.12; pfr = vpip - 0.03 - cryptoRandomFloat() * 0.05; af = 3.0 + cryptoRandomFloat() * 1.5; threeBet = 0.06 + cryptoRandomFloat() * 0.06; break;
+    case 'Nit': vpip = 0.10 + cryptoRandomFloat() * 0.05; pfr = vpip - 0.01 - cryptoRandomFloat() * 0.02; af = 1.8 + cryptoRandomFloat() * 0.8; threeBet = 0.02 + cryptoRandomFloat() * 0.03; break;
+    case 'SemiLAG': vpip = 0.22 + cryptoRandomFloat() * 0.08; pfr = vpip - 0.03 - cryptoRandomFloat() * 0.04; af = 2.5 + cryptoRandomFloat() * 1.0; threeBet = 0.05 + cryptoRandomFloat() * 0.04; break;
+    case 'STATION': vpip = 0.30 + cryptoRandomFloat() * 0.15; pfr = 0.05 + cryptoRandomFloat() * 0.05; af = 1.0 + cryptoRandomFloat() * 0.5; threeBet = 0.01 + cryptoRandomFloat() * 0.02; quirks = ['never_folds_pair']; break;
+    case 'LIMPER': vpip = 0.35 + cryptoRandomFloat() * 0.15; pfr = 0.02 + cryptoRandomFloat() * 0.03; af = 0.8 + cryptoRandomFloat() * 0.4; threeBet = 0.01; quirks = ['limps_everything']; break;
+    case 'MANIAC_FISH': style = 'Maniac'; vpip = 0.40 + cryptoRandomFloat() * 0.15; pfr = 0.25 + cryptoRandomFloat() * 0.10; af = 3.5 + cryptoRandomFloat() * 2.0; threeBet = 0.08 + cryptoRandomFloat() * 0.08; quirks = ['overbets_river']; break;
+    case 'SCARED_MONEY': vpip = 0.18 + cryptoRandomFloat() * 0.08; pfr = 0.08 + cryptoRandomFloat() * 0.05; af = 1.2 + cryptoRandomFloat() * 0.5; threeBet = 0.01 + cryptoRandomFloat() * 0.02; break;
+    default: vpip = 0.22; pfr = 0.16; af = 2.5; threeBet = 0.06; break;
+  }
+  return { style, vpip, pfr, af, threeBet, tiltProbability, quirks, name: generatePlayerName(id), emoji: generateCountry() };
+}
+
+export function generateField(numPlayers, fieldLevel) {
   const players = [];
   for (let i = 0; i < numPlayers; i++) {
-    players.push({ id: i + 1, ...generateProfile(i) });
+    players.push({ id: i + 1, ...generateProfile(i, fieldLevel || 'micro') });
   }
   return players;
 }
+
+export { FIELD_DISTRIBUTIONS };

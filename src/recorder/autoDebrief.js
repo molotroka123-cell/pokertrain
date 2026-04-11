@@ -444,6 +444,19 @@ function computeSessionStats(records) {
 function computeStageAnalysis(records) {
   if (records.length === 0) return null;
 
+  // Group by tournament format first — don't mix different tournaments
+  const byFormat = {};
+  for (const r of records) {
+    const fmt = r.tournamentFormat || 'unknown';
+    if (!byFormat[fmt]) byFormat[fmt] = [];
+    byFormat[fmt].push(r);
+  }
+
+  // Use records from the CURRENT session's format (last record's format)
+  const lastFormat = records[records.length - 1]?.tournamentFormat || 'unknown';
+  const filteredRecords = byFormat[lastFormat] || records;
+  const recsToUse = filteredRecords;
+
   // Classify each record into a tournament stage
   function getStage(r) {
     if (r.isFinalTable) return 'final_table';
@@ -456,7 +469,7 @@ function computeStageAnalysis(records) {
   }
 
   const stages = {};
-  for (const r of records) {
+  for (const r of recsToUse) {
     const stage = getStage(r);
     if (!stages[stage]) stages[stage] = [];
     stages[stage].push(r);
