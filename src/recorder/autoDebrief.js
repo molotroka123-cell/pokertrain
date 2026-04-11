@@ -397,21 +397,23 @@ function computeSessionStats(records) {
   }
   const wsd = handsWithShowdown.size > 0 ? Math.round((showdownWins.size / handsWithShowdown.size) * 100) : 0;
 
-  // AF per street
-  const flopActs = records.filter(r => r.stage === 'flop');
-  const flopRaises = flopActs.filter(r => r.action === 'raise').length;
-  const flopCalls = flopActs.filter(r => r.action === 'call').length;
-  const flopAF = flopCalls > 0 ? Math.round((flopRaises / flopCalls) * 10) / 10 : flopRaises > 0 ? 99 : 0;
+  // AF per street — deduplicated by unique hands (first action per hand per street)
+  function streetAF(stage) {
+    const byHand = new Map();
+    for (const r of records) {
+      if (r.stage !== stage) continue;
+      const key = r.handNumber;
+      if (!byHand.has(key)) byHand.set(key, r.action);
+    }
+    const actions = [...byHand.values()];
+    const raises = actions.filter(a => a === 'raise').length;
+    const calls = actions.filter(a => a === 'call').length;
+    return calls > 0 ? Math.round((raises / calls) * 10) / 10 : raises > 0 ? 99 : 0;
+  }
+  const flopAF = streetAF('flop');
 
-  const turnActs = records.filter(r => r.stage === 'turn');
-  const turnRaises = turnActs.filter(r => r.action === 'raise').length;
-  const turnCalls = turnActs.filter(r => r.action === 'call').length;
-  const turnAF = turnCalls > 0 ? Math.round((turnRaises / turnCalls) * 10) / 10 : turnRaises > 0 ? 99 : 0;
-
-  const riverActs = records.filter(r => r.stage === 'river');
-  const riverRaises = riverActs.filter(r => r.action === 'raise').length;
-  const riverCalls = riverActs.filter(r => r.action === 'call').length;
-  const riverAF = riverCalls > 0 ? Math.round((riverRaises / riverCalls) * 10) / 10 : riverRaises > 0 ? 99 : 0;
+  const turnAF = streetAF('turn');
+  const riverAF = streetAF('river');
 
   // River bet frequency (bets when checked to on river)
   const riverCheckedTo = records.filter(r => r.stage === 'river' && r.toCall === 0);

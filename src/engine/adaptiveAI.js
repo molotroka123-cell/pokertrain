@@ -287,9 +287,31 @@ export class AdaptiveAI extends BaseAI {
       if (baseDec.action === 'raise' && rand < 0.55 * el) return { action: 'check' };
     }
 
-    // ═══ POSITIONAL EXPLOITS ═══
+    // ═══ POSITIONAL EXPLOITS (position-specific) ═══
 
-    // Hero is tight → steal blinds every hand
+    // Use per-position data if available (AI-9)
+    try {
+      const heroPos = gs.position; // hero's position when we're acting against them
+      const posData = this.heroModel.byPosition[heroPos];
+      if (posData && posData.hands > 5) {
+        const posFoldRate = posData.folds / posData.hands;
+        // Hero folds too much from THIS position → bluff them here
+        if (posFoldRate > 0.60 && gs.stage === 'preflop' && baseDec.action === 'fold') {
+          if ((gs.position === 'BTN' || gs.position === 'CO') && rand < 0.40 * el) {
+            return { action: 'raise', amount: Math.floor(gs.bigBlind * 2.5) };
+          }
+        }
+        // Hero is loose from THIS position → value bet wider
+        const posVpip = posData.vpip / Math.max(posData.hands, 1);
+        if (posVpip > 0.40 && gs.handStrength > 0.50 && gs.toCall === 0) {
+          if (rand < 0.30 * el) {
+            return { action: 'raise', amount: Math.floor(gs.pot * 0.60) };
+          }
+        }
+      }
+    } catch (e) {}
+
+    // Hero is tight (global) → steal blinds every hand
     if (this.heroIsTight) {
       if (gs.stage === 'preflop' && baseDec.action === 'fold') {
         if ((gs.position === 'BTN' || gs.position === 'CO' || gs.position === 'SB') && rand < 0.35 * el) {

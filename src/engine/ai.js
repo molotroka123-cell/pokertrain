@@ -51,7 +51,7 @@ function boardTexture(community) {
 // ═══════════════════════════════════════
 // Purpose-Driven Sizing
 // ═══════════════════════════════════════
-function getSizing(purpose, pot, myChips) {
+function getSizing(purpose, pot, myChips, isIP) {
   let pct;
   switch (purpose) {
     case 'range_bet':   pct = 0.28 + cryptoRandomFloat() * 0.07; break;  // 28-35% pot
@@ -62,6 +62,8 @@ function getSizing(purpose, pot, myChips) {
     case 'block_bet':   pct = 0.20 + cryptoRandomFloat() * 0.05; break;  // 20-25%
     default:            pct = 0.50 + cryptoRandomFloat() * 0.15; break;  // 50-65%
   }
+  // OOP bets 15% bigger to compensate position disadvantage
+  if (isIP === false) pct *= 1.15;
   return Math.min(Math.floor(pot * pct), myChips);
 }
 
@@ -255,14 +257,14 @@ export class BaseAI {
     if (strength > 0.7) {
       // Final table: NEVER slow-play, max value
       if (isFT) {
-        const sizing = getSizing(strength > 0.85 ? 'polarized' : 'protection', pot, myChips);
+        const sizing = getSizing(strength > 0.85 ? 'polarized' : 'protection', pot, myChips, isIP);
         return { action: 'raise', amount: sizing };
       }
       // OOP: sometimes check-raise trap (12%)
       if (!isIP && rand < 0.12 && p.style !== 'STATION') {
         return { action: 'check' }; // Planning check-raise
       }
-      const sizing = getSizing(strength > 0.85 ? 'polarized' : 'protection', pot, myChips);
+      const sizing = getSizing(strength > 0.85 ? 'polarized' : 'protection', pot, myChips, isIP);
       return { action: 'raise', amount: sizing };
     }
 
@@ -291,7 +293,7 @@ export class BaseAI {
       const bubbleAdj = isBubble ? -0.10 : 0;
 
       if (rand < cbetFreq + styleBoost + bubbleAdj) {
-        return { action: 'raise', amount: getSizing(purpose, pot, myChips) };
+        return { action: 'raise', amount: getSizing(purpose, pot, myChips, isIP) };
       }
       return { action: 'check' };
     }
@@ -305,18 +307,18 @@ export class BaseAI {
       if (strength > 0.50 || (hasDraw && hi.drawOuts >= 8)) {
         // Strong hands + good draws: barrel
         const purpose = goodTurn ? 'protection' : 'thin_value';
-        if (rand < 0.70) return { action: 'raise', amount: getSizing(purpose, pot, myChips) };
+        if (rand < 0.70) return { action: 'raise', amount: getSizing(purpose, pot, myChips, isIP) };
       }
       if (strength > 0.35 && strength <= 0.50) {
         // Medium hands: pot control (check for deception / protect stack)
-        if (goodTurn && rand < 0.30) return { action: 'raise', amount: getSizing('thin_value', pot, myChips) };
+        if (goodTurn && rand < 0.30) return { action: 'raise', amount: getSizing('thin_value', pot, myChips, isIP) };
         return { action: 'check' }; // Pot control with medium
       }
       if (strength < 0.15 && goodTurn && rand < 0.22 * (af / 3)) {
         // Bluff barrel on good card (balanced with value bets)
         const bluffBoost = hi.hasBlockers ? 1.4 : 1.0;
         if (rand < 0.22 * (af / 3) * bluffBoost) {
-          return { action: 'raise', amount: getSizing('polarized', pot, myChips) };
+          return { action: 'raise', amount: getSizing('polarized', pot, myChips, isIP) };
         }
       }
       return { action: 'check' };
@@ -326,11 +328,11 @@ export class BaseAI {
     if (isAggressor && stage === 'river' && gs.didBetTurn) {
       if (strength > 0.55) {
         // Value: bet for max value
-        return { action: 'raise', amount: getSizing(strength > 0.75 ? 'polarized' : 'thin_value', pot, myChips) };
+        return { action: 'raise', amount: getSizing(strength > 0.75 ? 'polarized' : 'thin_value', pot, myChips, isIP) };
       }
       if (strength < 0.15 && rand < 0.22 * (af / 3) && p.style !== 'STATION') {
         // Bluff: complete the story
-        return { action: 'raise', amount: getSizing('polarized', pot, myChips) };
+        return { action: 'raise', amount: getSizing('polarized', pot, myChips, isIP) };
       }
       return { action: 'check' };
     }
@@ -339,7 +341,7 @@ export class BaseAI {
     if (strength > 0.50) {
       // Strong but not aggressor: donk bet sometimes, or check to trap
       if (isIP && rand < 0.15) {
-        return { action: 'raise', amount: getSizing('thin_value', pot, myChips) };
+        return { action: 'raise', amount: getSizing('thin_value', pot, myChips, isIP) };
       }
       // OOP: check to aggressor (let them c-bet into us)
       return { action: 'check' };
@@ -348,7 +350,7 @@ export class BaseAI {
     // Probe bet: non-aggressor bets after aggressor checks
     if (isIP && stage === 'turn' && !gs.didCbetFlop && strength > 0.30 && rand < 0.25) {
       // Delayed probe when aggressor showed weakness
-      return { action: 'raise', amount: getSizing('thin_value', pot, myChips) };
+      return { action: 'raise', amount: getSizing('thin_value', pot, myChips, isIP) };
     }
 
     // Draw: semi-bluff using hand info
@@ -360,7 +362,7 @@ export class BaseAI {
       const posBonus = isIP ? 0.10 : 0;
       if (rand < semiFreq + posBonus) {
         const sizing = hi.drawOuts >= 12 ? 'polarized' : 'protection';
-        return { action: 'raise', amount: getSizing(sizing, pot, myChips) };
+        return { action: 'raise', amount: getSizing(sizing, pot, myChips, isIP) };
       }
       return { action: 'check' };
     }
@@ -369,20 +371,20 @@ export class BaseAI {
     if (!isAggressor && !isIP && stage === 'flop' && !multiway) {
       const boardFavorsDefender = texture.highCard <= 8 && texture.connected >= 2;
       if (boardFavorsDefender && strength > 0.45 && rand < 0.35) {
-        return { action: 'raise', amount: getSizing('protection', pot, myChips) };
+        return { action: 'raise', amount: getSizing('protection', pot, myChips, isIP) };
       }
     }
 
     // Probe bet: when aggressor checked (their range is capped)
     if (isIP && !isAggressor && stage === 'turn' && strength > 0.30 && rand < 0.45) {
-      return { action: 'raise', amount: getSizing('thin_value', pot, myChips) };
+      return { action: 'raise', amount: getSizing('thin_value', pot, myChips, isIP) };
     }
 
     // River: thin value + balanced bluffs (GTO ~33% bluff ratio)
     if (stage === 'river') {
       // Top pair+ → value bet
       if (strength > 0.45 && rand < 0.35 * (af / 3)) {
-        return { action: 'raise', amount: getSizing('thin_value', pot, myChips) };
+        return { action: 'raise', amount: getSizing('thin_value', pot, myChips, isIP) };
       }
       // Bluff with blockers preferred, GTO frequency
       const riverBluffFreq = p.style === 'TAG' ? 0.28 : p.style === 'LAG' ? 0.35 :
@@ -390,7 +392,7 @@ export class BaseAI {
       if (strength < 0.12 && rand < riverBluffFreq) {
         const bluffBoost = hi.hasBlockers ? 1.5 : 1.0;
         if (rand < riverBluffFreq * bluffBoost) {
-          return { action: 'raise', amount: getSizing('polarized', pot, myChips) };
+          return { action: 'raise', amount: getSizing('polarized', pot, myChips, isIP) };
         }
       }
     }
@@ -413,6 +415,18 @@ export class BaseAI {
 
     // EV calculation — core of every decision
     const evOfCall = strength * (pot + toCall) - (1 - strength) * toCall;
+
+    // Check-raise follow-through: if we checked a monster and opponent bet → raise (that was the trap)
+    if (strength > 0.65 && !isIP && gs.streetActions?.length > 0) {
+      try {
+        // Did we check earlier this street?
+        const myChecks = (gs.streetActions || []).filter(a => !a.isHero && a.action === 'raise' && a.street === stage);
+        // If opponent bet into us and we have a monster → check-raise
+        if (myChecks.length > 0 && rand < 0.80) {
+          return { action: 'raise', amount: Math.min(Math.floor(currentBet * (2.5 + cryptoRandomFloat())), myChips) };
+        }
+      } catch (e) {}
+    }
 
     // Pot-committed: jam if committing >33% with decent hand
     if (commitRatio > 0.33 && strength > 0.50) {
