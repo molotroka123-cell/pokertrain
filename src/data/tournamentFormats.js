@@ -163,4 +163,46 @@ export const FORMATS = {
       { sb: 10000, bb: 20000, ante: 3000, mins: 2 },
     ],
   },
+
+  // ═══ CASH GAMES ═══
+  NL2: {
+    name: 'NL2 Cash (1/2)',
+    speed: 'Cash',
+    players: 6,
+    startingChips: 200,
+    playersPerTable: 6,
+    buyIn: 2,
+    isCash: true,
+    blindLevels: [{ sb: 1, bb: 2, ante: 0, mins: 999 }], // Never increases
+  },
+  NL5: {
+    name: 'NL5 Cash (2/5)',
+    speed: 'Cash',
+    players: 6,
+    startingChips: 500,
+    playersPerTable: 6,
+    buyIn: 5,
+    isCash: true,
+    blindLevels: [{ sb: 2, bb: 5, ante: 0, mins: 999 }],
+  },
+  NL10: {
+    name: 'NL10 Cash (5/10)',
+    speed: 'Cash',
+    players: 6,
+    startingChips: 1000,
+    playersPerTable: 6,
+    buyIn: 10,
+    isCash: true,
+    blindLevels: [{ sb: 5, bb: 10, ante: 0, mins: 999 }],
+  },
+  NL25: {
+    name: 'NL25 Cash (10/25)',
+    speed: 'Cash',
+    players: 6,
+    startingChips: 2500,
+    playersPerTable: 6,
+    buyIn: 25,
+    isCash: true,
+    blindLevels: [{ sb: 10, bb: 25, ante: 0, mins: 999 }],
+  },
 };

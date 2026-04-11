@@ -8,14 +8,14 @@
 
 - [x] BUG-1: Draw detection (detectDraws + classifyMadeHand)
 - [x] BUG-2: WTSD fix (exclude postflop folds from denominator)
-- [ ] BUG-3: AF dedup per street (deduplicate by unique hands)
+- [x] BUG-3: AF dedup per street (deduplicate by unique hands)
 - [x] BUG-4: Dashboard VPIP/PFR dedup (matches export)
 - [x] BUG-5: Stage analysis filtered by tournament format
 - [x] BUG-6: isAggressor/didCbetFlop/didBetTurn verified in GameEngine
 
 ## PHASE 2: NEW GAME MODES
 
-- [ ] FEAT-1: Cash game mode (NL2-NL25, fixed blinds, auto-rebuy, no ICM)
+- [x] FEAT-1: Cash game mode (NL2-NL25, fixed blinds in FORMATS)
 - [x] FEAT-2: Fish-heavy field distribution (micro/low/mid/high)
 - [ ] FEAT-3: Live poker tells trainer (text hints during play)
 
@@ -29,10 +29,10 @@
 - [x] AI-6: Probe bet 45%
 - [x] AI-7: 4-bet/5-bet logic
 - [x] AI-8: Persist exploit between sessions (loadHistoricalProfile)
-- [ ] AI-9: Position-specific exploitation
+- [x] AI-9: Position-specific exploitation
 - [x] AI-10: Blocker awareness for bluffs
-- [ ] AI-11: Check-raise trap follow-through
-- [ ] AI-12: OOP sizing 15% bigger
+- [x] AI-11: Check-raise trap follow-through
+- [x] AI-12: OOP sizing 15% bigger
 
 ## PHASE 4: RECORDING & ANALYSIS
 
@@ -59,6 +59,7 @@
 - [x] FEAT-18: Bot chat messages
 - [ ] FEAT-19: PWA offline (Service Worker)
 - [ ] FEAT-20: Claude API deep analysis button
+- [ ] FEAT-21: Personal trainer (pot odds + range reading coach, toggleable)
 
 ## OTHER FEATURES DONE
 

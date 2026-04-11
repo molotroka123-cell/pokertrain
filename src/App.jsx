@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { TournamentDirector } from './tournament/TournamentDirector.js';
 import { FORMATS } from './data/tournamentFormats.js';
+import { CASH_FORMATS } from './data/cashFormats.js';
 import { GameEngine, PHASE } from './engine/GameEngine.js';
 import { AdaptiveAI } from './engine/adaptiveAI.js';
 import { mRatio } from './engine/equity.js';
@@ -207,6 +208,23 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
         onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
         onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
         >WARM UP — Practice Weak Spots</button>
+
+        {/* Cash Game Section */}
+        <label style={{ fontSize: '11px', color: '#5a6a7a', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginTop: '16px', marginBottom: '8px' }}>Cash Game</label>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          {Object.entries(CASH_FORMATS).map(([key, f]) => (
+            <button key={key} onClick={() => onStart(key, name || 'Hero')} style={{
+              padding: '12px', borderRadius: '10px', border: '1px solid #1a3a2a',
+              background: 'linear-gradient(135deg, #0a1a12, #1a3a28)', cursor: 'pointer',
+              textAlign: 'left',
+            }}
+            onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
+            onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#27ae60' }}>{f.name}</div>
+              <div style={{ fontSize: '10px', color: '#5a7a6a', marginTop: '2px' }}>{f.playersPerTable}-max | {f.buyIn} chips</div>
+            </button>
+          ))}
+        </div>
 
         {/* Secondary buttons */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
