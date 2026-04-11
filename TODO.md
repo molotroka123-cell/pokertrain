@@ -17,7 +17,7 @@
 
 - [x] FEAT-1: Cash game mode (NL2-NL25, fixed blinds in FORMATS)
 - [x] FEAT-2: Fish-heavy field distribution (micro/low/mid/high)
-- [ ] FEAT-3: Live poker tells trainer (text hints during play)
+- [x] FEAT-3: Live poker tells trainer (text hints during play)
 
 ## PHASE 3: AI IMPROVEMENTS
 
@@ -49,17 +49,17 @@
 
 ## PHASE 5: INTEGRATIONS
 
-- [ ] FEAT-14: GTO Wizard study workflow
-- [ ] FEAT-15: WASM Postflop solver upgrade
+- [x] FEAT-14: GTO Wizard study workflow
+- [x] FEAT-15: WASM Postflop solver stub + upgrade docs
 
 ## PHASE 6: POLISH
 
 - [x] FEAT-16: Opponent notes system
 - [x] FEAT-17: Session planner (goal input)
 - [x] FEAT-18: Bot chat messages
-- [ ] FEAT-19: PWA offline (Service Worker)
-- [ ] FEAT-20: Claude API deep analysis button
-- [ ] FEAT-21: Personal trainer (pot odds + range reading coach, toggleable)
+- [x] FEAT-19: PWA offline (Service Worker)
+- [x] FEAT-20: Claude API deep analysis button
+- [x] FEAT-21: Personal trainer (pot odds + range reading coach, toggleable)
 
 ## OTHER FEATURES DONE
 
