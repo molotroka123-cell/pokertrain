@@ -52,7 +52,13 @@ export default function StatsScreen({ onBack }) {
 
   return (
     <div style={s.container}>
-      <div style={s.header}><div style={s.title}>Statistics</div><button onClick={onBack} style={s.back}>Back</button></div>
+      <div style={s.header}>
+        <div style={s.title}>Statistics</div>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <button onClick={() => { if (confirm('Clear all session history?')) { localStorage.removeItem('wsop_sessions'); localStorage.removeItem('pokertrain_achievements'); localStorage.removeItem('pokertrain_bankroll'); window.location.reload(); } }} style={{ ...s.back, color: '#8a4a4a', borderColor: '#3a1a20' }}>Clear</button>
+          <button onClick={onBack} style={s.back}>Back</button>
+        </div>
+      </div>
 
       <div style={s.grid}>
         <div style={s.stat}><div style={s.label}>Sessions</div><div style={{ ...s.val, color: '#e0e0e0' }}>{totalSessions}</div></div>

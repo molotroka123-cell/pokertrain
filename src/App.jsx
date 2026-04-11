@@ -746,6 +746,7 @@ function Game({ director, onExit }) {
   const playHand = useCallback(async () => {
     if (handActive) return;
     setHandActive(true);
+    try {
     const tState = dirRef.current.getState();
     if (!tState.heroTable || tState.heroEliminated) { setHandActive(false); return; }
     const tablePlayers = tState.heroTable.players.filter(p => !p.eliminated && p.chips > 0);
@@ -773,6 +774,9 @@ function Game({ director, onExit }) {
     dirRef.current.checkBlindLevel();
     setTourn(dirRef.current.getState());
     setHandCount(c => c + 1);
+    } catch (e) {
+      console.error('playHand error:', e);
+    }
     setHandActive(false);
   }, [handActive]);
 
@@ -894,24 +898,26 @@ function Game({ director, onExit }) {
       allHoleCards: gs.allHoleCards || null,
     });
 
-    // Post-hand mini analysis
-    const lastRecs = getRecords().filter(r => r.handNumber === handCount + 1);
-    const lastMistake = lastRecs.find(r => r.mistakeType);
-    if (lastMistake) {
-      const tips = {
-        bad_fold: 'You had enough equity to call — don\'t fold +EV spots',
-        bad_call: 'Calling was -EV here — save chips by folding',
-        too_passive: 'Your hand was strong enough to raise for value',
-        push_fold_error: 'Short stack — should have shoved',
-        icm_error: 'Bubble play — survival matters more than chips',
-        draw_fold_error: 'You had a draw with correct odds to continue',
-      };
-      setPostHandTip({ type: lastMistake.mistakeType, text: tips[lastMistake.mistakeType] || 'Review this decision', evLost: lastMistake.evLost });
-      setTimeout(() => setPostHandTip(null), 4000);
-    } else if (heroWon) {
-      setPostHandTip({ type: 'good', text: 'Well played!', evLost: 0 });
-      setTimeout(() => setPostHandTip(null), 2000);
-    }
+    // Post-hand mini analysis (safe — never crashes game)
+    try {
+      const lastRecs = getRecords().filter(r => r.handNumber === handCount + 1);
+      const lastMistake = lastRecs.find(r => r.mistakeType);
+      if (lastMistake) {
+        const tips = {
+          bad_fold: 'You had enough equity to call',
+          bad_call: 'Calling was -EV here',
+          too_passive: 'Strong enough to raise for value',
+          push_fold_error: 'Short stack — should have shoved',
+          icm_error: 'Bubble — survival matters more',
+          draw_fold_error: 'Draw with correct odds to continue',
+        };
+        setPostHandTip({ type: lastMistake.mistakeType, text: tips[lastMistake.mistakeType] || 'Review this decision', evLost: lastMistake.evLost });
+        setTimeout(() => setPostHandTip(null), 4000);
+      } else if (heroWon) {
+        setPostHandTip({ type: 'good', text: 'Well played!', evLost: 0 });
+        setTimeout(() => setPostHandTip(null), 2000);
+      }
+    } catch (e) { /* post-hand analysis is non-critical */ }
 
     // Save session after every hand
     saveSession();

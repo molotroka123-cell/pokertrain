@@ -366,8 +366,17 @@ export class GameEngine {
       didBetTurn: (this._myBetsThisHand || {})[player.id + '_' + PHASE.TURN] > 0,
     };
 
-    const decision = await ai.decide(gs);
-    return decision;
+    try {
+      const decision = await ai.decide(gs);
+      if (!decision || !decision.action) throw new Error('AI returned invalid decision');
+      return decision;
+    } catch (e) {
+      console.error('AI decision error:', e);
+      // Safe fallback — never crash the game
+      if (toCall <= 0) return { action: 'check' };
+      if (toCall > player.chips * 0.3) return { action: 'fold' };
+      return { action: 'call' };
+    }
   }
 
   _getHandStrength(playerId) {
