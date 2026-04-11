@@ -125,28 +125,32 @@ function SolverPanel() {
   const [position, setPosition] = useState('BTN');
   const [villainPos, setVillainPos] = useState('BB');
   const [result, setResult] = useState(null);
+  const [cfrResult, setCfrResult] = useState(null);
+  const [solving, setSolving] = useState(false);
 
   const askSolver = () => {
-    // Use local EV engine for quick analysis
-    import('../engine/evEngine.js').then(({ calculateQuickEV, classifyTexture }) => {
-      const heroCards = hand.split(/[\s,]+/).filter(Boolean);
-      const boardCards = board.split(/[\s,]+/).filter(Boolean);
-      if (heroCards.length !== 2) { setResult({ error: 'Enter 2 cards (e.g., "Ah Kd")' }); return; }
+    const heroCards = hand.split(/[\s,]+/).filter(Boolean);
+    const boardCards = board.split(/[\s,]+/).filter(Boolean);
+    if (heroCards.length !== 2) { setResult({ error: 'Enter 2 cards (e.g., "Ah Kd")' }); return; }
 
+    // Quick EV engine
+    import('../engine/evEngine.js').then(({ calculateQuickEV, classifyTexture }) => {
       const ev = calculateQuickEV(heroCards, boardCards.length >= 3 ? boardCards : [], 600, 300,
         { vpip: 0.25, pfr: 0.18, af: 2.5, style: 'TAG', foldToCbet: 0.45 }, position, [], 15000);
-
       const texture = boardCards.length >= 3 ? classifyTexture(boardCards) : 'preflop';
-
       setResult({
-        bestAction: ev.bestAction,
-        bestEV: ev.bestEV,
-        equity: ev.equity,
-        confidence: ev.confidence,
-        foldProb: ev.foldProb,
-        texture,
-        actions: ev.actions,
+        bestAction: ev.bestAction, bestEV: ev.bestEV, equity: ev.equity,
+        confidence: ev.confidence, foldProb: ev.foldProb, texture, actions: ev.actions,
       });
+    });
+
+    // CFR solver (Web Worker — non-blocking)
+    setSolving(true);
+    setCfrResult(null);
+    import('../engine/solver.js').then(({ solveCFR }) => {
+      solveCFR(heroCards, boardCards.length >= 3 ? boardCards : [], 600, 300, 15000, 0.5, 600)
+        .then(res => { setCfrResult(res); setSolving(false); })
+        .catch(() => setSolving(false));
     });
   };
 
@@ -199,6 +203,34 @@ function SolverPanel() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* CFR Solver Results */}
+      {solving && (
+        <div style={{ ...s.card, textAlign: 'center' }}>
+          <div style={{ color: '#d4af37', fontSize: '13px' }}>CFR Solver running...</div>
+        </div>
+      )}
+      {cfrResult && (
+        <div style={s.card}>
+          <div style={{ ...s.cardTitle, color: '#d4af37' }}>
+            CFR Solver: {cfrResult.bestAction?.toUpperCase()} ({cfrResult.bestFrequency}% freq)
+          </div>
+          <div style={{ fontSize: '12px', color: '#6b7b8d', marginBottom: '8px' }}>
+            Equity: {(cfrResult.equity * 100).toFixed(0)}% | {cfrResult.iterations} iterations
+          </div>
+          {cfrResult.actions?.map((a, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px', borderBottom: '1px solid #1a2230' }}>
+              <span style={{ color: a.action === cfrResult.bestAction ? '#ffd700' : '#6b7b8d', fontWeight: a.action === cfrResult.bestAction ? 700 : 400 }}>
+                {a.action === cfrResult.bestAction ? '★ ' : '  '}{a.action}
+              </span>
+              <span style={{ color: '#8899aa' }}>{a.frequency}%</span>
+              <span style={{ color: a.ev > 0 ? '#27ae60' : a.ev < 0 ? '#e74c3c' : '#6b7b8d' }}>
+                EV: {a.ev > 0 ? '+' : ''}{a.ev}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>
