@@ -24,6 +24,7 @@ import PersonalizedDrill from './drills/PersonalizedDrill.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
 import CoachScreen from './coach/Coach.jsx';
 import { Sounds } from './lib/sounds.js';
+import { getLiveTell } from './lib/liveTells.js';
 import { getTheme } from './lib/themes.js';
 import { ClaudeBossBot } from './engine/claudeAI.js';
 
@@ -744,6 +745,9 @@ function Game({ director, onExit }) {
   const [selectedOpponent, setSelectedOpponent] = useState(null);
   const [postHandTip, setPostHandTip] = useState(null);
   const [botChat, setBotChat] = useState(null);
+  const [tellHint, setTellHint] = useState(null);
+  const [liveMode, setLiveMode] = useState(false);
+  const [showTrainer, setShowTrainer] = useState(false);
 
   const dirRef = useRef(director);
   const engineRef = useRef(new GameEngine());
@@ -840,6 +844,15 @@ function Game({ director, onExit }) {
     else if (action === 'raise') Sounds.raise();
     engineRef.current.submitHeroAction(action, amount);
   }, [gs]);
+
+  // Live tell when facing bet
+  useEffect(() => {
+    try {
+      if (!liveMode || !gs?.waitingForHero || (gs?.toCall || 0) <= 0) { setTellHint(null); return; }
+      const tell = getLiveTell(gs.handStrength || 0.5, 'raise');
+      setTellHint(tell);
+    } catch (e) { setTellHint(null); }
+  }, [gs?.waitingForHero, gs?.toCall, liveMode]);
 
   // Record hero decisions after each hand completes
   useEffect(() => {
@@ -1194,15 +1207,47 @@ function Game({ director, onExit }) {
         </div>
       )}
 
-      {/* Controls + Range button */}
+      {/* Live tell hint */}
+      {tellHint && liveMode && gs?.waitingForHero && (
+        <div style={{
+          background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)',
+          borderRadius: '8px', padding: '8px 12px', margin: '4px 12px',
+          fontSize: '12px', color: '#c4b5fd', textAlign: 'center', fontStyle: 'italic',
+        }}>
+          <span>👁 {tellHint.text}</span>
+          <span style={{ fontSize: '10px', color: '#7c6faa', marginLeft: '6px' }}>({tellHint.reliability})</span>
+        </div>
+      )}
+
+      {/* Personal trainer — pot odds + range reading */}
+      {showTrainer && gs?.waitingForHero && gs?.toCall > 0 && (
+        <div style={{
+          background: 'rgba(39,174,96,0.12)', border: '1px solid rgba(39,174,96,0.25)',
+          borderRadius: '8px', padding: '8px 12px', margin: '4px 12px',
+          fontSize: '12px', color: '#a0d8b0', textAlign: 'center',
+        }}>
+          <div>Pot odds: <b>{Math.round((gs.toCall / (gs.pot + gs.toCall)) * 100)}%</b> — you need {Math.round((gs.toCall / (gs.pot + gs.toCall)) * 100)}% equity to call</div>
+          {gs.heroCards?.length === 2 && <div style={{ fontSize: '11px', color: '#6a9a7a', marginTop: '2px' }}>Your equity: ~{Math.round((gs.handStrength || 0.5) * 100)}%{(gs.handStrength || 0) > (gs.toCall / (gs.pot + gs.toCall)) ? ' ✓ +EV call' : ' ✗ -EV fold'}</div>}
+        </div>
+      )}
+
+      {/* Controls + Range button + toggles */}
       {gs?.waitingForHero && (
         <>
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', padding: '4px 0' }}>
             <button onClick={() => setShowRange(true)} style={{
               padding: '6px 16px', background: '#0d1118', border: '1px solid #1a2230',
               borderRadius: '8px', color: '#6b7b8d', fontSize: '11px', fontWeight: 600,
               cursor: 'pointer',
             }}>Range Chart</button>
+            <button onClick={() => setShowTrainer(t => !t)} style={{
+              padding: '6px 12px', background: showTrainer ? '#1a3a2a' : '#0d1118', border: `1px solid ${showTrainer ? '#27ae6044' : '#1a2230'}`,
+              borderRadius: '8px', color: showTrainer ? '#27ae60' : '#6b7b8d', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+            }}>Coach</button>
+            <button onClick={() => setLiveMode(l => !l)} style={{
+              padding: '6px 12px', background: liveMode ? '#2a1a40' : '#0d1118', border: `1px solid ${liveMode ? '#8b5cf644' : '#1a2230'}`,
+              borderRadius: '8px', color: liveMode ? '#c4b5fd' : '#6b7b8d', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+            }}>Live</button>
           </div>
           <Controls canCheck={gs.canCheck} canCall={gs.toCall > 0} toCall={gs.toCall}
             pot={gs.pot} myChips={gs.heroChips} minRaise={gs.minRaise} maxRaise={gs.maxRaise}

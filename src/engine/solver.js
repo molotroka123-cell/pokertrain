@@ -1,5 +1,14 @@
 // solver.js — CFR Solver wrapper with IndexedDB caching
 // Usage: const result = await solve(heroCards, board, pot, toCall, stack, opts)
+//
+// UPGRADE PATH TO WASM POSTFLOP (PioSolver accuracy):
+// 1. Clone https://github.com/b-inary/wasm-postflop
+// 2. npm install && npm run wasm
+// 3. Copy wasm/postflop_solver_bg.wasm + postflop_solver.js to public/
+// 4. In cfrWorker.js, import WASM module instead of JS solver
+// 5. Pass range strings from rangeEstimator.js to WASM solver
+// The solve() API stays the same — only worker internals change.
+// Cache (solverCache.js) works with both backends.
 
 import { getCachedSolution, cacheSolution, buildSpotKey } from './solverCache.js';
 

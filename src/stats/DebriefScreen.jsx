@@ -492,6 +492,71 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
         const url = URL.createObjectURL(blob); const a = document.createElement('a');
         a.href = url; a.download = `pokertrain_hands_${Date.now()}.txt`; a.click();
       }} style={s.exportBtn}>Download for GTO Wizard (.txt)</button>
+
+      {/* GTO Wizard Study Cards */}
+      {debrief.top5?.length > 0 && (
+        <div style={s.section}>
+          <div style={s.sectionTitle}>Study in GTO Wizard</div>
+          <div style={{ fontSize: '11px', color: '#5a6a7a', marginBottom: '10px' }}>
+            Open GTO Wizard → Solutions → Enter these spots
+          </div>
+          {debrief.top5.slice(0, 5).map((m, i) => {
+            const d = m.decision || {};
+            const stackBB = Math.round((d.myChips || 0) / Math.max(200, 1));
+            return (
+              <div key={i} style={{ background: '#0a0d12', borderRadius: '8px', padding: '10px', marginBottom: '6px', border: '1px solid #141a22', fontSize: '12px' }}>
+                <div style={{ color: '#e8d48b', fontWeight: 700, marginBottom: '4px' }}>#{m.handNumber} — {m.type?.replace(/_/g, ' ')} <span style={{ color: '#e74c3c' }}>(-{m.evLost})</span></div>
+                <div style={{ color: '#8899aa' }}>{d.holeCards} | {d.position} vs {d.facingAction?.position || '?'} | {d.community || 'preflop'}</div>
+                <div style={{ color: '#6b7b8d', marginTop: '2px' }}>Stack: {stackBB}BB | Pot: {d.potSize} | To call: {d.toCall}</div>
+                <div style={{ marginTop: '4px' }}><span style={{ color: '#e74c3c' }}>You: {d.action}</span> → <span style={{ color: '#27ae60' }}>GTO: {d.gtoAction}</span></div>
+              </div>
+            );
+          })}
+          <a href="https://gtowizard.com" target="_blank" rel="noopener noreferrer" style={{
+            display: 'block', textAlign: 'center', padding: '12px', background: 'linear-gradient(135deg, #1a3a6c, #2980b9)',
+            borderRadius: '10px', color: '#fff', fontWeight: 700, fontSize: '14px', textDecoration: 'none', marginTop: '8px',
+          }}>Open GTO Wizard →</a>
+        </div>
+      )}
+
+      {/* Claude AI Deep Analysis */}
+      {(() => {
+        const [aiText, setAiText] = React.useState(null);
+        const [loading, setLoading] = React.useState(false);
+        return (
+          <>
+            <button onClick={async () => {
+              if (loading) return;
+              setLoading(true);
+              try {
+                const trimmed = (records || []).slice(0, 50).map(r => ({
+                  h: r.handNumber, s: r.stage, p: r.position, cards: r.holeCards,
+                  board: r.community, pot: r.potSize, call: r.toCall, act: r.action,
+                  eq: r.equity, err: r.mistakeType, ev: r.evLost, hand: r.madeHandStrength,
+                }));
+                const res = await fetch('/api/claude', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000,
+                    messages: [{ role: 'user', content: `Ты покерный GTO-тренер. Анализ на русском. Найди ошибки и дай 3 задания.\n${JSON.stringify(trimmed)}` }] }),
+                });
+                if (!res.ok) throw new Error('API ' + res.status);
+                const data = await res.json();
+                setAiText(data.content?.[0]?.text || 'Нет ответа');
+              } catch (e) { setAiText('Ошибка: ' + e.message + '. Нужен ANTHROPIC_API_KEY в Vercel.'); }
+              setLoading(false);
+            }} disabled={loading} style={{
+              ...s.exportBtn, background: loading ? '#1a2230' : 'linear-gradient(135deg, #6c5ce7, #a855f7)',
+              color: '#fff', fontWeight: 700, border: 'none', opacity: loading ? 0.6 : 1,
+            }}>{loading ? '⏳ Анализирую...' : '🧠 Deep Analysis (Claude AI ~$0.03)'}</button>
+            {aiText && (
+              <div style={{ background: '#0d1118', borderRadius: '12px', padding: '14px', marginTop: '8px', border: '1px solid #6c5ce7', fontSize: '13px', color: '#c0d0e0', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#a855f7', marginBottom: '6px' }}>🧠 Claude AI</div>
+                {aiText}
+              </div>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }
