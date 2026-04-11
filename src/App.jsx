@@ -793,6 +793,7 @@ function Game({ director, onExit }) {
   // Record hero decisions after each hand completes
   useEffect(() => {
     if (!gs || gs.phase !== 'hand_over') return;
+    try {
     const tState = dirRef.current.getState();
     const hero = gs.players?.find(p => p.isHero);
     if (!hero) return;
@@ -929,11 +930,11 @@ function Game({ director, onExit }) {
         const recs = getRecords();
         if (recs.length > 0) {
           const deb = generateDebrief(recs);
-          // Trigger exit with debrief
           window.__autoDebrief = { debrief: deb, finish: { position: tStateNow.heroRank, total: tStateNow.totalPlayers }, records: recs };
         }
-      }, 3000); // Wait for showdown animation
+      }, 3000);
     }
+    } catch (e) { console.error('Record useEffect error:', e); }
   }, [gs?.phase, handCount]);
 
   if (view === 'dashboard') {
@@ -1184,7 +1185,27 @@ const DRILL_MAP = {
   pushfold: PushFoldDrill, postflop: PostflopDrill, sizing: SizingDrill, potodds: PotOddsDrill,
 };
 
-export default function App() {
+// Error boundary to prevent white/black screen crashes
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, info) { console.error('App crash:', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return React.createElement('div', { style: { padding: '40px', textAlign: 'center', color: '#e0e0e0', background: '#0a0d12', minHeight: '100vh' } },
+        React.createElement('h2', { style: { color: '#e74c3c' } }, 'Something went wrong'),
+        React.createElement('p', { style: { color: '#6b7b8d', margin: '10px 0' } }, String(this.state.error)),
+        React.createElement('button', {
+          onClick: () => { this.setState({ hasError: false }); window.location.reload(); },
+          style: { padding: '12px 24px', background: '#27ae60', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '16px', cursor: 'pointer', marginTop: '16px' },
+        }, 'Restart')
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function AppInner() {
   const [screen, setScreen] = useState('lobby');
   const [director, setDirector] = useState(null);
   const [activeDrill, setActiveDrill] = useState(null);
@@ -1247,4 +1268,8 @@ export default function App() {
     onDrills={() => setScreen('drills')}
     onStats={() => setScreen('stats')}
     onCoach={() => setScreen('coach')} />;
+}
+
+export default function App() {
+  return React.createElement(ErrorBoundary, null, React.createElement(AppInner));
 }

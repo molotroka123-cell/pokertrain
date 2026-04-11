@@ -15,8 +15,10 @@ const IP_POSITIONS = new Set(['BTN', 'CO', 'HJ']);
 // ═══════════════════════════════════════
 function boardTexture(community) {
   if (!community || community.length === 0) return { wet: 0, paired: false, monotone: false, highCard: 0, category: 'none' };
-  const suits = community.map(c => c[1]);
-  const ranks = community.map(c => RV[c[0]] || 0).sort((a, b) => a - b);
+  const validCards = community.filter(c => c && typeof c === 'string' && c.length >= 2);
+  if (validCards.length === 0) return { wet: 0, paired: false, monotone: false, highCard: 0, category: 'none' };
+  const suits = validCards.map(c => c[1]);
+  const ranks = validCards.map(c => RV[c[0]] || 0).sort((a, b) => a - b);
   const paired = new Set(ranks).size < ranks.length;
   const sc = {};
   for (const s of suits) sc[s] = (sc[s] || 0) + 1;
