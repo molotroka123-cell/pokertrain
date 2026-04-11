@@ -212,7 +212,7 @@ export class GameEngine {
     this.phase = PHASE.FLOP;
     this._resetStreetBets();
     onUpdate(this.getState());
-    await this._delay(600);
+    await this._delay(400);
 
     const postflopFirst = this._firstPostflopActor();
     await this._runStreet(PHASE.FLOP, postflopFirst, onUpdate);
@@ -224,7 +224,7 @@ export class GameEngine {
     this.phase = PHASE.TURN;
     this._resetStreetBets();
     onUpdate(this.getState());
-    await this._delay(500);
+    await this._delay(350);
 
     await this._runStreet(PHASE.TURN, postflopFirst, onUpdate);
     if (this._handEnded()) { await this._finishHand(onUpdate); return; }
@@ -235,7 +235,7 @@ export class GameEngine {
     this.phase = PHASE.RIVER;
     this._resetStreetBets();
     onUpdate(this.getState());
-    await this._delay(500);
+    await this._delay(350);
 
     await this._runStreet(PHASE.RIVER, postflopFirst, onUpdate);
     await this._finishHand(onUpdate);
@@ -312,7 +312,7 @@ export class GameEngine {
       } else {
         // AI decision — fast simulation with slight variation
         action = await this._getAIAction(p, toCall, pos);
-        await this._delay(300 + Math.floor(cryptoRandomFloat() * 400));
+        await this._delay(150 + Math.floor(cryptoRandomFloat() * 250));
       }
 
       // FIX: Never fold when toCall is 0 (free check) — preserve meta!
@@ -751,7 +751,7 @@ export class GameEngine {
     }
 
     // Wait for player to see showdown
-    await this._delay(4000); // Longer showdown for card viewing
+    await this._delay(1800); // Showdown card viewing
     this.phase = PHASE.HAND_OVER;
     onUpdate(this.getState());
   }

@@ -215,16 +215,25 @@ export class BaseAI {
     const odds = potOdds(toCall, pot);
     const strength = 1 - handVal;
 
-    // 4-bet / 5-bet detection
-    const is4Bet = currentBet > bigBlind * 12;
+    // 4-bet / 5-bet detection — cap at all-in, no crazy sizing
+    const is4Bet = currentBet > bigBlind * 8;
+    const is5Bet = currentBet > bigBlind * 20;
+    if (is5Bet) {
+      // Facing 5-bet: only AA/KK jam, everything else fold
+      if (cat === 'premium' && handVal <= 0.04) return { action: 'raise', amount: myChips };
+      if (cat === 'premium' && handVal <= 0.06) return { action: 'call' };
+      return { action: 'fold' };
+    }
     if (is4Bet) {
       if (cat === 'premium' && handVal <= 0.04) return { action: 'raise', amount: myChips }; // 5-bet jam AA/KK
       if (cat === 'premium' && handVal <= 0.08) return { action: 'call' }; // QQ, AKs flat
       return { action: 'fold' };
     }
 
+    // Reasonable raise sizing cap: don't 3-bet more than 25% of stack in deep play
+    const maxRaiseSize = Math.min(myChips, Math.max(Math.floor(myChips * 0.25), bigBlind * 12));
+
     // BB DEFENSE — GTO: ~40% vs 2.5x open, style-scaled
-    // BB threshold from ranges.js = 0.60, meaning top 48% of hands
     if (position === 'BB') {
       const bbScale = p.style === 'STATION' ? 1.3 : p.style === 'Nit' ? 0.50 :
         p.style === 'LAG' ? 1.1 : p.style === 'Maniac' ? 1.35 :
@@ -234,7 +243,7 @@ export class BaseAI {
 
       if (raiseBBs <= 3.5) {
         if (isIn3BetRange(holeCards[0], holeCards[1], 'BB') && rand < (p.threeBet || 0.08)) {
-          return { action: 'raise', amount: Math.min(Math.floor(currentBet * (3 + cryptoRandomFloat() * 0.5)), myChips) };
+          return { action: 'raise', amount: Math.min(Math.floor(currentBet * (3 + cryptoRandomFloat() * 0.5)), maxRaiseSize || myChips) };
         }
         const adjWidth = bbDefThreshold - mwPenalty * 3;
         if (handVal <= adjWidth + (rand - 0.5) * 0.04) return { action: 'call' };
@@ -257,7 +266,7 @@ export class BaseAI {
         return { action: 'raise', amount: Math.min(Math.floor(currentBet * (3.2 + cryptoRandomFloat() * 0.5)), myChips) };
       }
       if (raiseBBs <= 3 && handVal <= sbDefThreshold - mwPenalty * 3) return { action: 'call' };
-      if (cat === 'premium') return { action: 'raise', amount: Math.min(Math.floor(currentBet * 3), myChips) };
+      if (cat === 'premium') return { action: 'raise', amount: Math.min(Math.floor(currentBet * 3), maxRaiseSize || myChips) };
       return { action: 'fold' };
     }
 
@@ -265,7 +274,7 @@ export class BaseAI {
     if (isIn3BetRange(holeCards[0], holeCards[1], position) && rand < (p.threeBet || 0.06)) {
       return { action: 'raise', amount: Math.min(Math.floor(currentBet * (2.8 + cryptoRandomFloat() * 0.5)), myChips) };
     }
-    if (cat === 'premium') return { action: 'raise', amount: Math.min(Math.floor(currentBet * 3), myChips) };
+    if (cat === 'premium') return { action: 'raise', amount: Math.min(Math.floor(currentBet * 3), maxRaiseSize || myChips) };
 
     // Cold call range — tighter than opening. Use position-aware thresholds.
     // IP (BTN/CO) can call wider, EP very tight
@@ -597,7 +606,7 @@ export class BaseAI {
     if (!isIP && !isAggressor) {
       // Check-raise bluff on dry boards (5%) — heads up only
       if (!multiway && strength < 0.18 && texture.category === 'dry' && stage === 'flop' && af > 2.5 && rand < 0.05) {
-        return { action: 'raise', amount: Math.min(Math.floor(currentBet * 3), myChips) };
+        return { action: 'raise', amount: Math.min(Math.floor(currentBet * 3), maxRaiseSize || myChips) };
       }
       // Check-raise value (22%)
       if (strength > 0.60 && rand < 0.22) {
