@@ -752,6 +752,7 @@ function Game({ director, onExit }) {
   const dirRef = useRef(director);
   const engineRef = useRef(new GameEngine());
   const aiBotsRef = useRef({});
+  const chipsBeforeHandRef = useRef(0);
 
   useEffect(() => {
     const state = dirRef.current.getState();
@@ -809,6 +810,7 @@ function Game({ director, onExit }) {
     // Capture hero chips BEFORE blinds/antes are posted
     const heroBeforeHand = tablePlayers.find(p => p.isHero);
     const chipsBeforeHand = heroBeforeHand?.chips || 0;
+    chipsBeforeHandRef.current = chipsBeforeHand;
     const engine = engineRef.current;
     const blinds = tState.blinds;
     const dealer = tState.heroTable.dealer % tablePlayers.length;
@@ -858,6 +860,7 @@ function Game({ director, onExit }) {
   useEffect(() => {
     if (!gs || gs.phase !== 'hand_over') return;
     try {
+    const chipsBeforeHand = chipsBeforeHandRef.current;
     const tState = dirRef.current.getState();
     const hero = gs.players?.find(p => p.isHero);
     if (!hero) return;
