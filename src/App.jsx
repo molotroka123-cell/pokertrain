@@ -39,224 +39,300 @@ function fmt(n) {
 // PREMIUM LOBBY — V3 Design
 // ════════════════════════════════════════════
 function Lobby({ onStart, onDrills, onStats, onCoach }) {
+  const [tab, setTab] = useState('mtt');
   const [format, setFormat] = useState('WSOP_Main');
   const [name, setName] = useState('');
   const [showChecklist, setShowChecklist] = useState(false);
   const [checklist, setChecklist] = useState({ sleep: true, focus: true, tilt: true, goal: true });
   const [sessionGoal, setSessionGoal] = useState('');
 
+  // Quick stats from localStorage
+  const sessions = JSON.parse(localStorage.getItem('wsop_sessions') || '[]');
+  const totalSessions = sessions.length;
+  const totalHands = sessions.reduce((a, s) => a + (s.totalHands || 0), 0);
+  const bestFinish = sessions.length > 0 ? Math.min(...sessions.filter(s => s.records?.[0]?.totalPlayers).map(s => {
+    const last = s.records?.[s.records.length - 1];
+    return last?.playersRemaining || 999;
+  })) : null;
+
+  const tabStyle = (active) => ({
+    flex: 1, padding: '11px 0', border: 'none', borderRadius: 0, cursor: 'pointer',
+    background: active ? 'transparent' : 'transparent',
+    color: active ? '#ffd700' : '#4a5a6a', fontWeight: 700, fontSize: '12px',
+    letterSpacing: '1.5px', textTransform: 'uppercase', transition: 'color 0.2s',
+    borderBottom: active ? '2px solid #ffd700' : '2px solid transparent',
+  });
+
+  const cardBtn = (isSelected) => ({
+    padding: '14px 16px', borderRadius: '12px', marginBottom: '6px', cursor: 'pointer',
+    background: isSelected ? 'linear-gradient(135deg, #10192a, #162040)' : '#080c14',
+    border: `1px solid ${isSelected ? 'rgba(212,175,55,0.25)' : '#111820'}`,
+    transition: 'all 0.2s', position: 'relative', overflow: 'hidden',
+    boxShadow: isSelected ? '0 2px 16px rgba(212,175,55,0.08)' : 'none',
+  });
+
   return (
     <div style={{
       minHeight: '100dvh',
-      background: 'radial-gradient(ellipse at 50% 0%, #0d1520 0%, #080a10 60%, #040608 100%)',
+      background: '#060810',
       color: '#e0e0e0', fontFamily: "'Segoe UI', -apple-system, sans-serif",
-      paddingTop: 'env(safe-area-inset-top, 0px)',
+      paddingTop: 'env(safe-area-inset-top, 0px)', display: 'flex', flexDirection: 'column',
     }}>
-      {/* Hero banner */}
+      {/* ═══ TOP BAR ═══ */}
       <div style={{
-        textAlign: 'center', padding: '40px 20px 20px',
-        background: 'linear-gradient(180deg, rgba(212,175,55,0.08) 0%, transparent 100%)',
+        padding: '16px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        background: 'linear-gradient(180deg, #0c1018 0%, #060810 100%)',
       }}>
-        <div style={{ fontSize: '13px', color: '#6a7a8a', letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '8px' }}>Tournament</div>
-        <div style={{
-          fontSize: '34px', fontWeight: 900, letterSpacing: '3px',
-          background: 'linear-gradient(135deg, #ffd700, #e8a800, #ffd700)',
-          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          textShadow: 'none', filter: 'drop-shadow(0 2px 8px rgba(255,215,0,0.15))',
-        }}>POKER TRAINER</div>
+        <div>
+          <div style={{
+            fontSize: '22px', fontWeight: 900, letterSpacing: '2px',
+            background: 'linear-gradient(135deg, #ffd700, #f0c030, #d4af37)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>POKERTRAIN</div>
+        </div>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Hero"
+          style={{
+            width: '110px', padding: '8px 12px', background: '#0c1018', border: '1px solid #1a2230',
+            borderRadius: '8px', color: '#c0d0e0', fontSize: '13px', outline: 'none',
+            textAlign: 'right', boxSizing: 'border-box',
+          }}
+          onFocus={e => e.target.style.borderColor = '#d4af37'}
+          onBlur={e => e.target.style.borderColor = '#1a2230'}
+        />
       </div>
 
-      <div style={{ maxWidth: '520px', margin: '0 auto', padding: '0 20px 40px' }}>
-        {/* Name input */}
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '11px', color: '#5a6a7a', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '6px' }}>Player Name</label>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Hero"
-            style={{
-              width: '100%', padding: '14px 16px', background: '#0d1118', border: '1px solid #1e2a3a',
-              borderRadius: '10px', color: '#e0e0e0', fontSize: '16px', outline: 'none',
-              boxSizing: 'border-box', transition: 'border-color 0.2s',
-            }}
-            onFocus={e => e.target.style.borderColor = '#ffd700'}
-            onBlur={e => e.target.style.borderColor = '#1e2a3a'}
-          />
+      {/* ═══ QUICK STATS ROW ═══ */}
+      {totalSessions > 0 && (
+        <div style={{
+          display: 'flex', gap: '1px', margin: '10px 16px 0', borderRadius: '10px', overflow: 'hidden',
+          background: '#111820',
+        }}>
+          {[
+            { label: 'Sessions', val: totalSessions },
+            { label: 'Hands', val: totalHands > 999 ? (totalHands / 1000).toFixed(1) + 'K' : totalHands },
+            { label: 'Best', val: bestFinish && bestFinish < 999 ? '#' + bestFinish : '-' },
+          ].map((s, i) => (
+            <div key={i} style={{ flex: 1, padding: '8px 4px', textAlign: 'center', background: '#0a0e14' }}>
+              <div style={{ fontSize: '15px', fontWeight: 800, color: '#c0d0e0' }}>{s.val}</div>
+              <div style={{ fontSize: '9px', color: '#4a5a6a', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '1px' }}>{s.label}</div>
+            </div>
+          ))}
         </div>
+      )}
 
-        {/* Format selector */}
-        <label style={{ fontSize: '11px', color: '#5a6a7a', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>Tournament Format</label>
-        {Object.entries(FORMATS).map(([key, f]) => (
-          <div key={key} onClick={() => setFormat(key)} style={{
-            padding: '16px', borderRadius: '12px', marginBottom: '8px', cursor: 'pointer',
-            background: format === key ? 'linear-gradient(135deg, #141e30, #1a2a40)' : '#0a0e14',
-            border: `1.5px solid ${format === key ? 'rgba(212,175,55,0.3)' : '#141a22'}`,
-            transition: 'all 0.25s ease', position: 'relative', overflow: 'hidden',
-            boxShadow: format === key ? '0 4px 20px rgba(212,175,55,0.1)' : 'none',
-          }}>
-            {format === key && <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: '#d4af37', borderRadius: '3px 0 0 3px' }} />}
+      {/* ═══ TAB BAR ═══ */}
+      <div style={{
+        display: 'flex', margin: '12px 16px 0', borderBottom: '1px solid #141a22',
+      }}>
+        {[
+          { id: 'mtt', label: 'Tournaments' },
+          { id: 'cash', label: 'Cash' },
+          { id: 'train', label: 'Training' },
+        ].map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={tabStyle(tab === t.id)}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* ═══ CONTENT AREA ═══ */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 100px' }}>
+
+        {/* ═══ MTT TAB ═══ */}
+        {tab === 'mtt' && (<>
+          {/* HARDCORE — featured card */}
+          <div onClick={() => onStart('HARDCORE', name || 'Hero')} style={{
+            padding: '18px', borderRadius: '14px', cursor: 'pointer', marginBottom: '12px',
+            background: 'linear-gradient(135deg, #1a0808, #2a0a0a, #1a0505)',
+            border: '1px solid rgba(220,40,40,0.25)', position: 'relative', overflow: 'hidden',
+          }}
+          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}>
+            <div style={{ position: 'absolute', top: 0, right: 0, width: '120px', height: '100%', background: 'radial-gradient(circle at 100% 50%, rgba(220,40,40,0.12), transparent 70%)' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '15px', color: format === key ? '#ffd700' : '#c0d0e0' }}>
-                  {f.name}
-                  {f.speed && <span style={{
-                    fontSize: '10px', fontWeight: 600, marginLeft: '8px',
-                    padding: '2px 6px', borderRadius: '6px',
-                    background: f.speed === 'Turbo' || f.speed === 'Hyper Turbo' ? 'rgba(220,53,69,0.2)' : f.speed === 'Fast' ? 'rgba(212,175,55,0.15)' : 'rgba(90,106,122,0.15)',
-                    color: f.speed === 'Turbo' || f.speed === 'Hyper Turbo' ? '#ff6050' : f.speed === 'Fast' ? '#d4af37' : '#7a8a9a',
-                    verticalAlign: 'middle',
-                  }}>{f.speed}</span>}
-                </div>
-                <div style={{ fontSize: '12px', color: '#5a6a7a', marginTop: '3px' }}>
-                  {f.players} players | {f.startingChips.toLocaleString()} chips | {f.blindLevels[0].mins} min levels
-                </div>
+                <div style={{ fontSize: '11px', color: '#cc3030', fontWeight: 800, letterSpacing: '3px', marginBottom: '4px' }}>FEATURED</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: '#ff4040', letterSpacing: '2px' }}>HARDCORE 6-Max</div>
+                <div style={{ fontSize: '11px', color: '#6a3030', marginTop: '4px' }}>5 AI Pro bots vs You — no mercy</div>
               </div>
-              <div style={{ fontSize: '16px', fontWeight: 700, color: format === key ? '#ffd700' : '#3a4a5a' }}>
-                ${f.buyIn.toLocaleString()}
-              </div>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, #cc2020, #ff4040)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '18px', fontWeight: 900, color: '#fff',
+                boxShadow: '0 0 20px rgba(220,40,40,0.3)',
+              }}>VS</div>
             </div>
           </div>
-        ))}
 
-        {/* Start button */}
-        <button onClick={() => { if (!showChecklist) { setShowChecklist(true); return; } onStart(format, name || 'Hero'); }} style={{
-          width: '100%', padding: '18px', border: 'none', borderRadius: '14px', cursor: 'pointer',
-          background: 'linear-gradient(135deg, #1a6a3a, #27ae60, #2ecc71)',
-          color: '#fff', fontWeight: 800, fontSize: '18px', letterSpacing: '1px',
-          boxShadow: '0 4px 20px rgba(39,174,96,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
-          transition: 'transform 0.15s, box-shadow 0.15s', marginTop: '8px',
-        }}
-        onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
-        onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
-        >{showChecklist ? 'GO' : 'START TOURNAMENT'}</button>
+          {/* Tournament list */}
+          {Object.entries(FORMATS).map(([key, f]) => (
+            <div key={key} onClick={() => setFormat(key)} style={cardBtn(format === key)}>
+              {format === key && <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: '#d4af37' }} />}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: format === key ? '#ffd700' : '#a0b0c0' }}>
+                    {f.name}
+                    {f.speed && <span style={{
+                      fontSize: '9px', fontWeight: 700, marginLeft: '8px',
+                      padding: '2px 6px', borderRadius: '4px',
+                      background: f.speed === 'Turbo' || f.speed === 'Hyper Turbo' ? 'rgba(220,53,69,0.15)' : 'rgba(90,106,122,0.1)',
+                      color: f.speed === 'Turbo' || f.speed === 'Hyper Turbo' ? '#ff5040' : '#6a7a8a',
+                    }}>{f.speed}</span>}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#3a4a5a', marginTop: '3px' }}>
+                    {f.players} entrants  ·  {f.startingChips.toLocaleString()} chips  ·  {f.blindLevels[0].mins}m levels
+                  </div>
+                </div>
+                <div style={{
+                  fontSize: '14px', fontWeight: 800,
+                  color: format === key ? '#ffd700' : '#2a3a4a',
+                  minWidth: '60px', textAlign: 'right',
+                }}>${f.buyIn.toLocaleString()}</div>
+              </div>
+            </div>
+          ))}
 
-        {/* Mental game checklist */}
-        {showChecklist && (
-          <div style={{
-            padding: '12px', background: '#0a0e14', borderRadius: '12px', marginTop: '8px',
-            border: '1px solid #1a2230',
-          }}>
-            <div style={{ fontSize: '12px', color: '#d4af37', fontWeight: 700, marginBottom: '8px' }}>Mental Game Check</div>
+          {/* Register button */}
+          <button onClick={() => { if (!showChecklist) { setShowChecklist(true); return; } onStart(format, name || 'Hero'); }} style={{
+            width: '100%', padding: '16px', border: 'none', borderRadius: '12px', cursor: 'pointer',
+            background: 'linear-gradient(135deg, #1a6a3a, #22a050)',
+            color: '#fff', fontWeight: 800, fontSize: '16px', letterSpacing: '1px',
+            boxShadow: '0 4px 20px rgba(34,160,80,0.25), inset 0 1px 0 rgba(255,255,255,0.08)',
+            transition: 'transform 0.12s', marginTop: '8px',
+          }}
+          onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
+          onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
+          >{showChecklist ? 'REGISTER & PLAY' : 'REGISTER'}</button>
+
+          {/* Mental game checklist — collapsed by default */}
+          {showChecklist && (
+            <div style={{ padding: '12px', background: '#080c14', borderRadius: '12px', marginTop: '8px', border: '1px solid #141a22' }}>
+              <div style={{ fontSize: '11px', color: '#d4af37', fontWeight: 700, marginBottom: '8px', letterSpacing: '1px' }}>PRE-GAME CHECK</div>
+              {[
+                { key: 'sleep', label: 'Well rested' },
+                { key: 'focus', label: 'Can focus 30+ min' },
+                { key: 'tilt', label: 'Not tilted' },
+                { key: 'goal', label: 'Have a goal' },
+              ].map(item => (
+                <div key={item.key} onClick={() => setChecklist(c => ({ ...c, [item.key]: !c[item.key] }))} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '7px 10px', cursor: 'pointer', borderRadius: '8px', marginBottom: '3px',
+                  background: checklist[item.key] ? 'rgba(34,160,80,0.08)' : 'rgba(200,50,50,0.06)',
+                  border: `1px solid ${checklist[item.key] ? '#22a05020' : '#c8323220'}`,
+                }}>
+                  <span style={{ fontSize: '12px', color: '#a0b0c0' }}>{item.label}</span>
+                  <span style={{ fontSize: '14px', color: checklist[item.key] ? '#22a050' : '#c03030' }}>{checklist[item.key] ? '✓' : '✗'}</span>
+                </div>
+              ))}
+              <input value={sessionGoal} onChange={e => setSessionGoal(e.target.value)} placeholder="Session goal..."
+                style={{ width: '100%', padding: '8px 10px', background: '#060810', border: '1px solid #141a22', borderRadius: '8px', color: '#a0b0c0', fontSize: '12px', marginTop: '6px', boxSizing: 'border-box', outline: 'none' }} />
+            </div>
+          )}
+        </>)}
+
+        {/* ═══ CASH TAB ═══ */}
+        {tab === 'cash' && (<>
+          <div style={{ fontSize: '11px', color: '#3a5a4a', fontWeight: 700, letterSpacing: '2px', marginBottom: '10px' }}>SELECT STAKES</div>
+          {Object.entries(CASH_FORMATS).map(([key, f]) => (
+            <div key={key} onClick={() => onStart(key, name || 'Hero')} style={{
+              padding: '16px', borderRadius: '12px', marginBottom: '6px', cursor: 'pointer',
+              background: '#080c14', border: '1px solid #0a1a14',
+              transition: 'all 0.2s',
+            }}
+            onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.borderColor = '#1a4a2a'; }}
+            onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = '#0a1a14'; }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#27ae60' }}>{f.name}</div>
+                  <div style={{ fontSize: '11px', color: '#3a5a4a', marginTop: '2px' }}>{f.playersPerTable}-max  ·  {f.buyIn} chips  ·  Rake {f.rake * 100}%</div>
+                </div>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1a4a2a' }}>PLAY</div>
+              </div>
+            </div>
+          ))}
+        </>)}
+
+        {/* ═══ TRAINING TAB ═══ */}
+        {tab === 'train' && (<>
+          {/* Warm up */}
+          <div onClick={() => {
+            const allRecs = sessions.flatMap(s => s.records || []);
+            const mistakes = allRecs.filter(r => r.mistakeType);
+            const typeCounts = {};
+            for (const m of mistakes) typeCounts[m.mistakeType] = (typeCounts[m.mistakeType] || 0) + 1;
+            const worst = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+            const drillMap = { bad_fold: 'potodds', bad_call: 'potodds', too_passive: 'sizing', push_fold_error: 'pushfold', icm_error: 'pushfold', draw_fold_error: 'potodds' };
+            window.__quickDrill = worst ? (drillMap[worst[0]] || 'rfi') : 'rfi';
+            onDrills();
+          }} style={{
+            padding: '18px', borderRadius: '14px', cursor: 'pointer', marginBottom: '12px',
+            background: 'linear-gradient(135deg, #140a20, #1a1030)',
+            border: '1px solid rgba(120,60,180,0.2)',
+          }}
+          onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.98)'; }}
+          onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}>
+            <div style={{ fontSize: '11px', color: '#7a4aaa', fontWeight: 800, letterSpacing: '2px', marginBottom: '4px' }}>SMART WARMUP</div>
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#b080e0' }}>Practice Your Weak Spots</div>
+            <div style={{ fontSize: '11px', color: '#5a3a7a', marginTop: '3px' }}>Auto-detects your most common mistakes</div>
+          </div>
+
+          {/* All drills button */}
+          <button onClick={onDrills} style={{
+            width: '100%', padding: '16px', border: 'none', borderRadius: '12px', cursor: 'pointer',
+            background: 'linear-gradient(135deg, #0a1a3a, #1a3a6a)',
+            color: '#70a0d0', fontWeight: 700, fontSize: '15px',
+            boxShadow: '0 2px 12px rgba(40,120,190,0.15)',
+            marginBottom: '12px',
+          }}
+          onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
+          onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
+          >ALL TRAINING DRILLS</button>
+
+          {/* Quick drills grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             {[
-              { key: 'sleep', label: 'Well rested' },
-              { key: 'focus', label: 'Can focus 30+ min' },
-              { key: 'tilt', label: 'Not tilted / frustrated' },
-              { key: 'goal', label: 'Have a session goal' },
-            ].map(item => (
-              <div key={item.key} onClick={() => setChecklist(c => ({ ...c, [item.key]: !c[item.key] }))} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '8px', cursor: 'pointer', borderRadius: '8px', marginBottom: '4px',
-                background: checklist[item.key] ? 'rgba(39,174,96,0.1)' : 'rgba(231,76,60,0.1)',
-                border: `1px solid ${checklist[item.key] ? '#27ae6033' : '#e74c3c33'}`,
-              }}>
-                <span style={{ fontSize: '13px', color: '#c0d0e0' }}>{item.label}</span>
-                <span style={{ fontSize: '16px' }}>{checklist[item.key] ? '✓' : '✗'}</span>
+              { id: 'rfi', label: 'Preflop Ranges', sub: 'Open/Fold by position', color: '#27ae60', bg: '#0a1a12' },
+              { id: 'pushfold', label: 'Push/Fold', sub: 'Short stack ICM', color: '#e74c3c', bg: '#1a0a0a' },
+              { id: 'potodds', label: 'Pot Odds', sub: 'Call/fold math', color: '#3498db', bg: '#0a1220' },
+              { id: 'postflop', label: 'Postflop Play', sub: 'Flop/Turn/River', color: '#9b59b6', bg: '#140a1a' },
+              { id: 'sizing', label: 'Bet Sizing', sub: 'Value & protection', color: '#f39c12', bg: '#1a1408' },
+              { id: 'threebet', label: '3-Bet Pots', sub: 'Defend & attack', color: '#e74c3c', bg: '#1a0c0c' },
+            ].map(d => (
+              <div key={d.id} onClick={() => { window.__quickDrill = d.id; onDrills(); }} style={{
+                padding: '14px', background: d.bg, border: `1px solid ${d.color}15`,
+                borderRadius: '12px', cursor: 'pointer', transition: 'transform 0.12s',
+              }}
+              onMouseDown={e => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+              onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: d.color }}>{d.label}</div>
+                <div style={{ fontSize: '10px', color: '#4a5a6a', marginTop: '2px' }}>{d.sub}</div>
               </div>
             ))}
-            {Object.values(checklist).filter(v => !v).length >= 2 && (
-              <div style={{ fontSize: '11px', color: '#e74c3c', marginTop: '6px', textAlign: 'center' }}>
-                Not recommended to play — consider warming up with drills first
-              </div>
-            )}
-            <div style={{ marginTop: '8px' }}>
-              <label style={{ fontSize: '10px', color: '#5a7a8a' }}>Session goal (e.g., "don't call without raising range")</label>
-              <input value={sessionGoal} onChange={e => setSessionGoal(e.target.value)} placeholder="My goal this session..."
-                style={{ width: '100%', padding: '8px 10px', background: '#0a0d12', border: '1px solid #1a2230', borderRadius: '8px', color: '#c0d0e0', fontSize: '13px', marginTop: '4px', boxSizing: 'border-box', outline: 'none' }} />
-            </div>
           </div>
-        )}
+        </>)}
+      </div>
 
-        {/* Drills button */}
-        <button onClick={onDrills} style={{
-          width: '100%', padding: '16px', border: 'none', borderRadius: '14px', cursor: 'pointer',
-          background: 'linear-gradient(135deg, #1a3a6c, #2980b9)',
-          color: '#fff', fontWeight: 700, fontSize: '16px', letterSpacing: '0.5px',
-          boxShadow: '0 4px 16px rgba(41,128,185,0.25)',
-          marginTop: '12px', transition: 'transform 0.15s',
-        }}
-        onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
-        onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
-        >TRAINING DRILLS</button>
-
-        {/* Hardcore mode */}
-        <button onClick={() => onStart('HARDCORE', name || 'Hero')} style={{
-          width: '100%', padding: '14px', border: 'none', borderRadius: '14px', cursor: 'pointer',
-          background: 'linear-gradient(135deg, #3a0a0a, #cc2020, #8a1010)',
-          color: '#fff', fontWeight: 800, fontSize: '15px', letterSpacing: '1px',
-          boxShadow: '0 4px 20px rgba(204,32,32,0.3)',
-          marginTop: '10px', transition: 'transform 0.15s',
-        }}
-        onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
-        onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
-        >HARDCORE — 5 AI PRO vs YOU</button>
-
-        {/* Warm-up button */}
-        <button onClick={() => {
-          // Detect weakest area from past sessions
-          const sessions = JSON.parse(localStorage.getItem('wsop_sessions') || '[]');
-          const allRecs = sessions.flatMap(s => s.records || []);
-          const mistakes = allRecs.filter(r => r.mistakeType);
-          const typeCounts = {};
-          for (const m of mistakes) typeCounts[m.mistakeType] = (typeCounts[m.mistakeType] || 0) + 1;
-          const worst = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
-          const drillMap = { bad_fold: 'potodds', bad_call: 'potodds', too_passive: 'sizing', push_fold_error: 'pushfold', icm_error: 'pushfold', draw_fold_error: 'potodds' };
-          const drillId = worst ? (drillMap[worst[0]] || 'rfi') : 'rfi';
-          window.__quickDrill = drillId;
-          onDrills();
-        }} style={{
-          width: '100%', padding: '14px', border: 'none', borderRadius: '14px', cursor: 'pointer',
-          background: 'linear-gradient(135deg, #2a1a40, #6a3a9a)',
-          color: '#fff', fontWeight: 700, fontSize: '15px',
-          boxShadow: '0 4px 16px rgba(106,58,154,0.25)',
-          marginTop: '10px',
-        }}
-        onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
-        onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
-        >WARM UP — Practice Weak Spots</button>
-
-        {/* Cash Game Section */}
-        <label style={{ fontSize: '11px', color: '#5a6a7a', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginTop: '16px', marginBottom: '8px' }}>Cash Game</label>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-          {Object.entries(CASH_FORMATS).map(([key, f]) => (
-            <button key={key} onClick={() => onStart(key, name || 'Hero')} style={{
-              padding: '12px', borderRadius: '10px', border: '1px solid #1a3a2a',
-              background: 'linear-gradient(135deg, #0a1a12, #1a3a28)', cursor: 'pointer',
-              textAlign: 'left',
-            }}
-            onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
-            onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#27ae60' }}>{f.name}</div>
-              <div style={{ fontSize: '10px', color: '#5a7a6a', marginTop: '2px' }}>{f.playersPerTable}-max | {f.buyIn} chips</div>
-            </button>
-          ))}
-        </div>
-
-        {/* Secondary buttons */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
-          <button onClick={onStats} style={{
-            padding: '14px', background: '#0d1118', border: '1px solid #1a2230', borderRadius: '12px',
-            color: '#8899aa', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-          }}>📊 Statistics</button>
-          <button onClick={onCoach} style={{
-            padding: '14px', background: '#0d1118', border: '1px solid #1a2230', borderRadius: '12px',
-            color: '#8899aa', fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-          }}>🧠 AI Coach</button>
-        </div>
-
-        {/* Quick drill buttons */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '6px', marginTop: '12px' }}>
-          {[
-            { id: 'rfi', icon: '🎯', name: 'RFI', color: '#27ae60' },
-            { id: 'pushfold', icon: '💣', name: 'Push', color: '#e74c3c' },
-            { id: 'potodds', icon: '🧮', name: 'Odds', color: '#3498db' },
-            { id: 'postflop', icon: '🃏', name: 'Flop', color: '#9b59b6' },
-          ].map(d => (
-            <div key={d.id} onClick={() => { window.__quickDrill = d.id; onDrills(); }} style={{
-              padding: '10px 4px', background: '#0d1118', border: '1px solid #1a2230', borderRadius: '10px',
-              cursor: 'pointer', textAlign: 'center',
-            }}>
-              <div style={{ fontSize: '18px' }}>{d.icon}</div>
-              <div style={{ fontSize: '10px', fontWeight: 600, color: d.color, marginTop: '2px' }}>{d.name}</div>
-            </div>
-          ))}
-        </div>
+      {/* ═══ BOTTOM NAV ═══ */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        background: 'linear-gradient(180deg, #080c14, #060810)',
+        borderTop: '1px solid #111820', display: 'flex',
+        paddingBottom: 'env(safe-area-inset-bottom, 8px)',
+        zIndex: 100,
+      }}>
+        {[
+          { label: 'Play', icon: '♠', action: () => setTab('mtt') , active: tab === 'mtt' || tab === 'cash' },
+          { label: 'Train', icon: '◎', action: () => setTab('train'), active: tab === 'train' },
+          { label: 'Stats', icon: '▤', action: onStats, active: false },
+          { label: 'Coach', icon: '☆', action: onCoach, active: false },
+        ].map((n, i) => (
+          <button key={i} onClick={n.action} style={{
+            flex: 1, padding: '8px 0 6px', border: 'none', background: 'transparent', cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+          }}>
+            <span style={{ fontSize: '20px', color: n.active ? '#ffd700' : '#2a3a4a', lineHeight: 1 }}>{n.icon}</span>
+            <span style={{ fontSize: '9px', fontWeight: 700, color: n.active ? '#ffd700' : '#2a3a4a', letterSpacing: '0.5px' }}>{n.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
