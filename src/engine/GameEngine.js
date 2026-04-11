@@ -486,18 +486,18 @@ export class GameEngine {
     this.phase = PHASE.SHOWDOWN;
 
     if (active.length === 1) {
-      // Everyone folded — winner takes pot, no showdown
+      // Everyone folded — winner takes pot
       this.winner = active[0];
-      const winnerInvested = (this._startChips?.[this.winner.id] || 0) - this.winner.chips;
-      this.potWon = this.pot - winnerInvested; // NET profit (pot minus own investment)
       this.winner.chips += this.pot;
+      // NET profit = final chips - starting chips
+      this.potWon = this.winner.chips - (this._startChips?.[this.winner.id] || this.winner.chips);
       this.showdownResults = [{
         player: this.winner,
         cards: this.holeCards[this.winner.id],
         hand: null,
-        won: this.pot,
+        won: this.potWon,
       }];
-      this._log(`${this.winner.isHero ? 'Hero' : this.winner.name} wins ${this.potWon} net (pot ${this.pot})`, this.winner, this.potWon);
+      this._log(`${this.winner.isHero ? 'Hero' : this.winner.name} wins ${this.potWon} (everyone folded)`, this.winner, this.potWon);
     } else {
       // Showdown — deal remaining community cards if needed
       while (this.community.length < 5) {
@@ -538,34 +538,34 @@ export class GameEngine {
 
       if (winners.length === 1) {
         const w = winners[0];
-        const winnerInvested = invested[w.player.id] || this.pot;
+        const winnerInvested = invested[w.player.id] || 0;
+
+        // Winner can only win from each player up to their own investment
         let winnings = 0;
         for (const p of this.players) {
-          const pInvested = invested[p.id] || 0;
-          // Winner gets min(their investment, opponent's investment) from each player
-          winnings += Math.min(winnerInvested, pInvested);
+          winnings += Math.min(winnerInvested, invested[p.id] || 0);
         }
-        // Plus any excess from antes/blinds already in pot
-        winnings = Math.max(winnings, Math.min(this.pot, winnerInvested * this.players.length));
-        winnings = Math.min(winnings, this.pot); // Never more than pot
+        winnings = Math.min(winnings, this.pot);
         w.won = winnings;
         w.player.chips += winnings;
-        totalAwarded = winnings;
 
-        // Return excess to other players (side pot remainder)
+        // Side pot: return excess to players who invested more than winner
         const excess = this.pot - winnings;
         if (excess > 0) {
-          // Give excess back to the player who put in more
-          const others = this.players.filter(p => p.id !== w.player.id && !this.folded.has(p.id) && (invested[p.id] || 0) > winnerInvested);
-          if (others.length > 0) {
-            const excessShare = Math.floor(excess / others.length);
-            for (const o of others) {
-              o.chips += excessShare;
-            }
+          const eligibleOthers = results.filter(r => r.player.id !== w.player.id && (invested[r.player.id] || 0) > winnerInvested);
+          if (eligibleOthers.length > 0) {
+            // Next best hand gets the side pot
+            const sidePotWinner = eligibleOthers[0]; // Already sorted by hand strength
+            sidePotWinner.won += excess;
+            sidePotWinner.player.chips += excess;
           } else {
-            // No clear recipient — give to winner
-            w.player.chips += excess;
-            w.won += excess;
+            // No eligible side pot winner — return to others proportionally
+            const nonWinners = this.players.filter(p => p.id !== w.player.id && (invested[p.id] || 0) > winnerInvested);
+            if (nonWinners.length > 0) {
+              const share = Math.floor(excess / nonWinners.length);
+              for (const o of nonWinners) o.chips += share;
+            }
+            // Any remaining fractional chips stay (rounding)
           }
         }
       } else {
@@ -581,9 +581,8 @@ export class GameEngine {
       }
 
       this.winner = winners[0].player;
-      // NET profit = chips won - own investment
-      const winnerTotalInvested = (this._startChips?.[this.winner.id] || 0) - (this.winner.chips - winners[0].won);
-      this.potWon = winners[0].won - winnerTotalInvested;
+      // NET profit = final chips - starting chips (always correct)
+      this.potWon = this.winner.chips - (this._startChips?.[this.winner.id] || this.winner.chips);
       // Include folded players' cards too (for AI debrief)
       const foldedResults = this.players
         .filter(p => this.folded.has(p.id) && this.holeCards[p.id])
@@ -599,6 +598,13 @@ export class GameEngine {
           this._log(`${name} shows ${cardStr} — ${r.hand?.name || '?'}`, r.player);
         }
       }
+    }
+
+    // Sanity check: total chips must be conserved
+    const totalAfter = this.players.reduce((a, p) => a + p.chips, 0);
+    const totalBefore = Object.values(this._startChips || {}).reduce((a, c) => a + c, 0);
+    if (totalBefore > 0 && Math.abs(totalAfter - totalBefore) > 1) {
+      console.error('CHIP LEAK DETECTED!', { totalBefore, totalAfter, diff: totalAfter - totalBefore });
     }
 
     this.phase = PHASE.SHOWDOWN;

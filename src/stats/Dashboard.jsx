@@ -92,6 +92,31 @@ export default function StatsScreen({ onBack }) {
         ))}
       </div>
 
+      {/* Session Comparison (last 5) */}
+      {sessions.length >= 2 && (
+        <div style={s.section}>
+          <div style={s.secTitle}>Progress (last {Math.min(5, sessions.length)} sessions)</div>
+          <div style={{ overflowX: 'auto' }}>
+            <div style={{ display: 'flex', gap: '6px', minWidth: 'max-content' }}>
+              {sessions.slice(-5).map((sess, i) => {
+                const sm = sess.summary || {};
+                return (
+                  <div key={i} style={{ minWidth: '85px', padding: '8px', background: '#0a0d12', borderRadius: '8px', border: '1px solid #141a22', textAlign: 'center' }}>
+                    <div style={{ fontSize: '9px', color: '#3a4a5a' }}>#{sessions.length - (Math.min(5, sessions.length) - 1 - i)}</div>
+                    <div style={{ fontSize: '11px', color: '#6b7b8d', marginTop: '2px' }}>VPIP {sm.vpip || 0}%</div>
+                    <div style={{ fontSize: '11px', color: '#6b7b8d' }}>PFR {sm.pfr || 0}%</div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: (sm.totalMistakes || 0) <= 3 ? '#27ae60' : '#f39c12', marginTop: '2px' }}>
+                      {sm.totalMistakes || 0} err
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#e74c3c' }}>-{sm.estimatedEVLost || 0} EV</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Achievements */}
       {(() => {
         const achs = getAchievements();
