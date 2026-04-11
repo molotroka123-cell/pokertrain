@@ -617,8 +617,8 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
         {seated[0]?.bet > 0 && (
           <ChipStack amount={seated[0].bet} x="50%" y="-10px" animate />
         )}
-        {/* Hero cards — larger */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', minHeight: '68px' }}>
+        {/* Hero cards */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', minHeight: '54px' }}>
           {gs.heroCards?.length > 0 && gs.heroCards.map((c, ci) => (
             <Card key={c} card={c} hero glow delay={ci * 300} />
           ))}
@@ -735,10 +735,10 @@ function HandLog({ entries }) {
   if (!entries || entries.length === 0) return null;
   return (
     <div style={{
-      background: '#0a0d14', borderRadius: '12px', padding: '10px 14px', margin: '8px 14px',
-      border: '1px solid #1a2230', maxHeight: '140px', overflowY: 'auto',
+      background: '#0a0d14', borderRadius: '10px', padding: '6px 12px', margin: '4px 14px 6px',
+      border: '1px solid #1a2230', maxHeight: '80px', overflowY: 'auto',
     }}>
-      <div style={{ fontSize: '10px', color: '#3a4a5a', fontWeight: 700, letterSpacing: '1px', marginBottom: '6px' }}>HAND LOG</div>
+      <div style={{ fontSize: '9px', color: '#3a4a5a', fontWeight: 700, letterSpacing: '1px', marginBottom: '3px' }}>HAND LOG</div>
       {entries.slice(-12).reverse().map((e, i) => (
         <div key={i} style={{
           fontSize: '11px', color: '#6b7b8d', padding: '2px 0',
@@ -1089,7 +1089,7 @@ function Game({ director, onExit }) {
 
   return (
     <div style={{
-      minHeight: '100dvh',
+      height: '100dvh', overflow: 'hidden',
       background: getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey).bg,
       color: '#e0e0e0', fontFamily: "'Segoe UI', -apple-system, sans-serif",
       maxWidth: '800px', margin: '0 auto',
@@ -1123,12 +1123,12 @@ function Game({ director, onExit }) {
 
       {/* Header */}
       <div style={{
-        padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '4px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         borderBottom: '1px solid #1a2230', background: 'rgba(5,7,9,0.9)',
       }}>
         <div>
-          <div style={{ fontSize: '14px', fontWeight: 700, color: '#e8d48b' }}>{tournState.format.name}</div>
-          <div style={{ fontSize: '10px', color: '#3a4a5a' }}>Hand #{handCount + 1} | Level {bl.level + 1}</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: '#e8d48b' }}>{tournState.format.name}</div>
+          <div style={{ fontSize: '9px', color: '#3a4a5a' }}>Hand #{handCount + 1} | Level {bl.level + 1}</div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={() => setView('dashboard')} style={{
@@ -1172,7 +1172,8 @@ function Game({ director, onExit }) {
         }}>FINAL TABLE</div>
       )}
 
-      {/* Table */}
+      {/* Table — fills remaining space */}
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <PremiumTable chipsBeforeHand={chipsBeforeHandRef.current} theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)} gs={{ ...(gs || {
         players: tournState.heroTable?.players.filter(p => !p.eliminated).map(p => ({ ...p, position: '', bet: 0, folded: false, allIn: false })) || [],
         community: [], pot: 0, heroCards: [], heroIndex: tournState.heroTable?.players.findIndex(p => p.isHero) || 0,
@@ -1255,6 +1256,8 @@ function Game({ director, onExit }) {
         </div>
       )}
 
+      </div>{/* end flex table area */}
+
       {/* Controls + Range button + toggles */}
       {gs?.waitingForHero && (
         <>
@@ -1307,9 +1310,9 @@ function Game({ director, onExit }) {
             </>
           ) : (
             <button className="btn-action" onClick={playHand} style={{
-              width: '100%', padding: '18px', border: 'none', borderRadius: '14px',
+              width: '100%', padding: '14px', border: 'none', borderRadius: '12px',
               background: 'linear-gradient(135deg, #1a6a3a, #27ae60)',
-              color: '#fff', fontWeight: 800, fontSize: '17px', letterSpacing: '0.5px',
+              color: '#fff', fontWeight: 800, fontSize: '16px', letterSpacing: '0.5px',
               boxShadow: '0 4px 20px rgba(39,174,96,0.25)',
             }}>DEAL</button>
           )}

@@ -14,8 +14,8 @@ export default function Card({ card, faceDown = false, mini = false, delay = 0, 
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [delay, card]);
 
-  const w = hero ? 70 : mini ? 36 : 54;
-  const h = hero ? 100 : mini ? 52 : 76;
+  const w = hero ? 56 : mini ? 36 : 54;
+  const h = hero ? 80 : mini ? 52 : 76;
 
   // Face-down
   if (!card || card === 'Xx') {
@@ -100,21 +100,21 @@ export default function Card({ card, faceDown = false, mini = false, delay = 0, 
           }} />
 
           {/* Top-left rank+suit */}
-          <div style={{ position: 'absolute', top: mini ? 3 : 5, left: mini ? 4 : 6, lineHeight: 1, color: suitClr }}>
-            <div style={{ fontSize: hero ? 16 : mini ? 11 : 14, fontWeight: 900 }}>{disp}</div>
-            <div style={{ fontSize: hero ? 14 : mini ? 9 : 12, marginTop: -1 }}>{sym}</div>
+          <div style={{ position: 'absolute', top: mini ? 3 : 4, left: mini ? 4 : 5, lineHeight: 1, color: suitClr }}>
+            <div style={{ fontSize: hero ? 14 : mini ? 11 : 14, fontWeight: 900 }}>{disp}</div>
+            <div style={{ fontSize: hero ? 12 : mini ? 9 : 12, marginTop: -1 }}>{sym}</div>
           </div>
 
           {/* Center suit */}
           <div style={{
             position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-            fontSize: hero ? 36 : mini ? 20 : 30, color: suitClr, opacity: 0.85,
+            fontSize: hero ? 28 : mini ? 20 : 30, color: suitClr, opacity: 0.85,
           }}>{sym}</div>
 
           {/* Bottom-right */}
-          <div style={{ position: 'absolute', bottom: mini ? 3 : 5, right: mini ? 4 : 6, lineHeight: 1, color: suitClr, transform: 'rotate(180deg)' }}>
-            <div style={{ fontSize: hero ? 16 : mini ? 11 : 14, fontWeight: 900 }}>{disp}</div>
-            <div style={{ fontSize: hero ? 14 : mini ? 9 : 12, marginTop: -1 }}>{sym}</div>
+          <div style={{ position: 'absolute', bottom: mini ? 3 : 4, right: mini ? 4 : 5, lineHeight: 1, color: suitClr, transform: 'rotate(180deg)' }}>
+            <div style={{ fontSize: hero ? 14 : mini ? 11 : 14, fontWeight: 900 }}>{disp}</div>
+            <div style={{ fontSize: hero ? 12 : mini ? 9 : 12, marginTop: -1 }}>{sym}</div>
           </div>
         </div>
       </div>
