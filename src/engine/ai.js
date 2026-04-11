@@ -84,10 +84,28 @@ export class BaseAI {
   }
 
   decide(gameState) {
-    const { stage } = gameState;
+    // Defensive: ensure all required fields exist
+    const gs = gameState || {};
+    if (!gs.holeCards || gs.holeCards.length < 2) {
+      return gs.toCall > 0 ? { action: 'fold' } : { action: 'check' };
+    }
+    gs.community = gs.community || [];
+    gs.pot = gs.pot || 0;
+    gs.toCall = gs.toCall || 0;
+    gs.myChips = gs.myChips || 1000;
+    gs.bigBlind = gs.bigBlind || 200;
+    gs.currentBet = gs.currentBet || 0;
+    gs.playersInHand = gs.playersInHand || 2;
+    gs.playersAtTable = gs.playersAtTable || 9;
+    gs.position = gs.position || 'BTN';
+    gs.handStrength = gs.handStrength ?? 0.5;
+    gs.spr = gs.spr ?? (gs.pot > 0 ? gs.myChips / gs.pot : 20);
+    gs.streetActions = gs.streetActions || [];
+
+    const { stage } = gs;
     const rand = cryptoRandomFloat();
-    if (stage === 'preflop') return this.preflopDecision(gameState, rand);
-    return this.postflopDecision(gameState, rand);
+    if (stage === 'preflop') return this.preflopDecision(gs, rand);
+    return this.postflopDecision(gs, rand);
   }
 
   // ═══════════════════════════════════════

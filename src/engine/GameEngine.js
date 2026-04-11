@@ -600,7 +600,7 @@ export class GameEngine {
 
       for (const r of results) {
         const name = r.player.isHero ? 'Hero' : r.player.name;
-        const cardStr = r.cards.map(c => c).join(' ');
+        const cardStr = r.cards ? r.cards.join(' ') : '??';
         if (r.won > 0) {
           this._log(`${name} shows ${cardStr} — ${r.hand?.name || '?'} — WINS ${r.won}`, r.player, r.won);
         } else {

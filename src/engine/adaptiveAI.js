@@ -133,9 +133,16 @@ export class AdaptiveAI extends BaseAI {
 
   // ═══ MAIN DECISION ═══
   decide(gameState) {
-    const baseDecision = super.decide(gameState);
-    if (this.heroModel.handsPlayed < this.minHandsToExploit) return baseDecision;
-    return this.exploit(baseDecision, gameState);
+    try {
+      const baseDecision = super.decide(gameState);
+      if (!baseDecision || !baseDecision.action) return { action: 'check' };
+      if (this.heroModel.handsPlayed < this.minHandsToExploit) return baseDecision;
+      const exploitDec = this.exploit(baseDecision, gameState);
+      return exploitDec && exploitDec.action ? exploitDec : baseDecision;
+    } catch (e) {
+      console.error('AdaptiveAI.decide error:', e);
+      return (gameState?.toCall || 0) > 0 ? { action: 'fold' } : { action: 'check' };
+    }
   }
 
   exploit(baseDec, gs) {
