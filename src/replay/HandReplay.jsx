@@ -108,7 +108,7 @@ export default function HandReplay({ hand, onClose }) {
 
       {/* Result */}
       <div style={s.result(heroWon)}>
-        {heroWon ? `Won ${(hand.potWon || 0).toLocaleString()}` : `Lost — ${hand.result || 'folded'}`}
+        {heroWon ? `Won +${((hand.chipsAfter || 0) - (hand.chipsBeforeHand || hand.myChips || 0)).toLocaleString()}` : `Lost — ${hand.result || 'folded'}`}
       </div>
 
       {/* Mistake analysis */}

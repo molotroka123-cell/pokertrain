@@ -72,6 +72,9 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
             holeCards: rec.holeCards,
             result: rec.handResult,
             potWon: rec.potWon,
+            chipsAfter: rec.chipsAfter,
+            chipsBeforeHand: rec.chipsBeforeHand,
+            myChips: rec.myChips,
             mistake: selectedMistake,
             actions: [],
           }}
