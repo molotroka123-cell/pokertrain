@@ -488,15 +488,16 @@ export class GameEngine {
     if (active.length === 1) {
       // Everyone folded — winner takes pot, no showdown
       this.winner = active[0];
-      this.potWon = this.pot;
+      const winnerInvested = (this._startChips?.[this.winner.id] || 0) - this.winner.chips;
+      this.potWon = this.pot - winnerInvested; // NET profit (pot minus own investment)
       this.winner.chips += this.pot;
       this.showdownResults = [{
         player: this.winner,
-        cards: this.holeCards[this.winner.id], // Always record for AI debrief
+        cards: this.holeCards[this.winner.id],
         hand: null,
         won: this.pot,
       }];
-      this._log(`${this.winner.isHero ? 'Hero' : this.winner.name} wins ${this.pot} (everyone folded)`, this.winner, this.pot);
+      this._log(`${this.winner.isHero ? 'Hero' : this.winner.name} wins ${this.potWon} net (pot ${this.pot})`, this.winner, this.potWon);
     } else {
       // Showdown — deal remaining community cards if needed
       while (this.community.length < 5) {
@@ -580,7 +581,9 @@ export class GameEngine {
       }
 
       this.winner = winners[0].player;
-      this.potWon = winners[0].won;
+      // NET profit = chips won - own investment
+      const winnerTotalInvested = (this._startChips?.[this.winner.id] || 0) - (this.winner.chips - winners[0].won);
+      this.potWon = winners[0].won - winnerTotalInvested;
       // Include folded players' cards too (for AI debrief)
       const foldedResults = this.players
         .filter(p => this.folded.has(p.id) && this.holeCards[p.id])
