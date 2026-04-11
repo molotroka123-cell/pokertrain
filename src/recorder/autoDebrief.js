@@ -392,7 +392,28 @@ function computeSessionStats(records) {
   }
   const wsd = handsWithShowdown.size > 0 ? Math.round((showdownWins.size / handsWithShowdown.size) * 100) : 0;
 
-  return { vpip, pfr, af, wtsd, wsd, cbet, foldToCbet, totalHands };
+  // AF per street
+  const flopActs = records.filter(r => r.stage === 'flop');
+  const flopRaises = flopActs.filter(r => r.action === 'raise').length;
+  const flopCalls = flopActs.filter(r => r.action === 'call').length;
+  const flopAF = flopCalls > 0 ? Math.round((flopRaises / flopCalls) * 10) / 10 : flopRaises > 0 ? 99 : 0;
+
+  const turnActs = records.filter(r => r.stage === 'turn');
+  const turnRaises = turnActs.filter(r => r.action === 'raise').length;
+  const turnCalls = turnActs.filter(r => r.action === 'call').length;
+  const turnAF = turnCalls > 0 ? Math.round((turnRaises / turnCalls) * 10) / 10 : turnRaises > 0 ? 99 : 0;
+
+  const riverActs = records.filter(r => r.stage === 'river');
+  const riverRaises = riverActs.filter(r => r.action === 'raise').length;
+  const riverCalls = riverActs.filter(r => r.action === 'call').length;
+  const riverAF = riverCalls > 0 ? Math.round((riverRaises / riverCalls) * 10) / 10 : riverRaises > 0 ? 99 : 0;
+
+  // River bet frequency (bets when checked to on river)
+  const riverCheckedTo = records.filter(r => r.stage === 'river' && r.toCall === 0);
+  const riverBets = riverCheckedTo.filter(r => r.action === 'raise').length;
+  const riverBetFreq = riverCheckedTo.length > 0 ? Math.round((riverBets / riverCheckedTo.length) * 100) : 0;
+
+  return { vpip, pfr, af, flopAF, turnAF, riverAF, wtsd, wsd, cbet, foldToCbet, riverBetFreq, totalHands };
 }
 
 // Tournament stage dynamics — how play changes across early/mid/late/bubble/FT

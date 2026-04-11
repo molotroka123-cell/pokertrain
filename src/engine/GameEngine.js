@@ -99,6 +99,12 @@ export class GameEngine {
     this._startChips = {};
     for (const p of this.players) this._startChips[p.id] = p.chips;
 
+    // AI context: track hand history for multi-street awareness
+    this._handAggressor = null;    // who raised last preflop (id)
+    this._streetActions = [];      // all actions this hand [{playerId, position, action, amount, street, pot}]
+    this._myBetsThisHand = {};     // per-player total bet/raise count for barreling
+    this._heroFolded = false;
+
     // Deal cards from ONE fresh shuffled deck (52 unique cards)
     this.deck = freshDeck();
     this.holeCards = {};
@@ -326,6 +332,7 @@ export class GameEngine {
 
     const handStr = this._getHandStrength(player.id);
 
+    const activePlayers = this._activePlayers();
     const gs = {
       stage: this.phase,
       holeCards: this.holeCards[player.id],
@@ -337,14 +344,26 @@ export class GameEngine {
       bigBlind: this.blinds.bb,
       smallBlind: this.blinds.sb,
       ante: this.blinds.ante || 0,
-      playersInHand: this._activePlayers().length,
+      playersInHand: activePlayers.length,
       playersAtTable: this.players.length,
       currentBet: this.currentBet,
       handStrength: handStr,
-      // Tournament context for stage-aware play
+      // Tournament context
       tournamentStage: this._tournamentStage || 'early',
       isFinalTable: this._isFinalTable || false,
       isBubble: this._isBubble || false,
+      // Multi-street context — AI sees full hand history
+      streetActions: this._streetActions || [],
+      isAggressor: this._handAggressor === player.id,
+      aggressorId: this._handAggressor,
+      // Stack awareness
+      effectiveStack: Math.min(player.chips, ...activePlayers.filter(p => p.id !== player.id).map(p => p.chips)),
+      spr: this.pot > 0 ? player.chips / this.pot : 20,
+      // How many times I bet/raised this hand (for barreling logic)
+      myBetsThisHand: Object.entries(this._myBetsThisHand || {}).filter(([k]) => k.startsWith(player.id)).reduce((sum, [, v]) => sum + v, 0),
+      // Did I c-bet flop? (for turn barreling decision)
+      didCbetFlop: (this._myBetsThisHand || {})[player.id + '_' + PHASE.FLOP] > 0,
+      didBetTurn: (this._myBetsThisHand || {})[player.id + '_' + PHASE.TURN] > 0,
     };
 
     const decision = await ai.decide(gs);
@@ -440,6 +459,24 @@ export class GameEngine {
         );
         break;
       }
+    }
+
+    // Track action for AI hand history context
+    if (this._streetActions) {
+      this._streetActions.push({
+        playerId: player.id, position,
+        action: action.action, amount: action.amount || 0,
+        street: this.phase, pot: this.pot, isHero: player.isHero || false,
+      });
+    }
+    // Track aggressor (last raiser preflop)
+    if (action.action === 'raise' && this.phase === PHASE.PREFLOP) {
+      this._handAggressor = player.id;
+    }
+    // Track per-player bet/raise count per street for barreling
+    if (action.action === 'raise') {
+      const key = player.id + '_' + this.phase;
+      this._myBetsThisHand[key] = (this._myBetsThisHand[key] || 0) + 1;
     }
   }
 

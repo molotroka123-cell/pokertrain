@@ -181,7 +181,7 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
       {debrief.sessionStats && (
         <div style={s.section}>
           <div style={s.sectionTitle}>Session Stats</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '5px' }}>
             {[
               { label: 'VPIP', val: debrief.sessionStats.vpip + '%', good: debrief.sessionStats.vpip >= 20 && debrief.sessionStats.vpip <= 30 },
               { label: 'PFR', val: debrief.sessionStats.pfr + '%', good: debrief.sessionStats.pfr >= 15 && debrief.sessionStats.pfr <= 25 },
@@ -189,6 +189,10 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
               { label: 'WTSD%', val: debrief.sessionStats.wtsd + '%' },
               { label: 'W$SD%', val: debrief.sessionStats.wsd + '%', good: debrief.sessionStats.wsd >= 50 },
               { label: 'C-bet%', val: debrief.sessionStats.cbet + '%' },
+              { label: 'Flop AF', val: debrief.sessionStats.flopAF || 0 },
+              { label: 'Turn AF', val: debrief.sessionStats.turnAF || 0 },
+              { label: 'River AF', val: debrief.sessionStats.riverAF || 0 },
+              { label: 'Riv Bet%', val: (debrief.sessionStats.riverBetFreq || 0) + '%' },
             ].map((s2, i) => (
               <div key={i} style={{ textAlign: 'center', padding: '8px', background: '#0d1118', borderRadius: '8px', border: '1px solid #1a2230' }}>
                 <div style={{ fontSize: '10px', color: '#5a6a7a', textTransform: 'uppercase' }}>{s2.label}</div>
