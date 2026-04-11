@@ -5,6 +5,7 @@ import { CASH_FORMATS } from './data/cashFormats.js';
 import { GameEngine, PHASE } from './engine/GameEngine.js';
 import { AdaptiveAI } from './engine/adaptiveAI.js';
 import { mRatio } from './engine/equity.js';
+import { evaluateHand, compareHands } from './engine/evaluator.js';
 import Card from './components/Card.jsx';
 import Controls from './tournament/Controls.jsx';
 import RangeGrid from './components/RangeGrid.jsx';
@@ -987,11 +988,42 @@ function Game({ director, onExit }) {
 
     // Update ALL records for this hand (not just last one)
     const allRecs = getRecords().filter(r => r.handNumber === handCount + 1);
+
+    // Calculate heroWouldWin: if hero folded, would they have won at showdown?
+    let heroWouldWin = null;
+    try {
+      if (!heroWon && gs.heroCards?.length === 2 && gs.community?.length >= 5 && gs.allHoleCards) {
+        const heroHand = evaluateHand(gs.heroCards, gs.community);
+        if (heroHand) {
+          heroWouldWin = true; // assume win unless beaten
+          for (const [id, cards] of Object.entries(gs.allHoleCards)) {
+            if (cards?.length === 2) {
+              const oppHand = evaluateHand(cards, gs.community);
+              if (oppHand && compareHands(heroHand, oppHand) < 0) {
+                heroWouldWin = false;
+                break;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) { /* non-critical */ }
+
+    // Collect decision times per street
+    const decisionTimeMsPerStreet = {};
+    for (const rec of allRecs) {
+      if (rec.stage && rec.decisionTimeMs > 0) {
+        decisionTimeMsPerStreet[rec.stage] = rec.decisionTimeMs;
+      }
+    }
+
     for (const rec of allRecs) {
       rec.handResult = gs.isSplitPot && heroWon ? 'split' : heroWon ? 'won' : 'lost';
       rec.potWon = heroWon ? gs.potWon : 0;
       rec.isSplitPot = gs.isSplitPot || false;
       rec.chipsAfter = hero.chips;
+      rec.heroWouldWin = heroWouldWin;
+      rec.decisionTimeMsPerStreet = decisionTimeMsPerStreet;
       if (gs.allHoleCards) {
         rec.opponentCards = {};
         for (const [id, cards] of Object.entries(gs.allHoleCards)) {

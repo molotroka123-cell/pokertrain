@@ -297,6 +297,19 @@ export function recordDecision({
   const effectiveStack = oppChips.length > 0 ? Math.min(myChips, Math.min(...oppChips)) : myChips;
   const effectiveStackBB = Math.round(effectiveStack / Math.max(blinds?.bb || 1, 1));
 
+  // Raise sizing relative to pot
+  const raisePotRatio = action === 'raise' && raiseAmount && potSize > 0
+    ? Math.round((raiseAmount / potSize) * 100) / 100 : null;
+
+  // Villain stack at decision time
+  const villainStackAtDecision = (opponents || []).length > 0 ? (opponents[0].chips || 0) : null;
+
+  // Action type classification
+  const bb = blinds?.bb || 1;
+  const isOpenRaise = action === 'raise' && stage === 'preflop' && toCall <= bb;
+  const is3Bet = action === 'raise' && stage === 'preflop' && toCall > bb && currentBet <= bb * 6;
+  const is4Bet = action === 'raise' && stage === 'preflop' && currentBet > bb * 6;
+
   // Opponent sizing as fraction of pot
   const betSizePotFraction = potSize > 0 && toCall > 0
     ? Math.round((toCall / (potSize - toCall)) * 100) / 100
@@ -514,10 +527,16 @@ export function recordDecision({
     opponentCards: null,
     action,
     raiseAmount: raiseAmount || null,
+    raisePotRatio,
+    isOpenRaise: isOpenRaise || false,
+    is3Bet: is3Bet || false,
+    is4Bet: is4Bet || false,
+    villainStackAtDecision,
     decisionTimeMs: decisionTimeMs || 0,
     handResult: null,
     potWon: 0,
     chipsAfter: null,
+    heroWouldWin: null, // filled after showdown with opponent cards
     gtoAction,
     gtoMatch,
     mistakeType,
