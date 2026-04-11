@@ -1023,6 +1023,7 @@ function Game({ director, onExit }) {
 
     // Bot chat messages (realistic table talk)
     try {
+      const bl = tState.blinds || {};
       if (gs.winner && !gs.winner.isHero && gs.potWon > (bl.bb || 200) * 10) {
         const msgs = ['nh 🃏', 'ty', 'gg', 'ez', 'lol', 'wp'];
         setBotChat({ name: gs.winner.name, msg: msgs[Math.floor(Math.random() * msgs.length)] });
