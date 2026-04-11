@@ -20,6 +20,7 @@ import PushFoldDrill from './drills/PushFoldDrill.jsx';
 import PostflopDrill from './drills/PostflopDrill.jsx';
 import SizingDrill from './drills/SizingDrill.jsx';
 import PotOddsDrill from './drills/PotOddsDrill.jsx';
+import PersonalizedDrill from './drills/PersonalizedDrill.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
 import CoachScreen from './coach/Coach.jsx';
 import { Sounds } from './lib/sounds.js';
@@ -1311,6 +1312,7 @@ function Game({ director, onExit }) {
 const DRILL_MAP = {
   rfi: RFIDrill, '3bet': ThreeBetDrill, bbdef: BBDefenseDrill,
   pushfold: PushFoldDrill, postflop: PostflopDrill, sizing: SizingDrill, potodds: PotOddsDrill,
+  personalized: PersonalizedDrill,
 };
 
 // Error boundary to prevent white/black screen crashes
