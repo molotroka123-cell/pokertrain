@@ -832,6 +832,32 @@ function Game({ director, onExit }) {
     // Find hero actions from the log
     const heroActions = (gs.actionLog || []).filter(a => a.isHero && a.action !== 'win');
 
+    // Build readable streetActions chain for each hero action
+    const buildStreetChain = (upToIdx) => {
+      const acts = gs.actionLog || [];
+      const chain = [];
+      for (let i = 0; i < upToIdx && i < acts.length; i++) {
+        const a = acts[i];
+        if (!a.action || a.action === 'win' || a.action === '') continue;
+        const who = a.isHero ? 'Hero' : a.name;
+        const pos = a.position ? `[${a.position}]` : '';
+        chain.push(`${pos} ${who} ${a.action}${a.amount ? ' ' + a.amount : ''}`);
+      }
+      return chain;
+    };
+
+    // Classify villain's action type
+    const classifyVillainAction = (prev, stage) => {
+      if (!prev) return null;
+      if (stage === 'preflop') {
+        if (prev.action === 'raise') return 'open';
+        if (prev.action === 'call') return 'call';
+      }
+      if (prev.action === 'raise') return 'bet';
+      if (prev.action === 'check') return 'check';
+      return prev.action;
+    };
+
     // Record BB walks (hero had no decisions — everyone folded to BB)
     if (heroActions.length === 0) {
       recordDecision({
@@ -889,6 +915,8 @@ function Game({ director, onExit }) {
         decisionTimeMs: ha._decisionTimeMs || 0,
         tournamentFormat: tState.formatKey || null,
         facingAction,
+        villainAction: classifyVillainAction(facingAction, ha._phase || 'preflop'),
+        streetActions: buildStreetChain((gs.actionLog || []).indexOf(ha)),
         chipsBeforeHand,
       });
     }

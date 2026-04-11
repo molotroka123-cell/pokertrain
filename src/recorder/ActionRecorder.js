@@ -50,6 +50,75 @@ function detectDraws(hCards, board) {
   return { drawType, hasFlushDraw, hasStraightDraw, hasGutshot, hasBackdoorFlush, isCombo, outs };
 }
 
+// Made hand classification: overpair, top pair, etc.
+function classifyMadeHand(hCards, board) {
+  if (!hCards || hCards.length < 2 || !board || board.length < 3) return 'unknown';
+  try {
+    const hRanks = hCards.map(c => rankValue(c[0]));
+    const bRanks = board.map(c => rankValue(c[0]));
+    const boardMax = Math.max(...bRanks);
+    const boardMin = Math.min(...bRanks);
+    const allRanks = [...hRanks, ...bRanks];
+    const counts = {};
+    allRanks.forEach(r => { counts[r] = (counts[r] || 0) + 1; });
+    const bCounts = {};
+    bRanks.forEach(r => { bCounts[r] = (bCounts[r] || 0) + 1; });
+
+    // Check for quads, full house, flush, straight via evaluator result
+    const evalResult = evaluateHand(hCards, board);
+    if (!evalResult) return 'high_card';
+    if (evalResult.rank >= 9) return 'straight_flush';
+    if (evalResult.rank === 8) return 'quads';
+    if (evalResult.rank === 7) return 'full_house';
+    if (evalResult.rank === 6) return 'flush';
+    if (evalResult.rank === 5) return 'straight';
+
+    // Trips vs set
+    if (evalResult.rank === 4) {
+      // Set = pocket pair hit board, Trips = board pair matched one hole card
+      if (hRanks[0] === hRanks[1] && bRanks.includes(hRanks[0])) return 'set';
+      return 'trips';
+    }
+
+    // Two pair
+    if (evalResult.rank === 3) return 'two_pair';
+
+    // Pair classification
+    if (evalResult.rank === 2) {
+      // Find the pair rank
+      const pairRank = Object.entries(counts).find(([r, c]) => c >= 2)?.[0];
+      if (!pairRank) return 'pair';
+      const pr = Number(pairRank);
+
+      // Overpair: pocket pair higher than all board cards
+      if (hRanks[0] === hRanks[1] && hRanks[0] > boardMax) return 'overpair';
+      // Top pair: one hole card matches highest board card
+      if (pr === boardMax && hRanks.includes(pr)) {
+        // Check kicker
+        const kicker = hRanks.find(r => r !== pr) || 0;
+        if (kicker >= 12) return 'top_pair_top_kicker'; // A or K kicker
+        return 'top_pair';
+      }
+      // Middle pair
+      const sortedBoard = [...bRanks].sort((a, b) => b - a);
+      if (sortedBoard.length >= 2 && pr === sortedBoard[1]) return 'middle_pair';
+      // Bottom pair
+      if (pr === boardMin) return 'bottom_pair';
+      // Underpair (pocket pair below board)
+      if (hRanks[0] === hRanks[1] && hRanks[0] < boardMin) return 'underpair';
+      return 'pair';
+    }
+
+    // High card — count overcards
+    const overcards = hRanks.filter(r => r > boardMax).length;
+    if (overcards === 2) return 'two_overcards';
+    if (overcards === 1) return 'one_overcard';
+    return 'high_card';
+  } catch (e) {
+    return 'unknown';
+  }
+}
+
 let sessionId = null;
 let records = [];
 let handHistories = [];
@@ -74,7 +143,7 @@ export function recordDecision({
   averageStack, isBubble, isFinalTable, tableId, playersAtTable,
   stage, position, holeCards, community, potSize, currentBet, toCall,
   myChips, myBet, opponents, action, raiseAmount, decisionTimeMs, tournamentFormat,
-  facingAction, chipsBeforeHand,
+  facingAction, villainAction, streetActions, chipsBeforeHand,
 }) {
   const hCards = holeCards || [];
   const board = community || [];
@@ -301,10 +370,14 @@ export function recordDecision({
     isEVPositive,
     boardTexture,
     draws,
+    drawOuts: draws?.outs || 0,
+    madeHandStrength: board.length >= 3 ? classifyMadeHand(hCards, board) : null,
     effectiveStack,
     effectiveStackBB,
     betSizePotFraction,
     facingAction: facingAction || null,
+    villainAction: villainAction || null,
+    streetActions: streetActions || [],
     opponents: opponents || [],
     opponentCards: null, // Filled after showdown — all cards for AI analysis
     action,

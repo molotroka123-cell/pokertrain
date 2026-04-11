@@ -232,6 +232,7 @@ export class BaseAI {
     const p = this.profile;
     const af = p.af || 2.5;
     const isFT = gs.isFinalTable;
+    const multiway = (gs.playersInHand || 2) > 2;
     const isBubble = gs.isBubble;
 
     // SPR < 2: pot-committed, jam with any decent hand
@@ -257,7 +258,11 @@ export class BaseAI {
     // ═══ C-BET STRATEGY (aggressor on flop) ═══
     if (isAggressor && stage === 'flop') {
       let cbetFreq, purpose;
-      switch (texture.category) {
+      if (multiway) {
+        // Multiway: c-bet much less, only strong hands, no bluffs
+        cbetFreq = strength > 0.55 ? 0.60 : strength > 0.40 ? 0.25 : 0.05;
+        purpose = 'protection';
+      } else switch (texture.category) {
         case 'dry':      cbetFreq = 0.90; purpose = 'range_bet'; break;     // K72r: bet entire range small
         case 'paired':   cbetFreq = 0.80; purpose = 'range_bet'; break;     // KK4: bet most range small
         case 'medium':   cbetFreq = 0.55; purpose = 'thin_value'; break;    // QJ4tt: selective
@@ -359,6 +364,8 @@ export class BaseAI {
     const isBubble = gs.isBubble;
     const commitRatio = myChips > 0 ? toCall / myChips : 1;
 
+    const multiway = (gs.playersInHand || 2) > 2;
+
     // EV calculation — core of every decision
     const evOfCall = strength * (pot + toCall) - (1 - strength) * toCall;
 
@@ -384,8 +391,8 @@ export class BaseAI {
 
     // ═══ CHECK-RAISE (OOP with strong hand or as bluff) ═══
     if (!isIP && !isAggressor) {
-      // Check-raise bluff on dry flops (7%)
-      if (strength < 0.18 && texture.category === 'dry' && stage === 'flop' && af > 2.5 && rand < 0.07) {
+      // Check-raise bluff on dry flops (7%) — NOT multiway
+      if (!multiway && strength < 0.18 && texture.category === 'dry' && stage === 'flop' && af > 2.5 && rand < 0.07) {
         return { action: 'raise', amount: Math.min(Math.floor(currentBet * 3), myChips) };
       }
       // Check-raise value with strong hand OOP (25%)

@@ -33,14 +33,18 @@ export default function StatsScreen({ onBack }) {
     );
   }
 
-  // Calculate stats
+  // Calculate stats — deduped by unique hands (same as export)
   const allRecords = sessions.flatMap(s => s.records || []);
-  const pf = allRecords.filter(r => r.stage === 'preflop');
-  const vpip = pf.length > 0 ? (pf.filter(r => r.action !== 'fold').length / pf.length * 100).toFixed(1) : '0';
-  const pfr = pf.length > 0 ? (pf.filter(r => r.action === 'raise').length / pf.length * 100).toFixed(1) : '0';
-  const totalHands = allRecords.length;
+  const pfByHand = new Map();
+  for (const r of allRecords) {
+    if (r.stage === 'preflop' && !pfByHand.has(r.handNumber)) pfByHand.set(r.handNumber, r);
+  }
+  const pfUnique = [...pfByHand.values()];
+  const vpip = pfUnique.length > 0 ? (pfUnique.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length / pfUnique.length * 100).toFixed(1) : '0';
+  const pfr = pfUnique.length > 0 ? (pfUnique.filter(r => r.action === 'raise').length / pfUnique.length * 100).toFixed(1) : '0';
+  const totalHands = new Set(allRecords.map(r => r.handNumber)).size || allRecords.length;
   const mistakes = allRecords.filter(r => r.mistakeType);
-  const accuracy = totalHands > 0 ? ((1 - mistakes.length / totalHands) * 100).toFixed(1) : '0';
+  const accuracy = totalHands > 0 ? ((1 - mistakes.length / Math.max(totalHands, 1)) * 100).toFixed(1) : '0';
 
   // ROI (simplified — using finish position)
   const summaries = sessions.map(s => s.summary || {});
