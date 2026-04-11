@@ -331,7 +331,28 @@ export function recordDecision({
     gtoMatch = false;
   }
 
-  const record = {
+  // Compact record for preflop folds (no heavy analysis needed for Claude review)
+  const isTrivialFold = action === 'fold' && stage === 'preflop' && !mistakeType;
+
+  const record = isTrivialFold ? {
+    id: `${sessionId}_h${handNumber}_${Date.now()}`,
+    sessionId,
+    timestamp: Date.now(),
+    handNumber,
+    stage,
+    position,
+    holeCards: hCards.join(' '),
+    action: 'fold',
+    myChips,
+    chipsBeforeHand: chipsBeforeHand || myChips,
+    blinds: blinds ? `${blinds.sb}/${blinds.bb}${blinds.ante ? '/' + blinds.ante : ''}` : '',
+    toCall,
+    gtoAction,
+    gtoMatch,
+    mRatio: Math.round(m * 10) / 10,
+    // No mistake — trivial fold
+    handResult: null, potWon: 0, chipsAfter: null,
+  } : {
     id: `${sessionId}_h${handNumber}_${Date.now()}`,
     sessionId,
     tournamentFormat: tournamentFormat || sessionFormat || null,
@@ -354,7 +375,7 @@ export function recordDecision({
     currentBet,
     toCall,
     myChips,
-    chipsBeforeHand: chipsBeforeHand || myChips, // chips BEFORE blinds/antes posted
+    chipsBeforeHand: chipsBeforeHand || myChips,
     myBet,
     equity: Math.round(equity * 100) / 100,
     equitySource,
@@ -379,15 +400,13 @@ export function recordDecision({
     villainAction: villainAction || null,
     streetActions: streetActions || [],
     opponents: opponents || [],
-    opponentCards: null, // Filled after showdown — all cards for AI analysis
+    opponentCards: null,
     action,
     raiseAmount: raiseAmount || null,
     decisionTimeMs: decisionTimeMs || 0,
-    // Post-hand (filled later)
     handResult: null,
     potWon: 0,
     chipsAfter: null,
-    // Quality
     gtoAction,
     gtoMatch,
     mistakeType,
@@ -465,10 +484,15 @@ export function recordHandHistory(handNum, data) {
 
 // Export all data as JSON (for Claude analysis)
 export function exportSession() {
+  const uniqueHands = new Set(records.map(r => r.handNumber)).size;
+  const historyHands = handHistories.length;
   return {
     sessionId,
     exportDate: new Date().toISOString(),
-    totalHands: new Set(records.map(r => r.handNumber)).size,
+    totalHands: uniqueHands,
+    totalHistoryHands: historyHands,
+    handsMatch: uniqueHands === historyHands, // Validation: should be true
+    totalRecords: records.length,
     records,
     handHistories,
     summary: generateQuickSummary(),
