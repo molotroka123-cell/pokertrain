@@ -101,6 +101,76 @@
 - Value bet or check, hero call or fold
 - Focus on thin value + bluff-catching
 
+## 8 Additional Improvements (items 18-25)
+
+### 18. Adaptive Difficulty (Real-Time)
+- 5 correct in a row → next hand harder (narrower range, trickier spot)
+- 2 wrong in a row → next hand easier (standard spot)
+- Dynamic within session, independent of fixed difficulty level
+- Track `currentDifficulty` 0.0-1.0, adjust ±0.1 per answer
+
+### 19. Solver-Backed Answers
+- Connect drills to existing cfrWorker.js (src/workers/simWorker.js)
+- Instead of hardcoded correct/wrong → solve each spot in real-time
+- Show solver strategy: "fold 12%, call 53%, raise 35%"
+- Already have solver infrastructure — wire it to DrillShell
+
+### 20. Drill Replay
+- After completing drill session → review all spots with answers
+- Show: your answer vs correct, equity, EV difference
+- Stored in localStorage: `drill_replay_${date}`
+- "Pattern view": see all errors grouped by type
+
+### 21. Daily Challenge
+- 10 fixed spots per day (deterministic seed from date)
+- Personal leaderboard by day
+- Track in localStorage: `daily_challenge_${YYYY-MM-DD}`
+- Compare with previous days to see improvement
+
+### 22. Drill Bookmarks
+- "Save" button on any drill spot
+- Saved to localStorage: `drill_bookmarks`
+- Separate "Review Bookmarks" mode to replay saved spots
+- Build personal library of hard hands
+
+### 23. Voice Mode (Web Speech API)
+- Use browser's SpeechRecognition API
+- Recognize: "call", "fold", "raise", "check", "all in"
+- Trains speed for live poker (must say decisions aloud)
+- Toggle: voice on/off in drill settings
+
+### 24. Drill Stats Global (Cumulative)
+- Per-drill lifetime stats: total attempts, accuracy %, trend
+- "BB Defense: 1247 attempts, 73% accuracy, +12% this month"
+- Stored in localStorage: `drill_stats_global`
+- Display on Stats screen under "Training Progress"
+
+### 25. Time Pressure Modes
+- Casual: no timer (learning mode)
+- Standard: 15 seconds (training)
+- Hyperturbo: 5 seconds (reflex training)
+- Selector at start of each drill session
+
+## 2 Additional New Drills (items 26-27)
+
+### 26. Hand Reading Drill
+- Show full hand history (opponent's actions only, no cards)
+- Player guesses opponent's range: select 5 most likely hands
+- Score by overlap with actual possible holdings
+- Trains reading, not math
+
+### 27. Mistake Prevention Drill
+- Pull hero's worst 10 hands from all sessions
+- Replay each hand to the decision point
+- Pause at mistake moment → choose again
+- Goal: play correctly on 3rd attempt
+- Uses wsop_sessions localStorage data
+
+## TOTAL: 27 drill improvements
+- 12 core improvements (1-12)
+- 7 new drills (13-17, 26-27)
+- 8 advanced features (18-25)
+
 ## Implementation Order
 1. Timer + Streak (quick, applies to all drills)
 2. GTO frequencies (DrillShell change)
