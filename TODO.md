@@ -37,7 +37,7 @@
 ## PHASE 4: RECORDING & ANALYSIS
 
 - [x] FEAT-4: villainAction + streetActions chain
-- [ ] FEAT-5: PersonalizedDrill.jsx from real mistakes
+- [x] FEAT-5: PersonalizedDrill.jsx from real mistakes
 - [x] FEAT-6: Chip graph (⚠️ no EV line yet)
 - [x] FEAT-7: Cross-session progress sparklines
 - [x] FEAT-8: Bankroll manager (getBankroll/updateBankroll)

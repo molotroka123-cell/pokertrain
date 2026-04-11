@@ -213,7 +213,21 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
             <svg viewBox={`0 0 ${w} ${h + 10}`} style={{ width: '100%', height: '120px' }}>
               <line x1="0" y1={startY} x2={w} y2={startY} stroke="#3a4a5a" strokeWidth="0.5" strokeDasharray="4"/>
               <polyline points={points} fill="none" stroke={chips[chips.length - 1] >= startChips ? '#27ae60' : '#e74c3c'} strokeWidth="2"/>
+              {/* EV line (blue) — what you should have based on EV */}
+              {(() => {
+                try {
+                  let cumEV = startChips;
+                  const evPoints = handNums.filter(r => r.chipsAfter != null).map((r, i) => {
+                    cumEV += (r.evOfCall || 0);
+                    const clampedEV = Math.max(minC, Math.min(maxC, cumEV));
+                    return `${(i / Math.max(chips.length - 1, 1)) * w},${h - ((clampedEV - minC) / range) * h}`;
+                  }).join(' ');
+                  return <polyline points={evPoints} fill="none" stroke="#3498db" strokeWidth="1.5" strokeDasharray="4" opacity="0.6"/>;
+                } catch(e) { return null; }
+              })()}
               <text x="2" y={startY - 3} fill="#5a6a7a" fontSize="8">Start</text>
+              <text x={w - 25} y="8" fill="#27ae60" fontSize="7">Actual</text>
+              <text x={w - 15} y="16" fill="#3498db" fontSize="7">EV</text>
             </svg>
           </div>
         );
