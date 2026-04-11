@@ -55,6 +55,18 @@ export default function StatsScreen({ onBack }) {
       <div style={s.header}>
         <div style={s.title}>Statistics</div>
         <div style={{ display: 'flex', gap: '6px' }}>
+          <button onClick={() => {
+            const data = JSON.stringify(sessions.slice(-1), null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob); const a = document.createElement('a');
+            a.href = url; a.download = `last_session_${Date.now()}.json`; a.click();
+          }} style={{ ...s.back, color: '#d4af37', borderColor: '#3a3a1a' }}>Last</button>
+          <button onClick={() => {
+            const data = JSON.stringify(sessions, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob); const a = document.createElement('a');
+            a.href = url; a.download = `all_sessions_${Date.now()}.json`; a.click();
+          }} style={{ ...s.back, color: '#27ae60', borderColor: '#1a3a1a' }}>All</button>
           <button onClick={() => { if (confirm('Clear all session history?')) { localStorage.removeItem('wsop_sessions'); localStorage.removeItem('pokertrain_achievements'); localStorage.removeItem('pokertrain_bankroll'); window.location.reload(); } }} style={{ ...s.back, color: '#8a4a4a', borderColor: '#3a1a20' }}>Clear</button>
           <button onClick={onBack} style={s.back}>Back</button>
         </div>
