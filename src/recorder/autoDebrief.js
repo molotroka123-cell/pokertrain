@@ -357,9 +357,16 @@ function computeSessionStats(records) {
   const pfrCount = pfUnique.filter(r => r.action === 'raise').length;
   const pfr = Math.round((pfrCount / totalHands) * 100);
 
-  // AF: aggression factor = (raises) / (calls) across all streets
-  const allCalls = records.filter(r => r.action === 'call').length;
-  const allRaises = records.filter(r => r.action === 'raise').length;
+  // AF: aggression factor = (bets + raises) / (calls) across all streets
+  // Dedup: one action per hand per street to avoid inflating
+  const afByHandStreet = new Map();
+  for (const r of records) {
+    const key = `${r.handNumber}_${r.stage}`;
+    if (!afByHandStreet.has(key)) afByHandStreet.set(key, r.action);
+  }
+  const afActions = [...afByHandStreet.values()];
+  const allCalls = afActions.filter(a => a === 'call').length;
+  const allRaises = afActions.filter(a => a === 'raise').length;
   const af = allCalls > 0 ? Math.round((allRaises / allCalls) * 10) / 10 : allRaises > 0 ? 99 : 0;
 
   // WTSD%: went to showdown = saw flop AND did NOT fold on any postflop street
@@ -390,10 +397,18 @@ function computeSessionStats(records) {
   const foldToCbetCount = flopFacingBet.filter(r => r.action === 'fold').length;
   const foldToCbet = flopFacingBet.length > 0 ? Math.round((foldToCbetCount / flopFacingBet.length) * 100) : 0;
 
-  // W$SD%: won money at showdown (of hands that went to showdown)
+  // W$SD%: won $ at showdown (of hands that reached showdown and had a result)
+  // "won" = net profit > 0 (not just handResult === 'won', which could be split with loss)
   const showdownWins = new Set();
-  for (const r of records) {
-    if (handsWithShowdown.has(r.handNumber) && r.handResult === 'won') showdownWins.add(r.handNumber);
+  for (const hn of handsWithShowdown) {
+    const handRecs = records.filter(r => r.handNumber === hn);
+    const lastRec = handRecs[handRecs.length - 1];
+    const firstRec = handRecs[0];
+    if (lastRec?.chipsAfter != null && firstRec) {
+      const startChips = firstRec.chipsBeforeHand || firstRec.myChips;
+      const netProfit = lastRec.chipsAfter - startChips;
+      if (netProfit > 0) showdownWins.add(hn);
+    }
   }
   const wsd = handsWithShowdown.size > 0 ? Math.round((showdownWins.size / handsWithShowdown.size) * 100) : 0;
 
@@ -431,12 +446,14 @@ function computeSessionStats(records) {
   const callingStationScore = postflopActions > 0 ? Math.round((postflopCalls / postflopActions) * 100) : 0;
 
   // 3. Leak score: 0-100 composite quality score (100 = perfect GTO)
-  const vpipDev = Math.abs(vpip - 25) / 25; // deviation from 25% VPIP
-  const pfrDev = Math.abs(pfr - 20) / 20;
-  const afDev = af > 0 ? Math.abs(af - 3) / 3 : 1;
-  const ftcDev = Math.abs(foldToCbet - 45) / 45;
-  const gapDev = Math.min(1, vpipPfrGap / 20);
-  const leakScore = Math.max(0, Math.round(100 - (vpipDev + pfrDev + afDev + ftcDev + gapDev) * 20));
+  // Weighted deviations from GTO benchmarks
+  const mistakeRate = totalHands > 0 ? records.filter(r => r.mistakeType).length / totalHands : 0;
+  const vpipDev = Math.min(1, Math.abs(vpip - 24) / 20); // ideal ~24%
+  const pfrDev = Math.min(1, Math.abs(pfr - 19) / 15);   // ideal ~19%
+  const afDev = Math.min(1, af > 0 ? Math.abs(af - 2.8) / 3 : 1);
+  const gapDev = Math.min(1, Math.max(0, vpipPfrGap - 5) / 15); // gap >5 is leak
+  const mistakePenalty = Math.min(1, mistakeRate * 5); // 20%+ mistakes = max penalty
+  const leakScore = Math.max(0, Math.round(100 - (vpipDev * 15 + pfrDev * 15 + afDev * 15 + gapDev * 20 + mistakePenalty * 35)));
 
   return { vpip, pfr, af, flopAF, turnAF, riverAF, wtsd, wsd, cbet, foldToCbet, riverBetFreq, totalHands,
            vpipPfrGap, callingStationScore, leakScore };
@@ -458,6 +475,10 @@ function computeStageAnalysis(records) {
   const lastFormat = records[records.length - 1]?.tournamentFormat || 'unknown';
   const filteredRecords = byFormat[lastFormat] || records;
   const recsToUse = filteredRecords;
+
+  // Skip stage analysis for cash games (no stages)
+  const isCash = recsToUse.some(r => r.tournamentFormat?.startsWith('NL'));
+  if (isCash) return null;
 
   // Classify each record into a tournament stage
   function getStage(r) {

@@ -329,6 +329,9 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(13, 1fr)', gap: '1px', justifyContent: 'center' }}>
                 {RANKS_ORDER.map((r1, row) => RANKS_ORDER.map((r2, col) => {
                   const isPair = row === col, isSuited = row < col;
+                  // In 13x13 grid: upper triangle = suited, lower = offsuit
+                  // RANKS_ORDER[0]=A (strongest). row < col means r1 is stronger rank
+                  // Label: always higher rank first (e.g. T5o not 5To)
                   const label = isPair ? r1+r2 : isSuited ? r1+r2+'s' : r2+r1+'o';
                   const errs = errMap[label] || 0;
                   const intensity = maxErr > 0 ? errs / maxErr : 0;
