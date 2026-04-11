@@ -605,9 +605,9 @@ function PremiumTable({ gs, theme: T }) {
               animation: 'winPopup 0.5s cubic-bezier(0.34,1.56,0.64,1)',
             }}>
               <span style={{ fontSize: '16px', fontWeight: 800, color: T.accent }}>
-                {gs.winner.isHero ? 'You win +' : `${gs.winner.name} wins `}
+                {gs.winner.isHero ? 'You win ' : `${gs.winner.name} wins `}
               </span>
-              <span style={{ fontSize: '16px', fontWeight: 800, color: '#e0e0e0' }}>{gs.winner.isHero ? fmt(gs.heroChips - chipsBeforeHandRef.current) : fmt(gs.potWon)}</span>
+              <span style={{ fontSize: '16px', fontWeight: 800, color: '#e0e0e0' }}>+{gs.winner.isHero ? fmt(gs.heroChips - chipsBeforeHandRef.current) : fmt(gs.potWon)}</span>
             </div>
           </>
         )}
