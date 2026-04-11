@@ -40,6 +40,7 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
   const [name, setName] = useState('');
   const [showChecklist, setShowChecklist] = useState(false);
   const [checklist, setChecklist] = useState({ sleep: true, focus: true, tilt: true, goal: true });
+  const [sessionGoal, setSessionGoal] = useState('');
 
   return (
     <div style={{
@@ -151,6 +152,11 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
                 Not recommended to play — consider warming up with drills first
               </div>
             )}
+            <div style={{ marginTop: '8px' }}>
+              <label style={{ fontSize: '10px', color: '#5a7a8a' }}>Session goal (e.g., "don't call without raising range")</label>
+              <input value={sessionGoal} onChange={e => setSessionGoal(e.target.value)} placeholder="My goal this session..."
+                style={{ width: '100%', padding: '8px 10px', background: '#0a0d12', border: '1px solid #1a2230', borderRadius: '8px', color: '#c0d0e0', fontSize: '13px', marginTop: '4px', boxSizing: 'border-box', outline: 'none' }} />
+            </div>
           </div>
         )}
 
@@ -177,6 +183,30 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
         onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
         onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
         >HARDCORE — 5 AI PRO vs YOU</button>
+
+        {/* Warm-up button */}
+        <button onClick={() => {
+          // Detect weakest area from past sessions
+          const sessions = JSON.parse(localStorage.getItem('wsop_sessions') || '[]');
+          const allRecs = sessions.flatMap(s => s.records || []);
+          const mistakes = allRecs.filter(r => r.mistakeType);
+          const typeCounts = {};
+          for (const m of mistakes) typeCounts[m.mistakeType] = (typeCounts[m.mistakeType] || 0) + 1;
+          const worst = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+          const drillMap = { bad_fold: 'potodds', bad_call: 'potodds', too_passive: 'sizing', push_fold_error: 'pushfold', icm_error: 'pushfold', draw_fold_error: 'potodds' };
+          const drillId = worst ? (drillMap[worst[0]] || 'rfi') : 'rfi';
+          window.__quickDrill = drillId;
+          onDrills();
+        }} style={{
+          width: '100%', padding: '14px', border: 'none', borderRadius: '14px', cursor: 'pointer',
+          background: 'linear-gradient(135deg, #2a1a40, #6a3a9a)',
+          color: '#fff', fontWeight: 700, fontSize: '15px',
+          boxShadow: '0 4px 16px rgba(106,58,154,0.25)',
+          marginTop: '10px',
+        }}
+        onMouseDown={e => { e.target.style.transform = 'scale(0.97)'; }}
+        onMouseUp={e => { e.target.style.transform = 'scale(1)'; }}
+        >WARM UP — Practice Weak Spots</button>
 
         {/* Secondary buttons */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '12px' }}>
@@ -720,6 +750,7 @@ function Game({ director, onExit }) {
           p.profile.threeBet = 0.06 + Math.random() * 0.06;
         }
         const localAI = new AdaptiveAI(p.profile);
+        localAI.loadHistoricalProfile(); // Load hero leaks from past sessions
         if (isHardcore || i === bossIdx) {
           p._isBoss = true;
           localAI.exploitLevel = isHardcore ? 0.5 : 0.3;
@@ -1077,6 +1108,16 @@ function Game({ director, onExit }) {
                   <div style={{ fontSize: '15px', fontWeight: 700, color: '#c0d0e0', marginTop: '2px' }}>{s.val}</div>
                 </div>
               ))}
+            </div>
+            {/* Opponent Notes */}
+            <div style={{ marginTop: '10px' }}>
+              <label style={{ fontSize: '10px', color: '#5a7a8a' }}>Notes</label>
+              <textarea
+                defaultValue={(() => { try { const notes = JSON.parse(localStorage.getItem('pokertrain_notes') || '{}'); return notes[selectedOpponent.name] || ''; } catch (e) { return ''; } })()}
+                onChange={e => { try { const notes = JSON.parse(localStorage.getItem('pokertrain_notes') || '{}'); notes[selectedOpponent.name] = e.target.value; localStorage.setItem('pokertrain_notes', JSON.stringify(notes)); } catch(e){} }}
+                placeholder="e.g., nit, folds to 3-bet 90%, never bluffs river"
+                style={{ width: '100%', height: '60px', padding: '8px', background: '#0a0d12', border: '1px solid #1a2230', borderRadius: '8px', color: '#c0d0e0', fontSize: '12px', resize: 'none', outline: 'none', boxSizing: 'border-box', marginTop: '4px' }}
+              />
             </div>
           </div>
         </div>

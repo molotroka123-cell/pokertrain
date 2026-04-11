@@ -36,7 +36,61 @@ export class AdaptiveAI extends BaseAI {
       _currentHandActions: [],
     };
     this.exploitLevel = 0;
-    this.minHandsToExploit = 10; // Adapt faster (was 15)
+    this.minHandsToExploit = 10;
+  }
+
+  // Load hero profile from past sessions — exploit from hand 1
+  loadHistoricalProfile() {
+    try {
+      const sessions = JSON.parse(localStorage.getItem('wsop_sessions') || '[]');
+      if (sessions.length === 0) return;
+
+      let totalHands = 0, vpipHands = 0, pfrHands = 0, totalFolds = 0, totalCalls = 0, totalRaises = 0;
+      let cbetsMade = 0, cbetsFolded = 0, riverFolds = 0, riverFaced = 0;
+
+      for (const sess of sessions) {
+        const records = sess.records || [];
+        // Dedup preflop by hand
+        const pfByHand = new Map();
+        for (const r of records) {
+          if (r.stage === 'preflop' && !pfByHand.has(r.handNumber)) pfByHand.set(r.handNumber, r);
+        }
+        for (const r of pfByHand.values()) {
+          totalHands++;
+          if (r.action !== 'fold' && r.action !== 'bb_walk') vpipHands++;
+          if (r.action === 'raise') pfrHands++;
+        }
+        for (const r of records) {
+          if (r.action === 'fold') totalFolds++;
+          if (r.action === 'call') totalCalls++;
+          if (r.action === 'raise') totalRaises++;
+          if (r.stage === 'flop' && r.toCall > 0 && r.action === 'fold') cbetsFolded++;
+          if (r.stage === 'flop' && r.toCall > 0) cbetsMade++;
+          if (r.stage === 'river' && r.toCall > 0) { riverFaced++; if (r.action === 'fold') riverFolds++; }
+        }
+      }
+
+      if (totalHands < 20) return; // Need minimum data
+
+      const h = this.heroModel;
+      h.handsPlayed = totalHands;
+      h.vpipHands = vpipHands;
+      h.pfrHands = pfrHands;
+      h.totalFolds = totalFolds;
+      h.totalCalls = totalCalls;
+      h.totalRaises = totalRaises;
+      h.totalActions = totalFolds + totalCalls + totalRaises;
+      h.cbetsMade = cbetsMade;
+      h.cbetsFolded = cbetsFolded;
+      h.riverBetsFaced = riverFaced;
+      h.riverFolds = riverFolds;
+
+      // Start exploiting immediately
+      this.exploitLevel = Math.min(0.7, totalHands / 200);
+      this.minHandsToExploit = 0;
+    } catch (e) {
+      // Non-critical — start fresh
+    }
   }
 
   // ═══ COMPUTED READS ═══

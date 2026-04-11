@@ -67,6 +67,27 @@ export default function StatsScreen({ onBack }) {
             const url = URL.createObjectURL(blob); const a = document.createElement('a');
             a.href = url; a.download = `all_sessions_${Date.now()}.json`; a.click();
           }} style={{ ...s.back, color: '#27ae60', borderColor: '#1a3a1a' }}>All</button>
+          <button onClick={() => {
+            const input = document.createElement('input');
+            input.type = 'file'; input.accept = '.json';
+            input.onchange = (e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                try {
+                  const data = JSON.parse(ev.target.result);
+                  const sessions = JSON.parse(localStorage.getItem('wsop_sessions') || '[]');
+                  if (Array.isArray(data)) { sessions.push(...data); }
+                  else if (data.records) { sessions.push(data); }
+                  localStorage.setItem('wsop_sessions', JSON.stringify(sessions));
+                  window.location.reload();
+                } catch (err) { alert('Invalid JSON file'); }
+              };
+              reader.readAsText(file);
+            };
+            input.click();
+          }} style={{ ...s.back, color: '#3498db', borderColor: '#1a2a4a' }}>Import</button>
           <button onClick={() => { if (confirm('Clear all session history?')) { localStorage.removeItem('wsop_sessions'); localStorage.removeItem('pokertrain_achievements'); localStorage.removeItem('pokertrain_bankroll'); window.location.reload(); } }} style={{ ...s.back, color: '#8a4a4a', borderColor: '#3a1a20' }}>Clear</button>
           <button onClick={onBack} style={s.back}>Back</button>
         </div>
@@ -97,6 +118,43 @@ export default function StatsScreen({ onBack }) {
       </div>
 
       {/* Recent sessions */}
+      {/* Leak Progress Tracking */}
+      {sessions.length >= 3 && (
+        <div style={s.section}>
+          <div style={s.secTitle}>Leak Progress</div>
+          {['vpip', 'pfr', 'foldToCbet'].map(metric => {
+            const values = sessions.slice(-10).map(sess => {
+              const sm = sess.summary || {};
+              if (metric === 'foldToCbet') {
+                // Compute from records
+                const recs = sess.records || [];
+                const pfCalls = new Set(recs.filter(r => r.stage === 'preflop' && r.action === 'call').map(r => r.handNumber));
+                const facing = recs.filter(r => r.stage === 'flop' && pfCalls.has(r.handNumber) && r.toCall > 0);
+                const folded = facing.filter(r => r.action === 'fold').length;
+                return facing.length > 0 ? Math.round(folded / facing.length * 100) : null;
+              }
+              return sm[metric] ?? null;
+            }).filter(v => v != null);
+            if (values.length < 2) return null;
+            const target = { vpip: 25, pfr: 20, foldToCbet: 45 }[metric] || 50;
+            const max = Math.max(...values, target + 10);
+            const min = Math.min(...values, target - 10);
+            const range = max - min || 1;
+            return (
+              <div key={metric} style={{ marginBottom: '10px' }}>
+                <div style={{ fontSize: '11px', color: '#6b7b8d', marginBottom: '4px' }}>
+                  {metric === 'vpip' ? 'VPIP' : metric === 'pfr' ? 'PFR' : 'Fold to Cbet'} (target: {target}%)
+                </div>
+                <svg viewBox={`0 0 200 40`} style={{ width: '100%', height: '40px' }}>
+                  <line x1="0" y1={40 - (target - min) / range * 40} x2="200" y2={40 - (target - min) / range * 40} stroke="#27ae6044" strokeWidth="1" strokeDasharray="3"/>
+                  <polyline points={values.map((v, i) => `${i / (values.length - 1) * 200},${40 - (v - min) / range * 40}`).join(' ')} fill="none" stroke="#d4af37" strokeWidth="2"/>
+                </svg>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div style={s.section}>
         <div style={s.secTitle}>Recent Sessions</div>
         {sessions.slice(-5).reverse().map((sess, i) => (

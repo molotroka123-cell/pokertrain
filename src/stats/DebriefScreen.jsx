@@ -116,6 +116,39 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
       {/* Summary */}
       <div style={s.summary}>{debrief.summary}</div>
 
+      {/* AUTO-REVIEW: 3 worst hands with GTO comparison */}
+      {debrief.top5?.length > 0 && (
+        <div style={{ ...s.section, borderColor: '#5a2020' }}>
+          <div style={s.sectionTitle}>Worst Hands — Auto Review</div>
+          {debrief.top5.slice(0, 3).map((m, i) => (
+            <div key={i} style={{ padding: '10px', background: '#0a0d12', borderRadius: '8px', marginBottom: '8px', border: '1px solid #1a1a22' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#e74c3c', marginBottom: '4px' }}>
+                #{i + 1} — Hand {m.handNumber} ({m.type?.replace(/_/g, ' ')}) | EV lost: ~{m.evLost}
+              </div>
+              <div style={{ fontSize: '12px', color: '#8899aa', marginBottom: '6px' }}>
+                {m.explanation?.what}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', fontSize: '12px' }}>
+                <div style={{ flex: 1, padding: '6px', background: '#1a1020', borderRadius: '6px', border: '1px solid #3a1a2a' }}>
+                  <div style={{ color: '#8a5a6a', fontSize: '10px', fontWeight: 600 }}>YOUR ACTION</div>
+                  <div style={{ color: '#e74c3c', fontWeight: 700, marginTop: '2px' }}>{m.decision?.action?.toUpperCase()}</div>
+                </div>
+                <div style={{ flex: 1, padding: '6px', background: '#1a2a1a', borderRadius: '6px', border: '1px solid #1a3a1a' }}>
+                  <div style={{ color: '#5a8a5a', fontSize: '10px', fontWeight: 600 }}>GTO SAYS</div>
+                  <div style={{ color: '#27ae60', fontWeight: 700, marginTop: '2px' }}>
+                    {m.decision?.gtoAction?.toUpperCase() || '?'}
+                    {m.decision?.solverResult?.bestFrequency ? ` (${m.decision.solverResult.bestFrequency}%)` : ''}
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize: '11px', color: '#6b7b8d', marginTop: '6px' }}>
+                {m.explanation?.why}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Top mistakes */}
       {debrief.top5.length > 0 && (
         <div style={s.section}>
@@ -267,6 +300,36 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
         </div>
       )}
 
+      {/* Leak Comparison vs Population */}
+      {debrief.sessionStats && (
+        <div style={s.section}>
+          <div style={s.sectionTitle}>You vs Average Reg (NL50)</div>
+          {[
+            { label: 'VPIP', yours: debrief.sessionStats.vpip, reg: 24, unit: '%' },
+            { label: 'PFR', yours: debrief.sessionStats.pfr, reg: 19, unit: '%' },
+            { label: 'AF', yours: debrief.sessionStats.af, reg: 3.0, unit: '' },
+            { label: 'Fold to Cbet', yours: debrief.sessionStats.foldToCbet, reg: 45, unit: '%' },
+            { label: 'C-bet', yours: debrief.sessionStats.cbet, reg: 65, unit: '%' },
+            { label: 'WTSD', yours: debrief.sessionStats.wtsd, reg: 28, unit: '%' },
+            { label: 'V-P Gap', yours: debrief.sessionStats.vpipPfrGap, reg: 5, unit: '%' },
+          ].map((s2, i) => {
+            const diff = (s2.yours || 0) - s2.reg;
+            const bad = Math.abs(diff) > (s2.reg * 0.3);
+            return (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #141a22', fontSize: '12px' }}>
+                <span style={{ color: '#8899aa', flex: 1 }}>{s2.label}</span>
+                <span style={{ color: bad ? '#e74c3c' : '#c0d0e0', fontWeight: 700, width: '55px', textAlign: 'right' }}>{s2.yours || 0}{s2.unit}</span>
+                <span style={{ color: '#3a4a5a', width: '20px', textAlign: 'center' }}>vs</span>
+                <span style={{ color: '#27ae60', width: '55px', textAlign: 'right' }}>{s2.reg}{s2.unit}</span>
+                <span style={{ color: diff > 0 ? '#f39c12' : '#3498db', width: '55px', textAlign: 'right', fontSize: '11px' }}>
+                  {diff > 0 ? '+' : ''}{typeof diff === 'number' ? diff.toFixed(s2.unit ? 0 : 1) : '?'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* AI Exploit Report */}
       {aiExploit && (
         <div style={s.section}>
@@ -339,6 +402,39 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
         }
         navigator.clipboard?.writeText(text).then(() => alert('Hand history copied!')).catch(() => {});
       }} style={s.exportBtn}>Copy Hand History to Clipboard</button>
+      <button onClick={() => {
+        if (!records?.length) return;
+        // Generate PokerStars-compatible hand history for GTO Wizard import
+        const hands = new Map();
+        for (const r of records) {
+          if (!hands.has(r.handNumber)) hands.set(r.handNumber, []);
+          hands.get(r.handNumber).push(r);
+        }
+        let hh = '';
+        for (const [hn, recs] of hands) {
+          const first = recs[0];
+          hh += `PokerStars Hand #${hn}: Hold'em No Limit (${first.blinds || '?'}) - ${new Date(first.timestamp).toISOString()}\n`;
+          hh += `Table 'Pokertrain' 9-max Seat #1 is the button\n`;
+          hh += `Seat 1: Hero (${first.myChips || 0} in chips)\n`;
+          hh += `*** HOLE CARDS ***\nDealt to Hero [${first.holeCards || '??'}]\n`;
+          let lastStreet = 'preflop';
+          for (const r of recs) {
+            if (r.stage !== lastStreet) {
+              if (r.stage === 'flop') hh += `*** FLOP *** [${r.community || ''}]\n`;
+              else if (r.stage === 'turn') hh += `*** TURN *** [${r.community || ''}]\n`;
+              else if (r.stage === 'river') hh += `*** RIVER *** [${r.community || ''}]\n`;
+              lastStreet = r.stage;
+            }
+            hh += `Hero: ${r.action}${r.raiseAmount ? ' ' + r.raiseAmount : r.toCall > 0 && r.action === 'call' ? ' ' + r.toCall : ''}\n`;
+          }
+          const last = recs[recs.length - 1];
+          if (last.handResult) hh += `*** SUMMARY ***\nTotal pot ${last.potSize || 0}\nHero ${last.handResult}\n`;
+          hh += '\n\n';
+        }
+        const blob = new Blob([hh], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob); const a = document.createElement('a');
+        a.href = url; a.download = `pokertrain_hands_${Date.now()}.txt`; a.click();
+      }} style={s.exportBtn}>Download for GTO Wizard (.txt)</button>
     </div>
   );
 }
