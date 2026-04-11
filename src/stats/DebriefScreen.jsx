@@ -54,7 +54,7 @@ const s = {
   },
 };
 
-export default function DebriefScreen({ debrief, finish, records, onClose, onExport }) {
+export default function DebriefScreen({ debrief, finish, records, onClose, onExport, aiExploit }) {
   const [selectedMistake, setSelectedMistake] = useState(null);
 
   if (!debrief) return null;
@@ -246,6 +246,48 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
                 <div key={i} style={{ fontSize: '11px', color: '#a08080', marginTop: '4px' }}>
                   Hands #{tw.lossStreakStart}-{tw.lossStreakEnd}: {tw.lossStreakLength} losses → {tw.speedupPct}% faster decisions, {tw.mistakesAfter} mistakes after
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AI Exploit Report */}
+      {aiExploit && (
+        <div style={s.section}>
+          <div style={s.sectionTitle}>What AI Learned About You</div>
+          {aiExploit.style && (
+            <div style={{ fontSize: '14px', color: '#c0d0e0', marginBottom: '8px' }}>
+              AI classified you as: <span style={{ color: '#d4af37', fontWeight: 700 }}>{aiExploit.style}</span>
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+            {aiExploit.vpip != null && (
+              <div style={{ padding: '6px 10px', background: '#0d1118', borderRadius: '8px', fontSize: '12px' }}>
+                <span style={{ color: '#6b7b8d' }}>VPIP: </span><span style={{ color: '#c0d0e0', fontWeight: 600 }}>{Math.round(aiExploit.vpip * 100)}%</span>
+              </div>
+            )}
+            {aiExploit.pfr != null && (
+              <div style={{ padding: '6px 10px', background: '#0d1118', borderRadius: '8px', fontSize: '12px' }}>
+                <span style={{ color: '#6b7b8d' }}>PFR: </span><span style={{ color: '#c0d0e0', fontWeight: 600 }}>{Math.round(aiExploit.pfr * 100)}%</span>
+              </div>
+            )}
+            {aiExploit.foldToCbet != null && (
+              <div style={{ padding: '6px 10px', background: '#0d1118', borderRadius: '8px', fontSize: '12px' }}>
+                <span style={{ color: '#6b7b8d' }}>Fold to c-bet: </span><span style={{ color: aiExploit.foldToCbet > 0.55 ? '#e74c3c' : '#c0d0e0', fontWeight: 600 }}>{Math.round(aiExploit.foldToCbet * 100)}%</span>
+              </div>
+            )}
+            {aiExploit.threeBetDef != null && (
+              <div style={{ padding: '6px 10px', background: '#0d1118', borderRadius: '8px', fontSize: '12px' }}>
+                <span style={{ color: '#6b7b8d' }}>3-bet def: </span><span style={{ color: '#c0d0e0', fontWeight: 600 }}>{Math.round(aiExploit.threeBetDef * 100)}%</span>
+              </div>
+            )}
+          </div>
+          {aiExploit.exploits && aiExploit.exploits.length > 0 && (
+            <div style={{ marginTop: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#f39c12', fontWeight: 700, marginBottom: '4px' }}>AI Exploited:</div>
+              {aiExploit.exploits.map((e, i) => (
+                <div key={i} style={{ fontSize: '12px', color: '#a08060', padding: '3px 0' }}>• {e}</div>
               ))}
             </div>
           )}

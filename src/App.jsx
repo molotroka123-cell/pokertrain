@@ -40,23 +40,23 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      background: 'radial-gradient(ellipse at 50% 0%, #1a2540 0%, #0a0d14 60%, #050709 100%)',
+      minHeight: '100dvh',
+      background: 'radial-gradient(ellipse at 50% 0%, #0d1520 0%, #080a10 60%, #040608 100%)',
       color: '#e0e0e0', fontFamily: "'Segoe UI', -apple-system, sans-serif",
+      paddingTop: 'env(safe-area-inset-top, 0px)',
     }}>
       {/* Hero banner */}
       <div style={{
-        textAlign: 'center', padding: '48px 20px 24px',
-        background: 'linear-gradient(180deg, rgba(255,215,0,0.06) 0%, transparent 100%)',
+        textAlign: 'center', padding: '40px 20px 20px',
+        background: 'linear-gradient(180deg, rgba(212,175,55,0.08) 0%, transparent 100%)',
       }}>
-        <div style={{ fontSize: '14px', color: '#8899aa', letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '8px' }}>World Series of Poker</div>
+        <div style={{ fontSize: '13px', color: '#6a7a8a', letterSpacing: '4px', textTransform: 'uppercase', marginBottom: '8px' }}>Tournament</div>
         <div style={{
-          fontSize: '36px', fontWeight: 900, letterSpacing: '3px',
-          background: 'linear-gradient(135deg, #ffd700, #ffaa00, #ffd700)',
+          fontSize: '34px', fontWeight: 900, letterSpacing: '3px',
+          background: 'linear-gradient(135deg, #ffd700, #e8a800, #ffd700)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          textShadow: 'none', filter: 'drop-shadow(0 2px 4px rgba(255,215,0,0.2))',
+          textShadow: 'none', filter: 'drop-shadow(0 2px 8px rgba(255,215,0,0.15))',
         }}>POKER TRAINER</div>
-        <div style={{ fontSize: '13px', color: '#5a6a7a', marginTop: '6px' }}>v3.0 — Full Tournament Emulator</div>
       </div>
 
       <div style={{ maxWidth: '520px', margin: '0 auto', padding: '0 20px 40px' }}>
@@ -78,13 +78,13 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
         <label style={{ fontSize: '11px', color: '#5a6a7a', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>Tournament Format</label>
         {Object.entries(FORMATS).map(([key, f]) => (
           <div key={key} onClick={() => setFormat(key)} style={{
-            padding: '16px', borderRadius: '12px', marginBottom: '10px', cursor: 'pointer',
-            background: format === key ? 'linear-gradient(135deg, #1a2a4a, #1a3a5c)' : '#0d1118',
-            border: `1.5px solid ${format === key ? '#3a6a9a' : '#1a2230'}`,
+            padding: '16px', borderRadius: '12px', marginBottom: '8px', cursor: 'pointer',
+            background: format === key ? 'linear-gradient(135deg, #141e30, #1a2a40)' : '#0a0e14',
+            border: `1.5px solid ${format === key ? 'rgba(212,175,55,0.3)' : '#141a22'}`,
             transition: 'all 0.25s ease', position: 'relative', overflow: 'hidden',
-            boxShadow: format === key ? '0 4px 20px rgba(42,106,154,0.2)' : 'none',
+            boxShadow: format === key ? '0 4px 20px rgba(212,175,55,0.1)' : 'none',
           }}>
-            {format === key && <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: '#ffd700', borderRadius: '3px 0 0 3px' }} />}
+            {format === key && <div style={{ position: 'absolute', top: 0, left: 0, width: '3px', height: '100%', background: '#d4af37', borderRadius: '3px 0 0 3px' }} />}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '15px', color: format === key ? '#ffd700' : '#c0d0e0' }}>
@@ -865,7 +865,7 @@ function Game({ director, onExit }) {
             padding: '6px 14px', background: '#0d1118', border: '1px solid #1a2230',
             borderRadius: '8px', color: '#5a7a8a', fontSize: '11px', cursor: 'pointer', fontWeight: 600,
           }}>Dashboard</button>
-          <button onClick={() => onExit({ position: tournState.heroRank, total: tournState.totalPlayers, apiCalls: ClaudeBossBot.totalCalls })} style={{
+          <button onClick={() => onExit({ position: tournState.heroRank, total: tournState.totalPlayers, apiCalls: ClaudeBossBot.totalCalls, aiBots: aiBotsRef.current })} style={{
             padding: '6px 14px', background: '#1a1015', border: '1px solid #3a1a20',
             borderRadius: '8px', color: '#8a5a5a', fontSize: '11px', cursor: 'pointer', fontWeight: 600,
           }}>Exit</button>
@@ -925,7 +925,7 @@ function Game({ director, onExit }) {
               <div style={{ fontSize: '18px', fontWeight: 800, color: '#e74c3c', marginBottom: '10px' }}>
                 ELIMINATED #{tournState.heroRank} / {tournState.totalPlayers}
               </div>
-              <button className="btn-action" onClick={() => onExit({ position: tournState.heroRank, total: tournState.totalPlayers, apiCalls: ClaudeBossBot.totalCalls })} style={{
+              <button className="btn-action" onClick={() => onExit({ position: tournState.heroRank, total: tournState.totalPlayers, apiCalls: ClaudeBossBot.totalCalls, aiBots: aiBotsRef.current })} style={{
                 width: '100%', padding: '18px', border: 'none', borderRadius: '14px',
                 background: 'linear-gradient(135deg, #1a3a6c, #2980b9)',
                 color: '#fff', fontWeight: 800, fontSize: '16px', cursor: 'pointer',
@@ -982,7 +982,8 @@ export default function App() {
   }
   if (screen === 'debrief' && debriefData) {
     return <div style={appBg}><DebriefScreen debrief={debriefData.debrief} finish={debriefData.finish}
-      records={debriefData.records} onClose={() => { setDebriefData(null); setScreen('lobby'); }}
+      records={debriefData.records} aiExploit={debriefData.aiExploit}
+      onClose={() => { setDebriefData(null); setScreen('lobby'); }}
       onExport={() => {
         const data = exportSession();
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -995,7 +996,14 @@ export default function App() {
       const records = getRecords();
       if (records.length > 0) {
         saveSession();
-        setDebriefData({ debrief: generateDebrief(records), finish: finish || {}, records });
+        // Collect AI exploit data — what AI learned about hero
+        let aiExploit = null;
+        try {
+          const bots = Object.values(finish?.aiBots || {});
+          const bot = bots.find(b => b.getHeroSummary);
+          if (bot) aiExploit = bot.getHeroSummary();
+        } catch (e) {}
+        setDebriefData({ debrief: generateDebrief(records), finish: finish || {}, records, aiExploit });
         setScreen('debrief');
       } else { setDirector(null); setScreen('lobby'); }
     }} />;
