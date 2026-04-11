@@ -322,6 +322,41 @@ export function recordDecision({
   };
 
   records.push(record);
+
+  // Async: request CFR solver solution (non-blocking, updates record later)
+  if (hCards.length === 2 && stage !== 'preflop') {
+    import('../engine/solver.js').then(({ solve }) => {
+      const oppRange = (opponents || []).length > 0 ? 0.5 : 0.5;
+      solve(hCards, board, potSize, toCall, myChips, {
+        villainRangeStrength: oppRange,
+        numOpponents,
+        iterations: 800,
+        heroPosition: position,
+        villainPosition: facingAction?.position || (opponents || [])[0]?.position,
+        stackDepthBB: effectiveStackBB,
+      }).then(solverResult => {
+        // Update record with solver data
+        record.solverResult = {
+          bestAction: solverResult.bestAction,
+          bestEV: solverResult.bestEV,
+          bestFrequency: solverResult.bestFrequency,
+          equity: solverResult.equity,
+          isMixedStrategy: solverResult.isMixedStrategy,
+          actions: solverResult.actions,
+          fromCache: solverResult.fromCache || false,
+        };
+        // Mixed strategy: don't flag as mistake if action has >15% frequency
+        const heroActionFreq = solverResult.actions?.find(a => a.action === action || (action === 'call' && a.action === 'call') || (action === 'check' && a.action === 'check'));
+        if (heroActionFreq && heroActionFreq.frequency >= 15) {
+          record.gtoMatch = true;
+          record.mistakeType = null;
+          record.mistakeSeverity = null;
+          record.evLost = 0;
+        }
+      }).catch(() => {}); // Solver failure is non-critical
+    }).catch(() => {});
+  }
+
   return record;
 }
 
