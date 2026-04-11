@@ -28,6 +28,7 @@ import { Sounds } from './lib/sounds.js';
 import { getLiveTell } from './lib/liveTells.js';
 import { getTheme } from './lib/themes.js';
 import { ClaudeBossBot } from './engine/claudeAI.js';
+import { generateProfile } from './data/aiProfiles.js';
 
 function fmt(n) {
   if (!n && n !== 0) return '0';
@@ -841,8 +842,45 @@ function Game({ director, onExit }) {
     Sounds.deal(); // Deal sound on new hand
     setGs(engine.getState());
     await engine.runHand((state) => setGs({ ...state }));
+    const isCashGame = dirRef.current.format?.isCash;
     for (const p of tablePlayers) {
-      if (p.chips <= 0 && !p.eliminated) dirRef.current.pool.eliminate(p.id);
+      if (p.chips <= 0 && !p.eliminated) {
+        if (isCashGame) {
+          // Cash: mark for replacement (respawn after 2-5 hands)
+          p._respawnIn = 2 + Math.floor(Math.random() * 4);
+          p.eliminated = true;
+        } else {
+          dirRef.current.pool.eliminate(p.id);
+        }
+      }
+    }
+    // Cash game: respawn eliminated bots
+    if (isCashGame) {
+      const heroTable = dirRef.current.tableManager?.getHeroTable();
+      if (heroTable) {
+        for (const p of heroTable.players) {
+          if (p.eliminated && p._respawnIn != null) {
+            p._respawnIn--;
+            if (p._respawnIn <= 0) {
+              // New player sits down with random stack (40-100% of buy-in)
+              const buyIn = dirRef.current.format.startingChips || 1000;
+              p.chips = Math.floor(buyIn * (0.4 + Math.random() * 0.6));
+              p.eliminated = false;
+              p._respawnIn = null;
+              // New profile
+              const newProf = generateProfile(Date.now() + Math.random() * 1000, dirRef.current.format.fieldLevel || 'micro');
+              p.name = newProf.name;
+              p.profile = newProf;
+              p.emoji = newProf.emoji;
+              p._isBoss = false;
+              // New AI bot
+              const newAI = new AdaptiveAI(newProf);
+              newAI.loadHistoricalProfile();
+              aiBotsRef.current[p.id] = newAI;
+            }
+          }
+        }
+      }
     }
     const heroTable = dirRef.current.tableManager.getHeroTable();
     if (heroTable) {
