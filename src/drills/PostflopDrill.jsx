@@ -40,7 +40,7 @@ export default function PostflopDrill({ onBack }) {
   const hasCheckOption = spot.toCall === 0;
 
   return (
-    <DrillShell title="Postflop Drill" correct={correct} total={total} onBack={onBack}>
+    <DrillShell title="Postflop Drill" correct={correct} total={total} streak={0} onBack={onBack} timerActive={!answered}>
       <div style={ds.card}>
         {/* Situation */}
         <div style={{ fontSize: '12px', color: '#8899aa', marginBottom: '10px' }}>

@@ -51,7 +51,7 @@ export default function ThreeBetDrill({ onBack }) {
   };
 
   return (
-    <DrillShell title="3-Bet Drill" correct={correct} total={total} onBack={onBack}>
+    <DrillShell title="3-Bet Drill" correct={correct} total={total} streak={0} onBack={onBack} timerActive={!answered}>
       <div style={ds.card}>
         <div style={{ fontSize: '12px', color: '#8899aa', marginBottom: '6px' }}>
           <span style={{ color: '#e74c3c' }}>{villainPos}</span> opens 2.5x.

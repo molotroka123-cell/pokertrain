@@ -1,37 +1,104 @@
-// DrillShell.jsx — Shared UI wrapper for all drills
-import React from 'react';
+// DrillShell.jsx — Premium drill wrapper: timer, streaks, speed modes, GTO frequencies
+import React, { useState, useEffect, useRef } from 'react';
+
+const SPEED_MODES = { casual: 0, standard: 15, hyper: 5 };
 
 const s = {
-  container: { padding: '16px', maxWidth: '500px', margin: '0 auto' },
+  container: { padding: '12px 16px', maxWidth: '500px', margin: '0 auto' },
   header: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: '16px', paddingBottom: '10px', borderBottom: '1px solid #1e2a3a',
+    marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid #1a2a3a',
   },
-  title: { fontSize: '18px', fontWeight: 700, color: '#ffd700' },
+  title: { fontSize: '17px', fontWeight: 700, color: '#ffd700' },
   back: {
-    padding: '6px 14px', background: '#1a2840', border: '1px solid #2a3a4a',
-    borderRadius: '6px', color: '#8899aa', fontSize: '12px', cursor: 'pointer',
+    padding: '5px 12px', background: '#0d1118', border: '1px solid #1a2230',
+    borderRadius: '6px', color: '#6b7b8d', fontSize: '11px', cursor: 'pointer',
   },
-  score: {
-    display: 'flex', justifyContent: 'space-around', padding: '10px',
-    background: '#111820', borderRadius: '10px', marginBottom: '16px', border: '1px solid #1e2a3a',
+  statsRow: {
+    display: 'flex', gap: '1px', marginBottom: '10px', borderRadius: '10px',
+    overflow: 'hidden', background: '#1a2230',
   },
-  scoreStat: { textAlign: 'center' },
-  scoreLabel: { fontSize: '10px', color: '#6b7b8d', textTransform: 'uppercase' },
-  scoreVal: { fontSize: '20px', fontWeight: 700 },
+  stat: (active) => ({
+    flex: 1, padding: '8px 4px', textAlign: 'center',
+    background: active ? '#0d1a14' : '#0a0e14',
+  }),
+  statLabel: { fontSize: '8px', color: '#4a5a6a', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  statVal: (color) => ({ fontSize: '18px', fontWeight: 800, color: color || '#c0d0e0' }),
+  timerBar: (pct, color) => ({
+    height: '4px', background: '#0a0e14', borderRadius: '2px', marginBottom: '8px', overflow: 'hidden',
+    position: 'relative',
+  }),
+  timerFill: (pct, color) => ({
+    height: '100%', width: `${pct}%`, borderRadius: '2px',
+    background: color, transition: 'width 0.3s linear',
+  }),
+  streakBadge: {
+    textAlign: 'center', padding: '4px', fontSize: '11px', fontWeight: 700,
+    color: '#ffd700', marginBottom: '6px',
+  },
+  speedToggle: {
+    display: 'flex', gap: '4px', marginBottom: '8px',
+  },
+  speedBtn: (active) => ({
+    flex: 1, padding: '6px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+    background: active ? '#1a3a2a' : '#0a0e14',
+    color: active ? '#27ae60' : '#3a4a5a',
+    fontSize: '10px', fontWeight: 700, letterSpacing: '0.5px',
+  }),
   card: {
-    background: '#111820', borderRadius: '12px', padding: '16px',
-    border: '1px solid #1e2a3a', marginBottom: '12px',
+    background: '#0d1118', borderRadius: '12px', padding: '14px',
+    border: '1px solid #1a2230', marginBottom: '10px',
   },
+  gtoBox: {
+    padding: '10px', borderRadius: '8px', background: '#0a1018',
+    border: '1px solid #1a2a3a', marginTop: '8px',
+  },
+  gtoRow: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '3px 0', fontSize: '12px',
+  },
+  gtoBar: (pct, color) => ({
+    height: '6px', width: `${pct}%`, background: color,
+    borderRadius: '3px', minWidth: '4px',
+  }),
   confidence: (conf) => ({
-    fontSize: '11px', fontWeight: 600, padding: '3px 8px', borderRadius: '10px', display: 'inline-block',
-    background: conf === 'solver' ? '#1a3a2a' : conf === 'heuristic+' ? '#3a3a1a' : '#3a2a1a',
-    color: conf === 'solver' ? '#48bb78' : conf === 'heuristic+' ? '#f6e05e' : '#f97316',
-    marginTop: '6px',
+    fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '8px', display: 'inline-block',
+    background: conf === 'solver' ? '#0a2a1a' : conf === 'gto' ? '#1a2a0a' : '#1a1a0a',
+    color: conf === 'solver' ? '#48bb78' : conf === 'gto' ? '#a0d080' : '#d0c060',
+    marginTop: '4px',
   }),
 };
 
-export default function DrillShell({ title, correct, total, onBack, children }) {
+export default function DrillShell({ title, correct, total, onBack, streak, children, onTimeout, timerActive }) {
+  const [speed, setSpeed] = useState('standard');
+  const [timeLeft, setTimeLeft] = useState(SPEED_MODES.standard);
+  const intervalRef = useRef(null);
+
+  // Timer
+  useEffect(() => {
+    if (speed === 'casual' || !timerActive) {
+      setTimeLeft(SPEED_MODES[speed] || 15);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+    const maxTime = SPEED_MODES[speed] || 15;
+    setTimeLeft(maxTime);
+    intervalRef.current = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) {
+          clearInterval(intervalRef.current);
+          if (onTimeout) onTimeout();
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [speed, timerActive, onTimeout]);
+
+  const maxTime = SPEED_MODES[speed] || 15;
+  const timerPct = maxTime > 0 ? (timeLeft / maxTime) * 100 : 100;
+  const timerColor = timerPct > 50 ? '#27ae60' : timerPct > 25 ? '#f39c12' : '#e74c3c';
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
 
   return (
@@ -40,21 +107,85 @@ export default function DrillShell({ title, correct, total, onBack, children }) 
         <div style={s.title}>{title}</div>
         <button onClick={onBack} style={s.back}>Back</button>
       </div>
-      <div style={s.score}>
-        <div style={s.scoreStat}>
-          <div style={s.scoreLabel}>Correct</div>
-          <div style={{ ...s.scoreVal, color: '#27ae60' }}>{correct}</div>
+
+      {/* Speed mode toggle */}
+      <div style={s.speedToggle}>
+        {['casual', 'standard', 'hyper'].map(m => (
+          <button key={m} onClick={() => setSpeed(m)} style={s.speedBtn(speed === m)}>
+            {m === 'casual' ? 'No Timer' : m === 'standard' ? '15 sec' : '5 sec'}
+          </button>
+        ))}
+      </div>
+
+      {/* Timer bar */}
+      {speed !== 'casual' && timerActive && (
+        <div style={s.timerBar(timerPct, timerColor)}>
+          <div style={s.timerFill(timerPct, timerColor)} />
         </div>
-        <div style={s.scoreStat}>
-          <div style={s.scoreLabel}>Total</div>
-          <div style={{ ...s.scoreVal, color: '#e0e0e0' }}>{total}</div>
+      )}
+
+      {/* Streak badge */}
+      {streak >= 5 && (
+        <div style={s.streakBadge}>
+          {streak >= 20 ? '🔥🔥🔥' : streak >= 10 ? '🔥🔥' : '🔥'} {streak} streak!
         </div>
-        <div style={s.scoreStat}>
-          <div style={s.scoreLabel}>Accuracy</div>
-          <div style={{ ...s.scoreVal, color: pct >= 70 ? '#27ae60' : pct >= 50 ? '#f39c12' : '#e74c3c' }}>{pct}%</div>
+      )}
+
+      {/* Stats row */}
+      <div style={s.statsRow}>
+        <div style={s.stat(false)}>
+          <div style={s.statLabel}>Correct</div>
+          <div style={s.statVal('#27ae60')}>{correct}</div>
+        </div>
+        <div style={s.stat(false)}>
+          <div style={s.statLabel}>Total</div>
+          <div style={s.statVal('#c0d0e0')}>{total}</div>
+        </div>
+        <div style={s.stat(false)}>
+          <div style={s.statLabel}>Accuracy</div>
+          <div style={s.statVal(pct >= 70 ? '#27ae60' : pct >= 50 ? '#f39c12' : '#e74c3c')}>{pct}%</div>
+        </div>
+        <div style={s.stat(true)}>
+          <div style={s.statLabel}>Streak</div>
+          <div style={s.statVal(streak >= 10 ? '#ffd700' : streak >= 5 ? '#f39c12' : '#6b7b8d')}>{streak || 0}</div>
         </div>
       </div>
+
       {children}
+    </div>
+  );
+}
+
+// GTO frequency display component
+export function GTOFrequencies({ frequencies, heroAction, isCorrect }) {
+  if (!frequencies) return null;
+  // frequencies = { raise: 35, call: 50, fold: 15 }
+  const colors = { raise: '#27ae60', call: '#3498db', fold: '#e74c3c', check: '#8899aa' };
+  const sorted = Object.entries(frequencies).sort((a, b) => b[1] - a[1]);
+  const bestAction = sorted[0][0];
+  const heroFreq = frequencies[heroAction] || 0;
+  const score = Math.round(heroFreq * 0.9 + (heroAction === bestAction ? 10 : 0));
+
+  return (
+    <div style={s.gtoBox}>
+      <div style={{ fontSize: '11px', color: '#5a6a7a', marginBottom: '6px', fontWeight: 700, letterSpacing: '1px' }}>GTO STRATEGY</div>
+      {sorted.filter(([, pct]) => pct > 0).map(([action, pct]) => (
+        <div key={action} style={s.gtoRow}>
+          <span style={{
+            color: action === heroAction ? (isCorrect ? '#27ae60' : '#e74c3c') : '#6b7b8d',
+            fontWeight: action === heroAction ? 700 : 400,
+          }}>
+            {action === heroAction ? '► ' : '  '}{action.toUpperCase()}
+          </span>
+          <div style={{ flex: 1, margin: '0 8px' }}>
+            <div style={s.gtoBar(pct, colors[action] || '#6b7b8d')} />
+          </div>
+          <span style={{ color: '#8a9aaa', fontWeight: 600, fontSize: '12px', minWidth: '35px', textAlign: 'right' }}>{pct}%</span>
+        </div>
+      ))}
+      <div style={{ fontSize: '11px', color: '#4a5a6a', marginTop: '6px' }}>
+        Your score: <span style={{ color: score >= 70 ? '#27ae60' : score >= 40 ? '#f39c12' : '#e74c3c', fontWeight: 700 }}>{score}</span>/100
+      </div>
     </div>
   );
 }

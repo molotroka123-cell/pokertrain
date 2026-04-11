@@ -48,7 +48,7 @@ export default function SizingDrill({ onBack }) {
   };
 
   return (
-    <DrillShell title="Sizing Drill" correct={correct} total={total} onBack={onBack}>
+    <DrillShell title="Sizing Drill" correct={correct} total={total} streak={0} onBack={onBack} timerActive={!answered}>
       <div style={ds.card}>
         <div style={{ fontSize: '12px', color: '#8899aa', marginBottom: '6px' }}>
           Pot: <span style={{ color: '#ffd700', fontWeight: 700 }}>{sc.pot}</span>
