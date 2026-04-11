@@ -518,8 +518,18 @@ function computeTiltIndicator(records) {
     const avgTime = recs.reduce((a, r) => a + (r.decisionTimeMs || 0), 0) / recs.length;
     const result = recs[recs.length - 1]?.handResult;
     const hasMistake = recs.some(r => r.mistakeType);
-    return { handNumber: hn, avgDecisionMs: Math.round(avgTime), result, hasMistake };
+    // VPIP for this hand (did hero voluntarily put money in?)
+    const pfRec = recs.find(r => r.stage === 'preflop');
+    const didVpip = pfRec && pfRec.action !== 'fold' && pfRec.action !== 'bb_walk';
+    return { handNumber: hn, avgDecisionMs: Math.round(avgTime), result, hasMistake, didVpip };
   });
+
+  // Calculate vpipLast10 for tilt detection
+  for (let i = 0; i < handData.length; i++) {
+    const window = handData.slice(Math.max(0, i - 9), i + 1);
+    const vpipCount = window.filter(h => h.didVpip).length;
+    handData[i].vpipLast10 = Math.round(vpipCount / window.length * 100);
+  }
 
   // Detect tilt windows: 3+ consecutive losses followed by faster decisions + more mistakes
   const windows = [];
@@ -540,9 +550,10 @@ function computeTiltIndicator(records) {
     const afterAvgTime = afterHands.reduce((a, h) => a + h.avgDecisionMs, 0) / afterHands.length;
     const afterMistakes = afterHands.filter(h => h.hasMistake).length;
 
-    // Tilt signal: decisions got faster AND mistakes increased
+    // Tilt signal: decisions got faster AND/OR mistakes increased AND/OR VPIP spiked
     const speedup = beforeAvgTime > 0 ? (beforeAvgTime - afterAvgTime) / beforeAvgTime : 0;
-    if (speedup > 0.20 && afterMistakes >= 2) {
+    const vpipSpike = afterHands.length > 0 && afterHands.some(h => h.vpipLast10 > 60);
+    if ((speedup > 0.20 && afterMistakes >= 2) || (afterMistakes >= 2 && vpipSpike)) {
       windows.push({
         lossStreakStart: handData[i - lossStreak + 1].handNumber,
         lossStreakEnd: handData[i].handNumber,

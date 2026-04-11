@@ -38,12 +38,12 @@
 
 - [x] FEAT-4: villainAction + streetActions chain
 - [x] FEAT-5: PersonalizedDrill.jsx from real mistakes
-- [x] FEAT-6: Chip graph (⚠️ no EV line yet)
+- [x] FEAT-6: Chip graph + EV line (green actual, blue EV)
 - [x] FEAT-7: Cross-session progress sparklines
 - [x] FEAT-8: Bankroll manager (getBankroll/updateBankroll)
 - [x] FEAT-9: Warmup mode button
 - [x] FEAT-10: Post-hand tips + GTO overlay
-- [x] FEAT-11: Tilt tracker (⚠️ basic — no vpipLast10/sizingDeviation)
+- [x] FEAT-11: Tilt tracker (vpipLast10 + speed + mistakes)
 - [x] FEAT-12: Hand history import (JSON + PokerStars HH)
 - [x] FEAT-13: GTO Wizard export (.txt)
 
@@ -86,16 +86,8 @@
 
 ---
 
-## NEXT TO DO (in order)
+## ✅ ALL FEATURES COMPLETE
 
-1. BUG-3: AF dedup
-2. AI-9: Position-specific exploit
-3. AI-11: Check-raise follow-through
-4. AI-12: OOP sizing +15%
-5. FEAT-1: Cash game mode
-6. FEAT-3: Live tells
-7. FEAT-5: Personalized drills
-8. FEAT-6: EV line on graph
-9. FEAT-14: GTO Wizard workflow
-10. FEAT-19: PWA offline
-11. FEAT-20: Claude API analysis
+Total: 6 bugs fixed + 21 features + 12 AI improvements + 25 other features = **64 items done**
+
+For Claude API deep analysis: add `ANTHROPIC_API_KEY` to Vercel → Settings → Environment Variables
