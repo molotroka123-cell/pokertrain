@@ -1431,7 +1431,7 @@ function Game({ director, onExit }) {
             {postHandTip.type === 'good' ? '✓ ' : '⚠ '}{postHandTip.text}
           </span>
           {postHandTip.evLost > 0 && (
-            <span style={{ fontSize: '11px', color: '#e74c3c', marginLeft: '8px' }}>(-{postHandTip.evLost} EV)</span>
+            <span style={{ fontSize: '11px', color: '#e74c3c', marginLeft: '8px' }}>EV lost: ~{postHandTip.evLost}</span>
           )}
           {postHandTip.gtoAction && postHandTip.type !== 'good' && (
             <div style={{ fontSize: '11px', color: '#5a8a5a', marginTop: '3px' }}>

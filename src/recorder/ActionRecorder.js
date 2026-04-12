@@ -261,12 +261,30 @@ export function recordDecision({
         const suitCounts = {};
         bSuits.forEach(s => { suitCounts[s] = (suitCounts[s] || 0) + 1; });
         const flushPossible = Object.values(suitCounts).some(c => c >= 3);
-        // Paired + flush board: villain barrels almost only with boats/flushes/trips
+        const fourFlush = Object.values(suitCounts).some(c => c >= 4);
+        // Check if hero has the flush suit
+        const flushSuit = Object.entries(suitCounts).find(([, c]) => c >= 3)?.[0];
+        const heroHasFlushCard = flushSuit && hCards.some(c => c[1] === flushSuit);
+
+        // 4-flush board: if hero doesn't have flush, equity drops massively
+        if (fourFlush && !heroHasFlushCard && villainBarrels >= 1) {
+          equity = equity * 0.45; // hero almost never wins on 4-flush without flush card
+        } else if (fourFlush && heroHasFlushCard) {
+          // Hero has 1 card of flush suit — may have flush
+          const heroFlushRank = hCards.filter(c => c[1] === flushSuit).map(c => {
+            const rv = { '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'T':10,'J':11,'Q':12,'K':13,'A':14 };
+            return rv[c[0]] || 0;
+          });
+          const hasNutFlush = heroFlushRank.some(r => r >= 12); // K+ of suit
+          if (!hasNutFlush && villainBarrels >= 2) equity = equity * 0.75; // non-nut flush danger
+        }
+
+        // Paired + flush board
         if (isPaired && flushPossible && villainBarrels >= 2) {
           equity = equity * 0.80;
         } else if (isPaired && villainBarrels >= 2) {
           equity = equity * 0.88;
-        } else if (flushPossible && villainBarrels >= 2) {
+        } else if (flushPossible && !fourFlush && villainBarrels >= 2) {
           equity = equity * 0.85;
         }
       }
