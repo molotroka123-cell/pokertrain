@@ -22,10 +22,14 @@ function parseOneHand(text) {
   // Header: Poker Hand #tour_XXXX: Tournament #XXXX, ... Level(SB/BB) - DATE
   const header = lines[0];
   const levelMatch = header.match(/Level\d*\(([0-9,]+)\/([0-9,]+)\)/);
-  const sb = levelMatch ? parseInt(levelMatch[1].replace(/,/g, '')) : 0;
-  const bb = levelMatch ? parseInt(levelMatch[2].replace(/,/g, '')) : 0;
+  const cashMatch = header.match(/\(\$([0-9,.]+)\/\$([0-9,.]+)\)/);
+  const sb = levelMatch ? parseInt(levelMatch[1].replace(/,/g, '')) :
+    cashMatch ? parseFloat(cashMatch[1]) : 0;
+  const bb = levelMatch ? parseInt(levelMatch[2].replace(/,/g, '')) :
+    cashMatch ? parseFloat(cashMatch[2]) : 0;
+  const isCashGame = !!cashMatch;
   const tournMatch = header.match(/Tournament #(\d+)/);
-  const tournId = tournMatch ? tournMatch[1] : '';
+  const tournId = tournMatch ? tournMatch[1] : (isCashGame ? 'cash' : '');
   const handIdMatch = header.match(/Hand #(\w+)/);
   const handId = handIdMatch ? handIdMatch[1] : '';
   const dateMatch = header.match(/\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}/);
@@ -39,10 +43,10 @@ function parseOneHand(text) {
   const seats = [];
   let heroName = 'Hero';
   for (const line of lines) {
-    const seatMatch = line.match(/Seat (\d+): (.+?) \(([0-9,]+) in chips\)/);
+    const seatMatch = line.match(/Seat (\d+): (.+?) \(\$?([0-9,.]+) in chips\)/);
     if (seatMatch) {
       const name = seatMatch[2];
-      const chips = parseInt(seatMatch[3].replace(/,/g, ''));
+      const chips = parseFloat(seatMatch[3].replace(/,/g, ''));
       const isHero = name === 'Hero';
       if (isHero) heroName = name;
       seats.push({ seat: parseInt(seatMatch[1]), name, chips, isHero });
@@ -86,11 +90,11 @@ function parseOneHand(text) {
     if (line.includes('*** SHOWDOWN ***')) currentStreet = 'showdown';
 
     // Action parsing
-    const actionMatch = line.match(/^(.+?): (folds|checks|calls|raises|bets) ?([0-9,]*)/);
+    const actionMatch = line.match(/^(.+?): (folds|checks|calls|raises|bets) ?\$?([0-9,.]*)/);
     if (actionMatch) {
       const name = actionMatch[1];
       let action = actionMatch[2];
-      const amount = actionMatch[3] ? parseInt(actionMatch[3].replace(/,/g, '')) : 0;
+      const amount = actionMatch[3] ? parseFloat(actionMatch[3].replace(/,/g, '')) : 0;
       if (action === 'bets') action = 'raises'; // normalize
       const isHero = name === heroName;
       actions.push({ name, action, amount, isHero, street: currentStreet });
@@ -110,12 +114,12 @@ function parseOneHand(text) {
   const heroSeat = seats.find(s => s.isHero);
   let result = 'lost';
   let potWon = 0;
-  const collectMatch = text.match(/Hero collected ([0-9,]+)/g);
+  const collectMatch = text.match(/Hero collected \$?([0-9,.]+)/g);
   if (collectMatch) {
     result = 'won';
     for (const m of collectMatch) {
-      const val = m.match(/([0-9,]+)/);
-      if (val) potWon += parseInt(val[1].replace(/,/g, ''));
+      const val = m.match(/\$?([0-9,.]+)/);
+      if (val) potWon += parseFloat(val[1].replace(/,/g, ''));
     }
   }
 
