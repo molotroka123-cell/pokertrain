@@ -56,9 +56,10 @@ const FISH_TYPES = ['STATION', 'LIMPER', 'TILTER', 'SCARED_MONEY', 'MANIAC_FISH'
 
 // Field distributions by stake level
 const FIELD_DISTRIBUTIONS = {
-  // Calibrated from 189 real GGPoker hands, 44 opponents
-  micro: [['TAG',0.22],['STATION',0.25],['LAG',0.09],['SemiLAG',0.10],['LIMPER',0.18],['Nit',0.02],['SCARED_MONEY',0.05],['MANIAC_FISH',0.09]],
-  low:   [['TAG',0.25],['STATION',0.20],['LAG',0.12],['SemiLAG',0.15],['LIMPER',0.10],['Nit',0.05],['SCARED_MONEY',0.05],['MANIAC_FISH',0.08]],
+  // Calibrated from 235 real GGPoker hands (NL1/2 + NL2.5/5)
+  // Real table: 2x STATION(40%), 1x TAG(20%), 1x PASSIVE_FISH(20%), 1x SHORT/NIT(20%)
+  micro: [['STATION',0.30],['LIMPER',0.15],['TAG',0.20],['LAG',0.08],['SemiLAG',0.08],['Nit',0.08],['SCARED_MONEY',0.06],['MANIAC_FISH',0.05]],
+  low:   [['TAG',0.22],['STATION',0.22],['LIMPER',0.12],['LAG',0.12],['SemiLAG',0.12],['Nit',0.08],['SCARED_MONEY',0.06],['MANIAC_FISH',0.06]],
   mid:   [['TAG',0.30],['LAG',0.20],['SemiLAG',0.15],['Nit',0.10],['STATION',0.10],['LIMPER',0.05],['SCARED_MONEY',0.05],['MANIAC_FISH',0.05]],
   high:  [['TAG',0.35],['LAG',0.25],['SemiLAG',0.20],['Nit',0.10],['STATION',0.05],['LIMPER',0.03],['SCARED_MONEY',0.02]],
 };
