@@ -797,12 +797,16 @@ function Game({ director, onExit }) {
           p.profile.threeBet = 0.06 + Math.random() * 0.06;
         }
         const localAI = new AdaptiveAI(p.profile);
-        localAI.loadHistoricalProfile(); // Load hero leaks from past sessions
+        localAI.loadHistoricalProfile();
+        // #26: One mirror bot per table (last non-boss bot)
+        if (i === botPlayers.length - 1 && !isHardcore) {
+          localAI.isMirror = true;
+          p._isMirror = true;
+        }
         if (isHardcore || i === bossIdx) {
           p._isBoss = true;
           localAI.exploitLevel = isHardcore ? 0.5 : 0.3;
           localAI.minHandsToExploit = isHardcore ? 3 : 5;
-          // Boss bots use Claude API for key decisions
           bots[p.id] = new ClaudeBossBot(localAI);
         } else {
           bots[p.id] = localAI;
@@ -1112,22 +1116,43 @@ function Game({ director, onExit }) {
       }
     } catch (e) { /* post-hand analysis is non-critical */ }
 
-    // Bot chat messages (realistic table talk)
+    // #17/#24: Extended bot chat reactions
     try {
       const bl = tState.blinds || {};
-      if (gs.winner && !gs.winner.isHero && gs.potWon > (bl.bb || 200) * 10) {
-        const msgs = ['nh 🃏', 'ty', 'gg', 'ez', 'lol', 'wp'];
-        setBotChat({ name: gs.winner.name, msg: msgs[Math.floor(Math.random() * msgs.length)] });
-        setTimeout(() => setBotChat(null), 3000);
+      const bigPot = gs.potWon > (bl.bb || 200) * 10;
+      const hugePot = gs.potWon > (bl.bb || 200) * 25;
+      const loser = gs.players?.find(p => !p.isHero && !p.folded && p.id !== gs.winner?.id);
+      const isSuckout = heroWon && gs.allHoleCards && (() => {
+        try {
+          const heroH = evaluateHand(gs.heroCards, gs.community);
+          for (const [id, cards] of Object.entries(gs.allHoleCards)) {
+            if (cards?.length === 2 && !gs.players?.find(p => p.id === id)?.isHero) {
+              const oppH = evaluateHand(cards, gs.community);
+              if (oppH && heroH && compareHands(oppH, heroH) > 0) return false; // hero had best
+            }
+          }
+          return false;
+        } catch { return false; }
+      })();
+
+      let chatMsg = null;
+      if (heroWon && hugePot && loser) {
+        // Hero wins huge pot — loser reacts
+        const msgs = isSuckout
+          ? ['lucky...', 'every time 😤', 'rigged', 'nice catch...', 'ffs']
+          : ['nh', 'wp', 'gg', 'nice hand 👏'];
+        chatMsg = { name: loser.name, msg: msgs[Math.floor(Math.random() * msgs.length)] };
+      } else if (!heroWon && gs.winner && bigPot) {
+        // Bot wins big — winner gloats
+        const msgs = ['ty 🃏', 'gg', 'ez', 'too easy', 'wp me'];
+        chatMsg = { name: gs.winner.name, msg: msgs[Math.floor(Math.random() * msgs.length)] };
+      } else if (heroWon && bigPot && Math.random() < 0.3) {
+        // Random reaction
+        const msgs = ['nh', 'wp', 'gg'];
+        const reactor = gs.players?.find(p => !p.isHero && !p.folded);
+        if (reactor) chatMsg = { name: reactor.name, msg: msgs[Math.floor(Math.random() * msgs.length)] };
       }
-      if (gs.winner?.isHero && gs.potWon > (bl.bb || 200) * 20) {
-        const tiltMsgs = ['nice hand...', 'so lucky 😤', 'every time', 'rigged'];
-        const loser = gs.players?.find(p => !p.isHero && !p.folded && p.id !== gs.winner?.id);
-        if (loser) {
-          setBotChat({ name: loser.name, msg: tiltMsgs[Math.floor(Math.random() * tiltMsgs.length)] });
-          setTimeout(() => setBotChat(null), 3500);
-        }
-      }
+      if (chatMsg) { setBotChat(chatMsg); setTimeout(() => setBotChat(null), 3000); }
     } catch(e) {}
 
     // Save session after every hand

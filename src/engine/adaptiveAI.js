@@ -8,12 +8,12 @@ export class AdaptiveAI extends BaseAI {
   constructor(profile) {
     super(profile);
     this.heroModel = {
-      handsPlayed: 0,        // Actual hands, not actions
+      handsPlayed: 0,
       vpipHands: 0,
       pfrHands: 0,
       threeBetHands: 0,
-      cbetsMade: 0,          // Hero c-bet count
-      cbetsFolded: 0,        // Times hero folded to our c-bet
+      cbetsMade: 0,
+      cbetsFolded: 0,
       foldToThreeBet: 0,
       facedThreeBet: 0,
       totalFolds: 0,
@@ -24,22 +24,25 @@ export class AdaptiveAI extends BaseAI {
       showdowns: 0,
       riverBetsFaced: 0,
       riverFolds: 0,
-      bluffsDetected: 0,     // Times hero showed weak hand after aggression
-      valueBetsDetected: 0,  // Times hero showed strong hand after betting
-      bigPotFolds: 0,        // Folds in pots > 20bb
+      bluffsDetected: 0,
+      valueBetsDetected: 0,
+      bigPotFolds: 0,
       bigPotCalls: 0,
-      // Per position
       byPosition: {},
-      // Recent actions (last 20)
       recentActions: [],
-      // Per-hand tracking
       _currentHandActions: [],
+      // Reactive tracking (#20-#31)
+      heroLimps: 0,             // #20: iso vs hero limps
+      recentBarrelFolds: 0,     // #2: fast barrel exploit
+      heroSizings: [],          // #25: sizing pattern detection [{size, wasBluff}]
+      heroDecisionTimes: [],    // #27: timing tells [{timeMs, action, stage}]
     };
     this.exploitLevel = 0;
     this.minHandsToExploit = 3;
     this.respectLevel = 0;
-    this.tiltLevel = 0;       // (#18) Bot tilt: increases after losing pots to hero
-    this.tiltHandsLeft = 0;   // Hands remaining in tilt mode
+    this.tiltLevel = 0;
+    this.tiltHandsLeft = 0;
+    this.isMirror = false;      // #26: mirror bot flag
   }
 
   // Load hero profile from past sessions — exploit from hand 1
@@ -154,7 +157,27 @@ export class AdaptiveAI extends BaseAI {
 
       h.recentActions.push(a);
       if (h.recentActions.length > 25) h.recentActions.shift();
+
+      // #20: Track hero limps
+      if (a.stage === 'preflop' && a.action === 'call' && (a._toCall || 0) <= (context.bigBlind || 200)) h.heroLimps++;
+
+      // #27: Track decision timing
+      if (a._decisionTimeMs) {
+        h.heroDecisionTimes.push({ timeMs: a._decisionTimeMs, action: a.action, stage: a.stage });
+        if (h.heroDecisionTimes.length > 50) h.heroDecisionTimes.shift();
+      }
+
+      // #25: Track hero bet sizing patterns (for sizing tells detection)
+      if (a.action === 'raise' && a._pot > 0 && a.amount > 0) {
+        h.heroSizings.push({ size: a.amount / a._pot, action: a.action, stage: a.stage });
+        if (h.heroSizings.length > 30) h.heroSizings.shift();
+      }
     }
+
+    // #2: Track barrel folds (hero folded facing multi-street aggression)
+    const postflopFolds = actions.filter(a => a.stage !== 'preflop' && a.action === 'fold');
+    if (postflopFolds.length > 0) h.recentBarrelFolds++;
+    else h.recentBarrelFolds = Math.max(0, h.recentBarrelFolds - 1);
 
     if (didVpip) h.vpipHands++;
     if (didPfr) h.pfrHands++;
@@ -358,9 +381,77 @@ export class AdaptiveAI extends BaseAI {
 
     // Hero is loose → tighten up, wait for value
     if (this.heroIsLoose && gs.handStrength > 0.6 && gs.toCall === 0) {
-      // Value bet bigger — loose hero will call
       const size = Math.floor(gs.pot * (0.6 + cryptoRandomFloat() * 0.3) * (1 + 0.25 * el));
       return { action: 'raise', amount: Math.min(size, gs.myChips) };
+    }
+
+    // ═══ REACTIVE EXPLOITS (#20-#31) ═══
+
+    // #2: Fast barrel exploit — hero folds to barrels repeatedly → 3-barrel with air
+    if (this.heroModel.recentBarrelFolds >= 2 && gs.toCall === 0 && gs.stage !== 'preflop') {
+      if (rand < 0.65 * el) {
+        return { action: 'raise', amount: Math.floor(gs.pot * (0.6 + cryptoRandomFloat() * 0.3)) };
+      }
+    }
+
+    // #20: Isolation vs hero limps — if hero limps often, raise big
+    if (this.heroModel.heroLimps >= 3 && gs.stage === 'preflop' && gs.toCall <= gs.bigBlind) {
+      if ((gs.position === 'BTN' || gs.position === 'CO') && gs.playersInHand > 2 && rand < 0.70 * el) {
+        return { action: 'raise', amount: Math.min(Math.floor(gs.bigBlind * 5), gs.myChips) };
+      }
+    }
+
+    // #25: Hero sizing pattern detection — exploit predictable bet sizes
+    if (this.heroModel.heroSizings.length >= 10 && gs.toCall > 0 && gs.stage !== 'preflop') {
+      const sizings = this.heroModel.heroSizings;
+      const avgSize = sizings.reduce((a, s) => a + s.size, 0) / sizings.length;
+      const currentSize = gs.pot > 0 ? gs.toCall / gs.pot : 0;
+      // If hero bets smaller than usual → likely bluff → call more
+      if (currentSize < avgSize * 0.7 && gs.handStrength > 0.30 && rand < 0.40 * el) {
+        return { action: 'call' };
+      }
+      // If hero bets bigger than usual → likely value → fold medium
+      if (currentSize > avgSize * 1.4 && gs.handStrength < 0.55 && rand < 0.35 * el) {
+        return { action: 'fold' };
+      }
+    }
+
+    // #27: Hero timing read — fast action = weak/draw, slow = strong
+    if (this.heroModel.heroDecisionTimes.length >= 5 && gs.toCall > 0) {
+      const recent = this.heroModel.heroDecisionTimes.slice(-5);
+      const avgTime = recent.reduce((a, t) => a + t.timeMs, 0) / recent.length;
+      const lastTime = recent[recent.length - 1]?.timeMs || 2000;
+      // Snap action (<1s) vs hero's average → likely weak/auto
+      if (lastTime < 1000 && lastTime < avgTime * 0.5 && gs.handStrength > 0.40 && rand < 0.30 * el) {
+        return { action: 'raise', amount: Math.min(Math.floor(gs.currentBet * 2.5), gs.myChips) };
+      }
+    }
+
+    // #19: Respect factor — affects call/fold thresholds
+    if (this.respectLevel > 0.10 && gs.toCall > 0 && gs.handStrength < 0.50) {
+      if (rand < this.respectLevel * el) return { action: 'fold' };
+    }
+    if (this.respectLevel < -0.10 && baseDec.action === 'fold' && gs.handStrength > 0.28) {
+      if (rand < Math.abs(this.respectLevel) * el) return { action: 'call' };
+    }
+
+    // #30: Stack-relative play — adjust vs hero's stack size
+    if (gs.effectiveStack && gs.myChips) {
+      const heroRatio = gs.effectiveStack / gs.myChips;
+      // Hero is big stack → play tighter (don't tangle)
+      if (heroRatio > 1.5 && baseDec.action === 'call' && gs.handStrength < 0.45 && rand < 0.25 * el) {
+        return { action: 'fold' };
+      }
+      // Hero is short → pressure with wider range
+      if (heroRatio < 0.5 && baseDec.action === 'fold' && gs.handStrength > 0.35 && gs.stage === 'preflop' && rand < 0.30 * el) {
+        return { action: 'raise', amount: Math.min(Math.floor(gs.bigBlind * 2.5), gs.myChips) };
+      }
+    }
+
+    // #26: Mirror bot — copy hero's stats
+    if (this.isMirror && this.heroModel.handsPlayed > 10) {
+      this.profile.vpip = this.heroVpip;
+      this.profile.pfr = this.heroPfr;
     }
 
     return baseDec;
