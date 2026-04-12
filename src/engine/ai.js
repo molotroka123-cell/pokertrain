@@ -428,6 +428,19 @@ export class BaseAI {
     const isFT = gs.isFinalTable;
     const tStage = gs.tournamentStage || 'early';
 
+    // PASSIVE FISH OVERRIDE: STATION/LIMPER almost never bet/raise postflop
+    // Only bet with trips+ or nut draw. Default = check.
+    if (p.style === 'STATION' || p.style === 'LIMPER') {
+      const mh = (gs.handInfo || {}).madeHand || '';
+      const isNuts = ['trips', 'set', 'straight', 'flush', 'full_house', 'quads'].includes(mh);
+      if (!isNuts) {
+        // 90% of the time just check (passive fish)
+        if (cryptoRandomFloat() < 0.90) return { action: 'check' };
+      }
+      // With nuts: bet small 60%, check 40% (slow play)
+      if (isNuts && cryptoRandomFloat() < 0.40) return { action: 'check' };
+    }
+
     // Postflop tightness by stage — bubble/FT = very cautious
     const postflopTightness = tStage === 'early' ? 0.02 :
       gs.isBubble ? 0.12 :   // Bubble: almost never bluff, only bet value

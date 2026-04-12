@@ -172,8 +172,8 @@ function generateProfileForStyle(style, id) {
     case 'LAG': vpip = 0.35 + cryptoRandomFloat() * 0.10; pfr = vpip - 0.05 - cryptoRandomFloat() * 0.05; af = 2.5 + cryptoRandomFloat() * 1.5; threeBet = 0.06 + cryptoRandomFloat() * 0.06; break;
     case 'Nit': vpip = 0.10 + cryptoRandomFloat() * 0.08; pfr = vpip - 0.01 - cryptoRandomFloat() * 0.02; af = 1.5 + cryptoRandomFloat() * 0.5; threeBet = 0.02 + cryptoRandomFloat() * 0.03; break;
     case 'SemiLAG': vpip = 0.25 + cryptoRandomFloat() * 0.08; pfr = vpip - 0.03 - cryptoRandomFloat() * 0.04; af = 2.0 + cryptoRandomFloat() * 1.0; threeBet = 0.05 + cryptoRandomFloat() * 0.04; break;
-    case 'STATION': vpip = 0.45 + cryptoRandomFloat() * 0.10; pfr = 0.05 + cryptoRandomFloat() * 0.05; af = 0.3 + cryptoRandomFloat() * 0.4; threeBet = 0.01 + cryptoRandomFloat() * 0.01; quirks = ['never_folds_pair']; break;
-    case 'LIMPER': vpip = 0.35 + cryptoRandomFloat() * 0.10; pfr = 0.00 + cryptoRandomFloat() * 0.05; af = 0.3 + cryptoRandomFloat() * 0.3; threeBet = 0.00; quirks = ['limps_everything']; break;
+    case 'STATION': vpip = 0.50 + cryptoRandomFloat() * 0.10; pfr = 0.03 + cryptoRandomFloat() * 0.04; af = 0.2 + cryptoRandomFloat() * 0.3; threeBet = 0.00 + cryptoRandomFloat() * 0.01; quirks = ['never_folds_pair']; break;
+    case 'LIMPER': vpip = 0.40 + cryptoRandomFloat() * 0.15; pfr = 0.00 + cryptoRandomFloat() * 0.03; af = 0.2 + cryptoRandomFloat() * 0.2; threeBet = 0.00; quirks = ['limps_everything']; break;
     case 'MANIAC_FISH': style = 'Maniac'; vpip = 0.50 + cryptoRandomFloat() * 0.20; pfr = 0.35 + cryptoRandomFloat() * 0.15; af = 4.0 + cryptoRandomFloat() * 3.0; threeBet = 0.10 + cryptoRandomFloat() * 0.10; quirks = ['overbets_river']; break;
     case 'SCARED_MONEY': vpip = 0.18 + cryptoRandomFloat() * 0.08; pfr = 0.08 + cryptoRandomFloat() * 0.05; af = 1.0 + cryptoRandomFloat() * 0.5; threeBet = 0.01 + cryptoRandomFloat() * 0.02; break;
     default: vpip = 0.22; pfr = 0.16; af = 2.5; threeBet = 0.06; break;
