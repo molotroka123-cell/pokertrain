@@ -1081,11 +1081,21 @@ function Game({ director, onExit }) {
       community: gs.community,
       heroPosition: gs.heroPosition,
       blinds: tState.blinds,
+      heroChipsBefore: chipsBeforeHandRef.current,
+      heroChipsAfter: hero.chips,
+      pot: gs.pot,
+      players: gs.players?.map(p => ({
+        name: p.isHero ? 'Hero' : p.name,
+        position: p.position,
+        chips: p.chips,
+        isHero: p.isHero,
+        folded: p.folded,
+      })) || [],
       actionLog: allActions.filter(a => a.action && a.action !== 'win' && a.action !== '').map(a => ({
         action: a.action, position: a.position, name: a.name,
         amount: a.amount, isHero: a.isHero,
       })),
-      result: heroWon ? 'won' : 'lost',
+      result: gs.isSplitPot ? 'split' : heroWon ? 'won' : 'lost',
       potWon: heroWon ? gs.potWon : 0,
       allHoleCards: gs.allHoleCards || null,
     });

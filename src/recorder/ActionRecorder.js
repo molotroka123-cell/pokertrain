@@ -634,15 +634,39 @@ export function recordHandHistory(handNum, data) {
 export function exportSession() {
   const uniqueHands = new Set(records.map(r => r.handNumber)).size;
   const historyHands = handHistories.length;
+
+  // Build per-hand summary for easy analysis
+  const handSummaries = [];
+  const handNums = [...new Set(records.map(r => r.handNumber))].sort((a, b) => a - b);
+  for (const hn of handNums) {
+    const recs = records.filter(r => r.handNumber === hn);
+    const first = recs[0];
+    const last = recs[recs.length - 1];
+    handSummaries.push({
+      hand: hn,
+      position: first?.position,
+      holeCards: first?.holeCards,
+      actions: recs.map(r => ({ stage: r.stage, action: r.action, amount: r.raiseAmount })),
+      chipsBefore: first?.chipsBeforeHand,
+      chipsAfter: last?.chipsAfter,
+      netProfit: (last?.chipsAfter || 0) - (first?.chipsBeforeHand || 0),
+      result: last?.handResult,
+      isSplitPot: last?.isSplitPot || false,
+      mistake: recs.find(r => r.mistakeType)?.mistakeType || null,
+      evLost: recs.find(r => r.mistakeType)?.evLost || 0,
+    });
+  }
+
   return {
     sessionId,
     exportDate: new Date().toISOString(),
     totalHands: uniqueHands,
     totalHistoryHands: historyHands,
-    handsMatch: uniqueHands === historyHands, // Validation: should be true
-    totalRecords: records.length,
-    records,
-    handHistories,
+    handsMatch: uniqueHands === historyHands,
+    totalDecisionRecords: records.length,
+    handSummaries,       // 1 row per hand — easy to scan
+    records,             // full detail — every decision
+    handHistories,       // full action logs with all players
     summary: generateQuickSummary(),
   };
 }
