@@ -130,41 +130,81 @@ export class BaseAI {
     // Multiway tightening: each extra player = ~15% tighter range
     const mwPenalty = Math.max(0, (playersInHand - 2) * 0.04);
 
-    // ═══ PUSH/FOLD (M < 12) — with human error (#15) ═══
-    if (m < 12) {
-      let threshold;
-      if (m < 3) threshold = 0.55;
-      else if (m < 5) threshold = 0.42;
-      else if (m < 7) threshold = 0.35;
-      else if (m < 10) threshold = 0.28;
-      else threshold = 0.22;
+    // ═══ SHORT STACK BEHAVIOR — realistic human patterns ═══
+    if (m < 15) {
+      const isShort = m < 8;
+      const isDesperate = m < 3;
+      const isPanic = m < 5;
 
-      if (position === 'BTN') threshold += 0.15;
-      else if (position === 'CO') threshold += 0.10;
-      else if (position === 'SB') threshold += 0.08;
-      else if (position === 'BB' && toCall <= bigBlind) threshold += 0.12;
+      // === JAM THRESHOLDS by M and position ===
+      let pushThreshold;
+      if (isDesperate) pushThreshold = 0.65;     // M<3: push very wide (any face card, any suited, pairs)
+      else if (isPanic) pushThreshold = 0.45;     // M<5: push wide
+      else if (m < 7) pushThreshold = 0.35;
+      else if (m < 10) pushThreshold = 0.28;
+      else pushThreshold = 0.22;                  // M10-15: standard
 
-      if (p.style === 'LAG' || p.style === 'Maniac') threshold += 0.06;
-      if (p.style === 'Nit') threshold -= 0.08;
-      if (isBubble) threshold -= 0.12;
-      if (isFT && stackBB > 30) threshold += 0.05;
+      // Position bonus — late = wider
+      if (position === 'BTN') pushThreshold += 0.18;
+      else if (position === 'CO') pushThreshold += 0.12;
+      else if (position === 'SB') pushThreshold += 0.10;
+      else if (position === 'BB' && toCall <= bigBlind) pushThreshold += 0.15;
 
-      // Human error: 10% push too loose, 10% fold too tight (#15)
-      if (p.style !== 'TAG') {
-        if (rand < 0.10) threshold += 0.08;
-        else if (rand > 0.90) threshold -= 0.08;
+      // Style adjustments
+      if (p.style === 'LAG' || p.style === 'Maniac') pushThreshold += 0.08;
+      if (p.style === 'Nit') pushThreshold -= 0.10;
+      if (p.style === 'SCARED_MONEY') pushThreshold -= 0.12;
+
+      // Tournament context
+      if (isBubble) pushThreshold -= 0.15; // tighter on bubble
+      if (isFT && stackBB > 25) pushThreshold += 0.05;
+
+      // Human error: 10% push too loose, 10% fold too tight
+      if (p.style !== 'TAG' && p.style !== 'Nit') {
+        if (rand < 0.10) pushThreshold += 0.10;
+        else if (rand > 0.90) pushThreshold -= 0.10;
       }
 
-      // Re-steal: M=10-15 facing late position open → push wider (#11)
-      if (m >= 10 && m <= 15 && toCall > bigBlind && toCall <= bigBlind * 4) {
+      // Re-steal: facing late position open from blinds → push wider
+      if (m >= 8 && m <= 15 && toCall > bigBlind && toCall <= bigBlind * 4) {
         const facingLate = gs.facingAction?.position === 'BTN' || gs.facingAction?.position === 'CO';
-        if (facingLate && (position === 'BB' || position === 'SB')) threshold += 0.08;
+        if (facingLate && (position === 'BB' || position === 'SB')) pushThreshold += 0.10;
       }
 
-      if (toCall <= bigBlind && handVal <= threshold) return { action: 'raise', amount: myChips };
-      if (toCall > 0) {
-        if (cat === 'premium' || cat === 'strong') return { action: 'raise', amount: myChips };
-        if (m < 5 && handVal <= threshold + 0.03) return { action: 'call' };
+      // === FISH SHORT STACK PATTERNS ===
+      if (p.style === 'STATION' || p.style === 'LIMPER' || p.style === 'Maniac') {
+        // Fish panic: push any ace, any pair, any suited king on short stack
+        const r1 = holeCards[0][0], r2 = holeCards[1][0];
+        const hasAce = r1 === 'A' || r2 === 'A';
+        const hasPair = r1 === r2;
+        const hasSuitedKing = (r1 === 'K' || r2 === 'K') && holeCards[0][1] === holeCards[1][1];
+        if (isPanic && (hasAce || hasPair || hasSuitedKing)) {
+          pushThreshold = Math.max(pushThreshold, 0.70); // push these always when desperate
+        }
+        // Fish "limp-shove" with premium on short stack (20%)
+        if (m < 8 && toCall <= bigBlind && cat === 'premium' && rand < 0.20) {
+          return { action: 'call' }; // limp → if raised, will push (handled by facing raise)
+        }
+      }
+
+      // === OPEN JAM (folded to us) ===
+      if (toCall <= bigBlind && handVal <= pushThreshold) {
+        return { action: 'raise', amount: myChips };
+      }
+
+      // === RESHOVE (facing raise — jam over the top) ===
+      if (toCall > bigBlind) {
+        // Premium/strong: always jam
+        if (cat === 'premium' || (cat === 'strong' && isShort)) {
+          return { action: 'raise', amount: myChips };
+        }
+        // Medium+ hands: jam if short enough and hand in range
+        if (isPanic && handVal <= pushThreshold + 0.05) {
+          return { action: 'raise', amount: myChips };
+        }
+        // Call with medium when very short (can't fold into oblivion)
+        if (isDesperate && handVal <= 0.50) return { action: 'call' };
+        if (isPanic && cat === 'strong') return { action: 'call' };
         return { action: 'fold' };
       }
       return { action: 'fold' };
@@ -315,6 +355,22 @@ export class BaseAI {
     gs._drawEquity = drawEquity;
     gs._totalEquity = totalEquity;
     gs._drawOuts = drawOuts;
+
+    // Short stack postflop: committed = jam with any piece
+    const stackBBs = gs.myChips / Math.max(gs.bigBlind || 1, 1);
+    if (stackBBs < 15 && spr < 3) {
+      // Pot-committed: jam with any pair, any draw, any piece of the board
+      if (strength > 0.30 || drawOuts >= 6) {
+        return { action: 'raise', amount: gs.myChips };
+      }
+      // Fish: jam with anything when desperate (SPR < 1.5)
+      if (spr < 1.5 && (this.profile.style === 'STATION' || this.profile.style === 'Maniac')) {
+        if (strength > 0.15) return { action: 'raise', amount: gs.myChips };
+      }
+      // Facing bet with short stack: call or fold, no floating
+      if (toCall > 0 && strength > 0.35) return { action: 'raise', amount: gs.myChips };
+      if (toCall > 0 && strength < 0.20) return { action: 'fold' };
+    }
 
     if (toCall === 0) return this.postflopAct(gs, strength, texture, rand, isIP, spr, isAggressor);
     return this.postflopFacingBet(gs, strength, texture, rand, isIP, spr, isAggressor);
