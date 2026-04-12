@@ -43,7 +43,66 @@ function fmt(n) {
 // ════════════════════════════════════════════
 // PREMIUM LOBBY — V3 Design
 // ════════════════════════════════════════════
-function Lobby({ onStart, onDrills, onStats, onCoach }) {
+// ════════════════════════════════════════════
+// PROFILE SELECT — each player has own data
+// ════════════════════════════════════════════
+function ProfileSelect({ onSelect }) {
+  const [profiles, setProfiles] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('pokertrain_profiles') || '[]'); } catch { return []; }
+  });
+  const [newName, setNewName] = useState('');
+
+  const createProfile = () => {
+    if (!newName.trim()) return;
+    const profile = { id: 'p_' + Date.now(), name: newName.trim(), createdAt: Date.now() };
+    const updated = [...profiles, profile];
+    setProfiles(updated);
+    localStorage.setItem('pokertrain_profiles', JSON.stringify(updated));
+    setNewName('');
+  };
+
+  const selectProfile = (p) => {
+    // Set global prefix so all localStorage reads/writes are isolated
+    window.__playerPrefix = p.id + '_';
+    onSelect(p);
+  };
+
+  return (
+    <div style={{ minHeight: '100dvh', background: '#060810', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'Segoe UI', sans-serif" }}>
+      <div style={{ fontSize: '28px', color: '#ffd700', fontWeight: 900, marginBottom: '8px' }}>♠ POKERTRAIN</div>
+      <div style={{ fontSize: '13px', color: '#4a5a6a', marginBottom: '30px' }}>Select your profile</div>
+
+      {profiles.map(p => (
+        <button key={p.id} onClick={() => selectProfile(p)} style={{
+          width: '260px', padding: '14px', marginBottom: '8px', borderRadius: '12px',
+          background: 'linear-gradient(135deg, #0d1520, #1a2a3a)', border: '1px solid #1a2a3a',
+          color: '#c0d0e0', fontSize: '16px', fontWeight: 700, cursor: 'pointer',
+          textAlign: 'left', transition: 'transform 0.1s',
+        }}
+        onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+        onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}>
+          <span style={{ marginRight: '10px' }}>♠</span>{p.name}
+        </button>
+      ))}
+
+      <div style={{ display: 'flex', gap: '6px', marginTop: '16px' }}>
+        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="New player name"
+          onKeyDown={e => e.key === 'Enter' && createProfile()}
+          style={{ padding: '10px 14px', background: '#0d1118', border: '1px solid #1a2230', borderRadius: '10px', color: '#c0d0e0', fontSize: '14px', outline: 'none', width: '180px' }} />
+        <button onClick={createProfile} style={{
+          padding: '10px 16px', background: '#1a3a2a', border: 'none', borderRadius: '10px',
+          color: '#27ae60', fontWeight: 700, cursor: 'pointer',
+        }}>+</button>
+      </div>
+
+      {profiles.length === 0 && (
+        <div style={{ color: '#3a4a5a', fontSize: '12px', marginTop: '20px' }}>Create your first profile to start training</div>
+      )}
+    </div>
+  );
+}
+
+function Lobby({ onStart, onDrills, onStats, onCoach, playerName, onSwitchProfile }) {
   const [format, setFormat] = useState('WSOP_Main');
   const [name, setName] = useState('');
   const [showFormats, setShowFormats] = useState(false);
@@ -119,7 +178,9 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
             fontSize: '20px', color: '#4a6a8a', flexShrink: 0,
           }}>♠</div>
           <div style={{ flex: 1 }}>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Hero"
+            <div style={{ fontSize: '16px', fontWeight: 700, color: '#c0d0e0' }}>{playerName || 'Hero'}</div>
+            {onSwitchProfile && <div onClick={onSwitchProfile} style={{ fontSize: '10px', color: '#4a6a8a', cursor: 'pointer', marginTop: '2px' }}>Switch profile</div>}
+            <input value={name} onChange={e => setName(e.target.value)} placeholder={playerName || "Hero"}
               style={{
                 width: '100%', padding: 0, background: 'transparent', border: 'none',
                 color: '#e0e0e0', fontSize: '18px', fontWeight: 700, outline: 'none',
@@ -1584,12 +1645,29 @@ class ErrorBoundary extends React.Component {
 }
 
 function AppInner() {
-  const [screen, setScreen] = useState('lobby');
+  const [screen, setScreen] = useState('profiles');
+  const [currentProfile, setCurrentProfile] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('pokertrain_current_profile') || 'null'); } catch { return null; }
+  });
   const [director, setDirector] = useState(null);
   const [activeDrill, setActiveDrill] = useState(null);
   const [debriefData, setDebriefData] = useState(null);
 
+  // If profile already selected, skip to lobby
+  if (currentProfile && screen === 'profiles') setScreen('lobby');
+
   const appBg = { minHeight: '100vh', background: '#050709', color: '#e0e0e0', fontFamily: "'Segoe UI', sans-serif" };
+
+  // Profile selection screen
+  if (screen === 'profiles') {
+    return <ProfileSelect onSelect={(profile) => {
+      setCurrentProfile(profile);
+      localStorage.setItem('pokertrain_current_profile', JSON.stringify(profile));
+      // Set storage prefix for this player
+      window.__playerPrefix = profile.id + '_';
+      setScreen('lobby');
+    }} />;
+  }
 
   if (screen === 'stats') {
     return <div style={appBg}><StatsScreen onBack={() => setScreen('lobby')} /></div>;
@@ -1648,10 +1726,12 @@ function AppInner() {
   }
 
   return <Lobby
-    onStart={(fmt, name) => { if (fmt === '__realanalysis__') { setScreen('realanalysis'); return; } startSession(fmt); setDirector(new TournamentDirector(fmt, name)); setScreen('tournament'); }}
+    onStart={(fmt, name) => { if (fmt === '__realanalysis__') { setScreen('realanalysis'); return; } startSession(fmt); setDirector(new TournamentDirector(fmt, name || currentProfile?.name || 'Hero')); setScreen('tournament'); }}
     onDrills={() => setScreen('drills')}
     onStats={() => setScreen('stats')}
-    onCoach={() => setScreen('coach')} />;
+    onCoach={() => setScreen('coach')}
+    playerName={currentProfile?.name}
+    onSwitchProfile={() => { setCurrentProfile(null); localStorage.removeItem('pokertrain_current_profile'); setScreen('profiles'); }} />;
 }
 
 export default function App() {
