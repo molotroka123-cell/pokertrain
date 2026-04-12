@@ -174,8 +174,71 @@ function parseOneHand(text) {
   };
 }
 
-// Analyze parsed hands — same metrics as bot debrief
-export function analyzeRealHands(hands) {
+// Save opponent profiles to localStorage for bot learning
+export function saveOpponentProfiles(hands) {
+  try {
+    const profiles = JSON.parse(localStorage.getItem('pokertrain_opponents') || '{}');
+
+    // Build per-opponent stats
+    for (const h of hands) {
+      for (const a of h.allActions || []) {
+        if (a.isHero || !a.name) continue;
+        if (!profiles[a.name]) {
+          profiles[a.name] = { hands: 0, vpip: 0, pfr: 0, calls: 0, raises: 0, folds: 0, limps: 0, showdowns: [], lastSeen: 0 };
+        }
+        const p = profiles[a.name];
+        if (a.street === 'preflop') {
+          if (!p._handsSeen) p._handsSeen = new Set();
+          const hKey = h.handId + a.name;
+          if (!p._handsSeen.has(hKey)) {
+            p._handsSeen.add(hKey);
+            p.hands++;
+            if (a.action === 'folds') p.folds++;
+            else {
+              p.vpip++;
+              if (a.action === 'raises') p.raises++;
+              else if (a.action === 'calls') { p.calls++; p.limps++; }
+            }
+          }
+        }
+        p.lastSeen = Math.max(p.lastSeen, h.timestamp || 0);
+      }
+      // Track showdown hands
+      for (const [name, cards] of Object.entries(h.opponentCards || {})) {
+        if (profiles[name]) {
+          profiles[name].showdowns.push(cards);
+          if (profiles[name].showdowns.length > 20) profiles[name].showdowns.shift();
+        }
+      }
+    }
+
+    // Clean up internal tracking and compute final stats
+    for (const [name, p] of Object.entries(profiles)) {
+      delete p._handsSeen;
+      if (p.hands > 0) {
+        p.vpipPct = Math.round(p.vpip / p.hands * 100);
+        p.pfrPct = Math.round(p.raises / p.hands * 100);
+        p.af = p.calls > 0 ? Math.round(p.raises / p.calls * 10) / 10 : p.raises > 0 ? 99 : 0;
+        p.type = p.vpipPct > 40 && p.pfrPct < 10 ? 'STATION' :
+          p.vpipPct > 35 && p.af < 1 ? 'LIMPER' :
+          p.vpipPct < 18 ? 'NIT' :
+          p.vpipPct < 28 && p.pfrPct > 15 ? 'TAG' :
+          p.vpipPct >= 28 && p.af > 2.5 ? 'LAG' :
+          p.vpipPct >= 45 && p.af > 3 ? 'MANIAC' : 'UNKNOWN';
+      }
+    }
+
+    localStorage.setItem('pokertrain_opponents', JSON.stringify(profiles));
+    return profiles;
+  } catch (e) { return {}; }
+}
+
+// Load saved opponent profiles
+export function loadOpponentProfiles() {
+  try {
+    return JSON.parse(localStorage.getItem('pokertrain_opponents') || '{}');
+  } catch (e) { return {}; }
+}
   if (!hands || hands.length === 0) return null;
 
   // Group by tournament

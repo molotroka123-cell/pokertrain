@@ -1,6 +1,6 @@
 // RealAnalysis.jsx — Beautiful dashboard for real money hand history analysis
 import React, { useState } from 'react';
-import { parseHandHistory, analyzeRealHands } from '../lib/hhParser.js';
+import { parseHandHistory, analyzeRealHands, saveOpponentProfiles, loadOpponentProfiles } from '../lib/hhParser.js';
 
 export default function RealAnalysis({ onBack }) {
   const [analysis, setAnalysis] = useState(null);
@@ -22,6 +22,8 @@ export default function RealAnalysis({ onBack }) {
       }
       const hands = parseHandHistory(allText);
       const result = analyzeRealHands(hands);
+      const oppProfiles = saveOpponentProfiles(hands);
+      result.opponentProfiles = oppProfiles;
       setAnalysis(result);
       setLoading(false);
     };
@@ -183,6 +185,27 @@ export default function RealAnalysis({ onBack }) {
               <div key={i} style={s.row}>
                 <span style={{ color: '#c0d0e0' }}>{h.position} {h.holeCards}</span>
                 <span style={{ color: '#27ae60', fontWeight: 700 }}>+{h.potWon.toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Known Opponents */}
+        {a.opponentProfiles && Object.keys(a.opponentProfiles).length > 0 && (
+          <div style={s.card}>
+            <div style={s.section}>Known Opponents ({Object.keys(a.opponentProfiles).length})</div>
+            {Object.entries(a.opponentProfiles).sort((a,b) => b[1].hands - a[1].hands).slice(0, 15).map(([name, p]) => (
+              <div key={name} style={{ ...s.row, flexWrap: 'wrap' }}>
+                <span style={{ color: '#c0d0e0', fontWeight: 600, minWidth: '80px' }}>{name.slice(0,8)}</span>
+                <span style={{
+                  fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px',
+                  background: p.type === 'STATION' ? '#1a2a0a' : p.type === 'TAG' ? '#0a1a3a' : p.type === 'LAG' ? '#2a1a0a' : p.type === 'NIT' ? '#1a1a1a' : '#1a1a2a',
+                  color: p.type === 'STATION' ? '#4a8a2a' : p.type === 'TAG' ? '#3a7aba' : p.type === 'LAG' ? '#ca8a3a' : p.type === 'NIT' ? '#6a6a6a' : '#5a6a7a',
+                }}>{p.type || '?'}</span>
+                <span style={{ color: '#5a6a7a', fontSize: '11px' }}>{p.hands}h</span>
+                <span style={{ color: '#3498db', fontSize: '11px' }}>VP{p.vpipPct}%</span>
+                <span style={{ color: '#27ae60', fontSize: '11px' }}>PF{p.pfrPct}%</span>
+                <span style={{ color: '#e67e22', fontSize: '11px' }}>AF{p.af}</span>
               </div>
             ))}
           </div>
