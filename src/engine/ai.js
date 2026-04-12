@@ -679,6 +679,18 @@ export class BaseAI {
       return { action: 'call' };
     }
 
+    // ═══ OVERBET / ALL-IN PRESSURE — fold without strong hand ═══
+    if (betSizePot > 1.2 && strength < 0.60) {
+      // Facing overbet or all-in: only continue with strong
+      if (p.style === 'STATION' && strength > 0.35) return { action: 'call' }; // station calls wider
+      if (p.style === 'Nit' || p.style === 'SCARED_MONEY') return { action: 'fold' };
+      if (strength < 0.50) return { action: 'fold' };
+    }
+    if (commitRatio > 0.50 && strength < 0.55) {
+      // Committing 50%+ stack: need strong hand
+      if (p.style !== 'STATION') return { action: 'fold' };
+    }
+
     // ═══ MEDIUM (0.40-0.55): EV-based ═══
     if (strength > 0.40) {
       if (p.style === 'STATION') return { action: 'call' };
