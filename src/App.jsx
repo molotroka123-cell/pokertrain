@@ -842,6 +842,14 @@ function Game({ director, onExit }) {
     const blinds = tState.blinds;
     const dealer = tState.heroTable.dealer % tablePlayers.length;
     if (handCount === 0) ClaudeBossBot.resetCalls();
+    // Ensure ALL bots at hero table have AI (fix rebalance/new players)
+    for (const p of tablePlayers) {
+      if (!p.isHero && p.profile && !aiBotsRef.current[p.id]) {
+        const newAI = new AdaptiveAI(p.profile);
+        newAI.loadHistoricalProfile();
+        aiBotsRef.current[p.id] = newAI;
+      }
+    }
     engine.setTournamentContext(tState.stage, tState.isFinalTable, tState.isBubble);
     if (!engine.startHand(tablePlayers, dealer, blinds, aiBotsRef.current)) { setHandActive(false); return; }
     Sounds.deal(); // Deal sound on new hand

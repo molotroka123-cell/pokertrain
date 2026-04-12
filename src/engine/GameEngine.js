@@ -343,9 +343,13 @@ export class GameEngine {
   async _getAIAction(player, toCall, position) {
     const ai = this.aiBots[player.id];
     if (!ai) {
-      // Fallback: simple logic
+      // Fallback: tight play (fold most, only call with strong preflop hand)
       if (toCall <= 0) return { action: 'check' };
-      if (toCall > player.chips * 0.5) return { action: 'fold' };
+      if (this.phase === 'preflop') {
+        const hv = getHandValue(this.holeCards[player.id]?.[0], this.holeCards[player.id]?.[1]);
+        if (hv > 0.20) return { action: 'fold' }; // fold 80% of hands
+      }
+      if (toCall > player.chips * 0.3) return { action: 'fold' };
       return { action: 'call' };
     }
 

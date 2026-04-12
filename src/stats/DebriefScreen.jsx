@@ -110,7 +110,7 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
           #{finish?.position || '?'}
         </div>
         <div style={{ fontSize: '13px', color: '#5a6a7a', marginTop: '4px' }}>
-          of {finish?.total || '?'} players · {records?.length || 0} hands played
+          of {finish?.total || '?'} players · {new Set(records?.map(r => r.handNumber)).size || 0} hands played
         </div>
 
         {/* Stats row */}
