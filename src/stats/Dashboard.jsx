@@ -33,18 +33,25 @@ export default function StatsScreen({ onBack }) {
     );
   }
 
-  // Calculate stats — deduped by unique hands (same as export)
-  const allRecords = sessions.flatMap(s => s.records || []);
-  const pfByHand = new Map();
-  for (const r of allRecords) {
-    if (r.stage === 'preflop' && !pfByHand.has(r.handNumber)) pfByHand.set(r.handNumber, r);
+  // Calculate stats — per session, then aggregate
+  let totalHands = 0, totalMistakeCount = 0, totalVpip = 0, totalPfr = 0, totalPfHands = 0;
+  for (const sess of sessions) {
+    const recs = sess.records || [];
+    const handNums = new Set(recs.map(r => r.handNumber));
+    totalHands += handNums.size;
+    totalMistakeCount += recs.filter(r => r.mistakeType).length;
+    // Per-session preflop dedup
+    const pfMap = new Map();
+    for (const r of recs) { if (r.stage === 'preflop' && !pfMap.has(r.handNumber)) pfMap.set(r.handNumber, r); }
+    const pf = [...pfMap.values()];
+    totalPfHands += pf.length;
+    totalVpip += pf.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length;
+    totalPfr += pf.filter(r => r.action === 'raise').length;
   }
-  const pfUnique = [...pfByHand.values()];
-  const vpip = pfUnique.length > 0 ? (pfUnique.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length / pfUnique.length * 100).toFixed(1) : '0';
-  const pfr = pfUnique.length > 0 ? (pfUnique.filter(r => r.action === 'raise').length / pfUnique.length * 100).toFixed(1) : '0';
-  const totalHands = new Set(allRecords.map(r => r.handNumber)).size || allRecords.length;
-  const mistakes = allRecords.filter(r => r.mistakeType);
-  const accuracy = totalHands > 0 ? ((1 - mistakes.length / Math.max(totalHands, 1)) * 100).toFixed(1) : '0';
+  const vpip = totalPfHands > 0 ? (totalVpip / totalPfHands * 100).toFixed(1) : '0';
+  const pfr = totalPfHands > 0 ? (totalPfr / totalPfHands * 100).toFixed(1) : '0';
+  const accuracy = totalHands > 0 ? ((1 - totalMistakeCount / totalHands) * 100).toFixed(1) : '0';
+  const mistakes = { length: totalMistakeCount };
 
   // ROI (simplified — using finish position)
   const summaries = sessions.map(s => s.summary || {});
