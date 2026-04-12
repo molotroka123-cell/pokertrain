@@ -9,6 +9,7 @@ export const FORMATS = {
     startingChips: 60000,
     playersPerTable: 9,
     buyIn: 10000,
+    fieldLevel: 'high',
     blindLevels: [
       { sb: 100, bb: 200, ante: 0, mins: 4 },
       { sb: 200, bb: 400, ante: 0, mins: 4 },
@@ -40,6 +41,7 @@ export const FORMATS = {
     startingChips: 30000,
     playersPerTable: 9,
     buyIn: 1500,
+    fieldLevel: 'mid',
     blindLevels: [
       { sb: 50, bb: 100, ante: 0, mins: 3 },
       { sb: 100, bb: 200, ante: 0, mins: 3 },
@@ -66,6 +68,7 @@ export const FORMATS = {
     startingChips: 50000,
     playersPerTable: 9,
     buyIn: 5300,
+    fieldLevel: 'high',
     blindLevels: [
       { sb: 100, bb: 200, ante: 0, mins: 4 },
       { sb: 200, bb: 400, ante: 0, mins: 4 },
@@ -94,6 +97,7 @@ export const FORMATS = {
     startingChips: 20000,
     playersPerTable: 9,
     buyIn: 500,
+    fieldLevel: 'low',
     blindLevels: [
       { sb: 50, bb: 100, ante: 0, mins: 3 },
       { sb: 100, bb: 200, ante: 0, mins: 2 },
@@ -119,6 +123,7 @@ export const FORMATS = {
     startingChips: 5000,
     playersPerTable: 6,
     buyIn: 50000,
+    fieldLevel: 'high',
     isHardcore: true,
     blindLevels: [
       { sb: 25, bb: 50, ante: 0, mins: 4 },
@@ -143,6 +148,7 @@ export const FORMATS = {
     startingChips: 25000,
     playersPerTable: 9,
     buyIn: 500,
+    fieldLevel: 'mid',
     blindLevels: [
       { sb: 50, bb: 100, ante: 0, mins: 2 },
       { sb: 75, bb: 150, ante: 0, mins: 2 },

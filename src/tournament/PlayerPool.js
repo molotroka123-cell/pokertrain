@@ -30,7 +30,7 @@ export class PlayerPool {
 
     // Generate AI players
     for (let i = 1; i < this.format.players; i++) {
-      const profile = generateProfile(i);
+      const profile = generateProfile(i, this.format.fieldLevel || null);
       this.players.push({
         id: i,
         name: profile.name,

@@ -414,6 +414,14 @@ export class BaseAI {
     const fishAction = this.fishOverride(gs, strength, rand);
     if (fishAction) return fishAction;
 
+    // TRASH AUTO-CHECK: no pair, no draw, weak → never bet (unless bluffing)
+    const hiCheck = gs.handInfo || {};
+    const noPiece = (hiCheck.madeHand === 'high_card' || hiCheck.madeHand === 'one_overcard' || !hiCheck.madeHand);
+    const noDraw = !hiCheck.drawType || hiCheck.drawType === 'none';
+    if (noPiece && noDraw && strength < 0.12 && !isAggressor) {
+      return { action: 'check' }; // Never bet with absolute nothing (non-aggressor)
+    }
+
     const { pot, myChips, stage } = gs;
     const p = this.profile;
     const af = p.af || 2.5;
@@ -611,9 +619,20 @@ export class BaseAI {
 
   // ═══ FACING A BET — pot-odds + draw-equity based ═══
   postflopFacingBet(gs, strength, texture, rand, isIP, spr, isAggressor) {
-    // Fish pattern override (min-raise river with nuts, etc.)
+    // Fish pattern override
     const fishAction = this.fishOverride(gs, strength, rand);
     if (fishAction) return fishAction;
+
+    // TRASH HAND AUTO-FOLD: no pair, no draw, strength < 15% → always fold
+    const _hi = gs.handInfo || {};
+    const _mh = _hi.madeHand || '';
+    const hasNoPiece = _mh === 'high_card' || _mh === 'one_overcard' || _mh === '';
+    const hasNoDraw = !_hi.drawType || _hi.drawType === 'none';
+    if (hasNoPiece && hasNoDraw && strength < 0.15) {
+      // STATION calls anyway 20% of the time (they can't fold)
+      if (this.profile.style === 'STATION' && rand < 0.20) { /* fall through */ }
+      else return { action: 'fold' };
+    }
 
     const { pot, toCall, myChips, currentBet, stage } = gs;
     const p = this.profile;
