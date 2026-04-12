@@ -8,20 +8,97 @@ export function generateDebrief(records) {
 
   const mistakes = [];
 
+  // INDEPENDENT mistake detection — recalculate from raw data
   for (const d of records) {
-    if (!d.mistakeType) continue;
+    // Skip preflop folds (compact records without equity)
+    if (!d.equity && d.action === 'fold' && d.stage === 'preflop') continue;
 
-    const explanation = explainMistake(d);
+    const eq = d.equity || 0;
+    const toCall = d.toCall || 0;
+    const pot = d.potSize || 0;
+    const odds = toCall > 0 ? toCall / (pot + toCall) : 0;
+    const ev = toCall > 0 ? eq * (pot + toCall) - (1 - eq) * toCall : 0;
+    const commit = d.myChips > 0 ? toCall / d.myChips : 0;
+    const barrels = d.villainBarrels || 0;
+    const mh = d.madeHandStrength || '';
 
-    mistakes.push({
-      handNumber: d.handNumber,
-      severity: d.mistakeSeverity,
-      type: d.mistakeType,
-      evLost: d.evLost || 0,
-      decision: d,
-      explanation,
-      drillRecommendation: recommendDrill(d.mistakeType),
-    });
+    let mistake = null;
+
+    // FOLD analysis
+    if (d.action === 'fold' && toCall > 0) {
+      // Strong hand folded = critical mistake
+      const strongHands = ['two_pair', 'trips', 'set', 'straight', 'flush', 'full_house', 'quads', 'straight_flush'];
+      if (strongHands.includes(mh) && eq > odds + 0.05) {
+        mistake = { type: 'bad_fold', severity: 'critical', evLost: Math.max(0, Math.round(ev)),
+          reason: `Сфолдил ${mh} с ${Math.round(eq*100)}% equity. Сильные руки не фолдят.` };
+      }
+      // Committed >33% → should call
+      else if (commit > 0.33 && eq > 0.30) {
+        mistake = { type: 'bad_fold', severity: 'medium', evLost: Math.round(toCall * 0.3),
+          reason: `Сфолдил вложив ${Math.round(commit*100)}% стека. При commit >33% — коллируй.` };
+      }
+      // Draw with correct odds
+      else if (d.draws?.outs >= 8 && d.stage !== 'river') {
+        const drawEq = d.draws.outs * (d.stage === 'flop' ? 0.04 : 0.02);
+        if (drawEq > odds) {
+          mistake = { type: 'draw_fold_error', severity: 'medium', evLost: Math.round(ev * 0.4),
+            reason: `Сфолдил ${d.draws.drawType} (${d.draws.outs} аутов = ${Math.round(drawEq*100)}%) при pot odds ${Math.round(odds*100)}%.` };
+        }
+      }
+      // Regular +EV fold (adjusted for barrels)
+      else {
+        let adjEq = eq;
+        if (barrels >= 3) adjEq *= 0.55;
+        else if (barrels >= 2) adjEq *= 0.75;
+        const adjEv = adjEq * (pot + toCall) - (1 - adjEq) * toCall;
+        if (adjEv > 0 && adjEq > odds + 0.08 && Math.abs(adjEv) > (d.blinds ? 200 : 50) * 2) {
+          if (!(commit > 0.35 && ['high_card', 'bottom_pair'].includes(mh))) {
+            mistake = { type: 'bad_fold', severity: 'medium', evLost: Math.round(adjEv),
+              reason: `Equity ${Math.round(eq*100)}% (adj ${Math.round(adjEq*100)}%) > odds ${Math.round(odds*100)}%.` };
+          }
+        }
+      }
+    }
+
+    // CALL analysis
+    if (d.action === 'call' && toCall > 0) {
+      if (d.stage === 'river' && eq < odds - 0.08 && ev < -toCall * 0.10) {
+        mistake = { type: 'bad_call', severity: eq < 0.05 ? 'critical' : 'medium', evLost: Math.round(Math.abs(ev)),
+          reason: `Коллировал с ${Math.round(eq*100)}% equity при нужных ${Math.round(odds*100)}%. ${mh || 'Слабая рука'} не стоит колла.` };
+      }
+      // Too passive with strong hand
+      if (eq > 0.65 && d.stage !== 'preflop') {
+        const spr = pot > 0 ? d.myChips / pot : 20;
+        if (spr < 4) {
+          mistake = { type: 'too_passive', severity: 'medium', evLost: Math.round(eq * pot * 0.12),
+            reason: `Коллировал с ${Math.round(eq*100)}% equity при SPR ${spr.toFixed(1)}. Нужно рейзить для вэлью.` };
+        }
+      }
+    }
+
+    // CHECK analysis — missed value on river
+    if (d.action === 'check' && toCall === 0 && d.stage === 'river' && eq > 0.75) {
+      mistake = { type: 'missed_value', severity: 'medium', evLost: 0,
+        reason: `Зачекал ривер с ${Math.round(eq*100)}% equity. ${mh || 'Сильная рука'} — ставь 50-66% пота.` };
+    }
+
+    if (mistake) {
+      // Use bot's detection too if it found something we didn't
+      if (!mistake && d.mistakeType) {
+        mistake = { type: d.mistakeType, severity: d.mistakeSeverity, evLost: d.evLost || 0 };
+      }
+      const explanation = explainMistake(d);
+      mistakes.push({
+        handNumber: d.handNumber,
+        severity: mistake.severity,
+        type: mistake.type,
+        evLost: mistake.evLost || 0,
+        reason: mistake.reason,
+        decision: d,
+        explanation,
+        drillRecommendation: recommendDrill(mistake.type),
+      });
+    }
   }
 
   // Sort: critical first, then by EV lost

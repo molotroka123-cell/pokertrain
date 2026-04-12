@@ -30,6 +30,7 @@ import { getLiveTell } from './lib/liveTells.js';
 import { getTheme } from './lib/themes.js';
 import { ClaudeBossBot } from './engine/claudeAI.js';
 import { generateProfile } from './data/aiProfiles.js';
+import { RegBossAI } from './engine/regBossAI.js';
 
 function fmt(n) {
   if (!n && n !== 0) return '0';
@@ -811,9 +812,16 @@ function Game({ director, onExit }) {
         }
         if (isHardcore || i === bossIdx) {
           p._isBoss = true;
-          localAI.exploitLevel = isHardcore ? 0.5 : 0.3;
-          localAI.minHandsToExploit = isHardcore ? 3 : 5;
-          bots[p.id] = new ClaudeBossBot(localAI);
+          if (isHardcore) {
+            localAI.exploitLevel = 0.5;
+            localAI.minHandsToExploit = 3;
+            bots[p.id] = new ClaudeBossBot(localAI);
+          } else {
+            // Regular tournament/cash: RegBossAI (elite local bot)
+            const regBoss = new RegBossAI(p.profile);
+            regBoss.loadHistoricalProfile();
+            bots[p.id] = regBoss;
+          }
         } else {
           bots[p.id] = localAI;
         }
