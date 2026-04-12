@@ -25,6 +25,7 @@ import PersonalizedDrill from './drills/PersonalizedDrill.jsx';
 import RiverDrill from './drills/RiverDrill.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
 import CoachScreen from './coach/Coach.jsx';
+import RealAnalysis from './stats/RealAnalysis.jsx';
 import { Sounds } from './lib/sounds.js';
 import { getLiveTell } from './lib/liveTells.js';
 import { getTheme } from './lib/themes.js';
@@ -217,6 +218,16 @@ function Lobby({ onStart, onDrills, onStats, onCoach }) {
             </div>
           ))}
         </div>
+
+        {/* ═══ REAL MONEY ANALYSIS ═══ */}
+        <button onClick={() => onStart('__realanalysis__')} style={{
+          width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #2a3a1a',
+          background: 'linear-gradient(135deg, #0a1a08, #1a3a18)', cursor: 'pointer',
+          color: '#4aaa30', fontWeight: 800, fontSize: '14px', marginBottom: '10px',
+          transition: 'transform 0.12s', letterSpacing: '0.5px',
+        }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+          Upload Real Games — GGPoker / PokerStars
+        </button>
 
         {/* ═══ STATS & COACH ═══ */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
@@ -1583,6 +1594,9 @@ function AppInner() {
   if (screen === 'stats') {
     return <div style={appBg}><StatsScreen onBack={() => setScreen('lobby')} /></div>;
   }
+  if (screen === 'realanalysis') {
+    return <RealAnalysis onBack={() => setScreen('lobby')} />;
+  }
   if (screen === 'coach') {
     return <div style={appBg}><CoachScreen onBack={() => setScreen('lobby')} /></div>;
   }
@@ -1634,7 +1648,7 @@ function AppInner() {
   }
 
   return <Lobby
-    onStart={(fmt, name) => { startSession(fmt); setDirector(new TournamentDirector(fmt, name)); setScreen('tournament'); }}
+    onStart={(fmt, name) => { if (fmt === '__realanalysis__') { setScreen('realanalysis'); return; } startSession(fmt); setDirector(new TournamentDirector(fmt, name)); setScreen('tournament'); }}
     onDrills={() => setScreen('drills')}
     onStats={() => setScreen('stats')}
     onCoach={() => setScreen('coach')} />;
