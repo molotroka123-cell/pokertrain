@@ -56,8 +56,9 @@ const FISH_TYPES = ['STATION', 'LIMPER', 'TILTER', 'SCARED_MONEY', 'MANIAC_FISH'
 
 // Field distributions by stake level
 const FIELD_DISTRIBUTIONS = {
-  micro: [['TAG',0.25],['STATION',0.18],['LAG',0.12],['SemiLAG',0.12],['LIMPER',0.10],['Nit',0.08],['SCARED_MONEY',0.08],['MANIAC_FISH',0.07]],
-  low:   [['TAG',0.28],['LAG',0.18],['SemiLAG',0.15],['STATION',0.12],['Nit',0.10],['LIMPER',0.08],['SCARED_MONEY',0.05],['MANIAC_FISH',0.04]],
+  // Calibrated from 189 real GGPoker hands, 44 opponents
+  micro: [['TAG',0.22],['STATION',0.25],['LAG',0.09],['SemiLAG',0.10],['LIMPER',0.18],['Nit',0.02],['SCARED_MONEY',0.05],['MANIAC_FISH',0.09]],
+  low:   [['TAG',0.25],['STATION',0.20],['LAG',0.12],['SemiLAG',0.15],['LIMPER',0.10],['Nit',0.05],['SCARED_MONEY',0.05],['MANIAC_FISH',0.08]],
   mid:   [['TAG',0.30],['LAG',0.20],['SemiLAG',0.15],['Nit',0.10],['STATION',0.10],['LIMPER',0.05],['SCARED_MONEY',0.05],['MANIAC_FISH',0.05]],
   high:  [['TAG',0.35],['LAG',0.25],['SemiLAG',0.20],['Nit',0.10],['STATION',0.05],['LIMPER',0.03],['SCARED_MONEY',0.02]],
 };
@@ -166,14 +167,15 @@ export function generateProfile(id, fieldLevel) {
 function generateProfileForStyle(style, id) {
   let vpip, pfr, af, threeBet, tiltProbability = 0, quirks = [];
   switch (style) {
-    case 'TAG': vpip = 0.15 + cryptoRandomFloat() * 0.08; pfr = vpip - 0.02 - cryptoRandomFloat() * 0.04; af = 2.5 + cryptoRandomFloat() * 1.5; threeBet = 0.04 + cryptoRandomFloat() * 0.05; break;
-    case 'LAG': vpip = 0.25 + cryptoRandomFloat() * 0.12; pfr = vpip - 0.03 - cryptoRandomFloat() * 0.05; af = 3.0 + cryptoRandomFloat() * 1.5; threeBet = 0.06 + cryptoRandomFloat() * 0.06; break;
-    case 'Nit': vpip = 0.10 + cryptoRandomFloat() * 0.05; pfr = vpip - 0.01 - cryptoRandomFloat() * 0.02; af = 1.8 + cryptoRandomFloat() * 0.8; threeBet = 0.02 + cryptoRandomFloat() * 0.03; break;
-    case 'SemiLAG': vpip = 0.22 + cryptoRandomFloat() * 0.08; pfr = vpip - 0.03 - cryptoRandomFloat() * 0.04; af = 2.5 + cryptoRandomFloat() * 1.0; threeBet = 0.05 + cryptoRandomFloat() * 0.04; break;
-    case 'STATION': vpip = 0.30 + cryptoRandomFloat() * 0.15; pfr = 0.05 + cryptoRandomFloat() * 0.05; af = 1.0 + cryptoRandomFloat() * 0.5; threeBet = 0.01 + cryptoRandomFloat() * 0.02; quirks = ['never_folds_pair']; break;
-    case 'LIMPER': vpip = 0.35 + cryptoRandomFloat() * 0.15; pfr = 0.02 + cryptoRandomFloat() * 0.03; af = 0.8 + cryptoRandomFloat() * 0.4; threeBet = 0.01; quirks = ['limps_everything']; break;
-    case 'MANIAC_FISH': style = 'Maniac'; vpip = 0.40 + cryptoRandomFloat() * 0.15; pfr = 0.25 + cryptoRandomFloat() * 0.10; af = 3.5 + cryptoRandomFloat() * 2.0; threeBet = 0.08 + cryptoRandomFloat() * 0.08; quirks = ['overbets_river']; break;
-    case 'SCARED_MONEY': vpip = 0.18 + cryptoRandomFloat() * 0.08; pfr = 0.08 + cryptoRandomFloat() * 0.05; af = 1.2 + cryptoRandomFloat() * 0.5; threeBet = 0.01 + cryptoRandomFloat() * 0.02; break;
+    // Calibrated from real GGPoker $1-5 opponent data
+    case 'TAG': vpip = 0.22 + cryptoRandomFloat() * 0.08; pfr = vpip - 0.03 - cryptoRandomFloat() * 0.03; af = 2.0 + cryptoRandomFloat() * 1.5; threeBet = 0.04 + cryptoRandomFloat() * 0.05; break;
+    case 'LAG': vpip = 0.35 + cryptoRandomFloat() * 0.10; pfr = vpip - 0.05 - cryptoRandomFloat() * 0.05; af = 2.5 + cryptoRandomFloat() * 1.5; threeBet = 0.06 + cryptoRandomFloat() * 0.06; break;
+    case 'Nit': vpip = 0.10 + cryptoRandomFloat() * 0.08; pfr = vpip - 0.01 - cryptoRandomFloat() * 0.02; af = 1.5 + cryptoRandomFloat() * 0.5; threeBet = 0.02 + cryptoRandomFloat() * 0.03; break;
+    case 'SemiLAG': vpip = 0.25 + cryptoRandomFloat() * 0.08; pfr = vpip - 0.03 - cryptoRandomFloat() * 0.04; af = 2.0 + cryptoRandomFloat() * 1.0; threeBet = 0.05 + cryptoRandomFloat() * 0.04; break;
+    case 'STATION': vpip = 0.45 + cryptoRandomFloat() * 0.10; pfr = 0.05 + cryptoRandomFloat() * 0.05; af = 0.3 + cryptoRandomFloat() * 0.4; threeBet = 0.01 + cryptoRandomFloat() * 0.01; quirks = ['never_folds_pair']; break;
+    case 'LIMPER': vpip = 0.35 + cryptoRandomFloat() * 0.10; pfr = 0.00 + cryptoRandomFloat() * 0.05; af = 0.3 + cryptoRandomFloat() * 0.3; threeBet = 0.00; quirks = ['limps_everything']; break;
+    case 'MANIAC_FISH': style = 'Maniac'; vpip = 0.50 + cryptoRandomFloat() * 0.20; pfr = 0.35 + cryptoRandomFloat() * 0.15; af = 4.0 + cryptoRandomFloat() * 3.0; threeBet = 0.10 + cryptoRandomFloat() * 0.10; quirks = ['overbets_river']; break;
+    case 'SCARED_MONEY': vpip = 0.18 + cryptoRandomFloat() * 0.08; pfr = 0.08 + cryptoRandomFloat() * 0.05; af = 1.0 + cryptoRandomFloat() * 0.5; threeBet = 0.01 + cryptoRandomFloat() * 0.02; break;
     default: vpip = 0.22; pfr = 0.16; af = 2.5; threeBet = 0.06; break;
   }
   return { style, vpip, pfr, af, threeBet, tiltProbability, quirks, name: generatePlayerName(id), emoji: generateCountry() };
