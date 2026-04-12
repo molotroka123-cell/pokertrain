@@ -9,6 +9,8 @@ const DRILLS = [
   { id: 'postflop', name: 'Postflop Spots', desc: '25+ real postflop scenarios', icon: '🃏', color: '#9b59b6' },
   { id: 'sizing', name: 'Bet Sizing', desc: 'Choose optimal bet size', icon: '📏', color: '#1abc9c' },
   { id: 'potodds', name: 'Pot Odds Quiz', desc: 'Calculate pot odds + outs', icon: '🧮', color: '#3498db' },
+  { id: 'river', name: 'River Decisions', desc: 'Value bet, bluff, or check/call river', icon: '🌊', color: '#e67e22' },
+  { id: 'personalized', name: 'Your Weak Spots', desc: 'Drills from your actual mistakes', icon: '🔍', color: '#e74c3c' },
 ];
 
 export default function DrillMenu({ onSelect, onBack }) {

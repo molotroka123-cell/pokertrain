@@ -190,4 +190,58 @@ export function GTOFrequencies({ frequencies, heroAction, isCorrect }) {
   );
 }
 
+// ═══ SPACED REPETITION HELPERS ═══
+
+// Save missed hand for later review
+export function spacedRepMiss(drillId, handKey) {
+  try {
+    const key = `drill_spaced_${drillId}`;
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    data[handKey] = { misses: (data[handKey]?.misses || 0) + 1, nextReview: Date.now() + 60000 };
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {}
+}
+
+// Check if a missed hand is due for review
+export function spacedRepDue(drillId) {
+  try {
+    const data = JSON.parse(localStorage.getItem(`drill_spaced_${drillId}`) || '{}');
+    const now = Date.now();
+    return Object.entries(data).filter(([, v]) => v.nextReview <= now).map(([k]) => k);
+  } catch (e) { return []; }
+}
+
+// Mark reviewed
+export function spacedRepReviewed(drillId, handKey, correct) {
+  try {
+    const key = `drill_spaced_${drillId}`;
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    if (correct) { delete data[handKey]; }
+    else { data[handKey] = { ...data[handKey], nextReview: Date.now() + 180000 }; } // retry in 3 min
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {}
+}
+
+// ═══ GLOBAL DRILL STATS ═══
+
+export function saveGlobalStats(drillId, correct, total) {
+  try {
+    const key = 'drill_stats_global';
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    if (!data[drillId]) data[drillId] = { totalAttempts: 0, totalCorrect: 0, sessions: 0, lastPlayed: 0 };
+    data[drillId].totalAttempts += total;
+    data[drillId].totalCorrect += correct;
+    data[drillId].sessions++;
+    data[drillId].lastPlayed = Date.now();
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {}
+}
+
+export function loadGlobalStats(drillId) {
+  try {
+    const data = JSON.parse(localStorage.getItem('drill_stats_global') || '{}');
+    return data[drillId] || null;
+  } catch (e) { return null; }
+}
+
 export { s as drillStyles };
