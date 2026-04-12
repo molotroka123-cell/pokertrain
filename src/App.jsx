@@ -1366,17 +1366,54 @@ function Game({ director, onExit }) {
         </div>
       )}
 
-      {/* Personal trainer — pot odds + range reading */}
-      {showTrainer && gs?.waitingForHero && gs?.toCall > 0 && (
-        <div style={{
-          background: 'rgba(39,174,96,0.12)', border: '1px solid rgba(39,174,96,0.25)',
-          borderRadius: '8px', padding: '6px 12px', margin: '2px 12px',
-          fontSize: '11px', color: '#a0d8b0', textAlign: 'center',
-        }}>
-          <div>Pot odds: <b>{Math.round((gs.toCall / (gs.pot + gs.toCall)) * 100)}%</b> — need {Math.round((gs.toCall / (gs.pot + gs.toCall)) * 100)}% equity</div>
-          {gs.heroCards?.length === 2 && <div style={{ fontSize: '10px', color: '#6a9a7a', marginTop: '1px' }}>Equity: ~{Math.round((gs.handStrength || 0.5) * 100)}%{(gs.handStrength || 0) > (gs.toCall / (gs.pot + gs.toCall)) ? ' ✓ +EV' : ' ✗ -EV'}</div>}
-        </div>
-      )}
+      {/* Personal trainer — pot odds + equity + recommendation */}
+      {showTrainer && gs?.waitingForHero && (() => {
+        const equity = gs.handStrength || 0;
+        const potOddsNeeded = gs.toCall > 0 ? gs.toCall / (gs.pot + gs.toCall) : 0;
+        const evOfCall = gs.toCall > 0 ? equity * (gs.pot + gs.toCall) - (1 - equity) * gs.toCall : 0;
+        const commitPct = gs.heroChips > 0 ? Math.round((gs.toCall / gs.heroChips) * 100) : 0;
+        const sprVal = gs.pot > 0 ? Math.round((gs.heroChips / gs.pot) * 10) / 10 : 99;
+
+        let advice, adviceColor;
+        if (gs.toCall === 0) {
+          // Checked to hero — bet or check advice
+          if (equity > 0.65) { advice = 'Strong hand — bet for value'; adviceColor = '#27ae60'; }
+          else if (equity > 0.45) { advice = 'Medium hand — bet or check'; adviceColor = '#f1c40f'; }
+          else if (equity > 0.25) { advice = 'Weak — check, maybe bluff'; adviceColor = '#e67e22'; }
+          else { advice = 'Air — check or bluff if good spot'; adviceColor = '#e74c3c'; }
+        } else {
+          // Facing bet
+          if (equity > potOddsNeeded && evOfCall > 0) { advice = '+EV CALL — you have enough equity'; adviceColor = '#27ae60'; }
+          else if (commitPct > 33 && equity > 0.35) { advice = 'Committed — consider all-in'; adviceColor = '#f39c12'; }
+          else if (equity < potOddsNeeded * 0.7) { advice = 'FOLD — not enough equity'; adviceColor = '#e74c3c'; }
+          else { advice = 'Marginal — close decision'; adviceColor = '#e67e22'; }
+        }
+
+        return (
+          <div style={{
+            background: 'rgba(39,174,96,0.08)', border: '1px solid rgba(39,174,96,0.20)',
+            borderRadius: '8px', padding: '8px 12px', margin: '2px 12px',
+            fontSize: '11px', color: '#a0d8b0',
+          }}>
+            {/* Row 1: Equity + Pot Odds */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+              <span>Equity: <b style={{ color: equity > 0.50 ? '#27ae60' : equity > 0.30 ? '#f1c40f' : '#e74c3c' }}>{Math.round(equity * 100)}%</b></span>
+              {gs.toCall > 0 && <span>Pot odds: <b>{Math.round(potOddsNeeded * 100)}%</b></span>}
+              {gs.toCall > 0 && <span>EV: <b style={{ color: evOfCall > 0 ? '#27ae60' : '#e74c3c' }}>{evOfCall > 0 ? '+' : ''}{Math.round(evOfCall)}</b></span>}
+            </div>
+            {/* Row 2: SPR + Commit */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#6a9a7a', marginBottom: '4px' }}>
+              <span>SPR: {sprVal}</span>
+              {gs.toCall > 0 && <span>Commit: {commitPct}% stack</span>}
+              <span>Pot: {gs.pot}</span>
+            </div>
+            {/* Row 3: Recommendation */}
+            <div style={{ fontWeight: 700, color: adviceColor, textAlign: 'center', fontSize: '12px' }}>
+              {advice}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Controls + Range button + toggles */}
       {gs?.waitingForHero && (
