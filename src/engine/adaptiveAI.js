@@ -110,8 +110,23 @@ export class AdaptiveAI extends BaseAI {
   }
 
   // ═══ COMPUTED READS ═══
+  // ═══ 3 KEY HERO METRICS (VPIP / PFR / AF — like a real HUD) ═══
   get heroVpip() { return this.heroModel.handsPlayed > 0 ? this.heroModel.vpipHands / this.heroModel.handsPlayed : 0.25; }
   get heroPfr() { return this.heroModel.handsPlayed > 0 ? this.heroModel.pfrHands / this.heroModel.handsPlayed : 0.18; }
+  get heroAF() {
+    const c = this.heroModel.totalCalls || 1;
+    return Math.round((this.heroModel.totalRaises / c) * 10) / 10;
+  }
+  // Bot classifies hero into a type based on 3 metrics
+  get heroType() {
+    const v = this.heroVpip, p = this.heroPfr, gap = v - p, af = this.heroAF;
+    if (v < 0.16) return 'nit';                              // ultra tight
+    if (v < 0.24 && gap < 0.06 && af >= 2.0) return 'tag';  // tight-aggressive reg
+    if (v >= 0.24 && v < 0.34 && af >= 2.5) return 'lag';   // loose-aggressive
+    if (gap >= 0.10 || af < 1.5) return 'fish';              // passive caller
+    if (v >= 0.35) return 'maniac';                          // ultra loose
+    return 'reg';                                             // balanced
+  }
   get heroFoldToCbet() { return this.heroModel.cbetsMade > 3 ? this.heroModel.cbetsFolded / this.heroModel.cbetsMade : 0.45; }
   get heroIsPassive() { return this.heroVpip - this.heroPfr > 0.12; }
   get heroIsAggressive() { return this.heroPfr > 0.25; }
@@ -483,6 +498,50 @@ export class AdaptiveAI extends BaseAI {
       }
     }
 
+    // ═══ TYPE-BASED EXPLOIT (using VPIP/PFR/AF classification) ═══
+    const hType = this.heroType;
+
+    // vs NIT: steal relentlessly, fold when they raise
+    if (hType === 'nit') {
+      if (gs.stage === 'preflop' && baseDec.action === 'fold' && (gs.position === 'BTN' || gs.position === 'CO' || gs.position === 'SB')) {
+        if (rand < 0.50 * el) return { action: 'raise', amount: Math.floor(gs.bigBlind * 2.5) };
+      }
+      // Nit raises = always strong → fold medium
+      if (gs.toCall > 0 && gs.handStrength < 0.60 && rand < 0.40 * el) return { action: 'fold' };
+    }
+
+    // vs FISH: value bet thin, never bluff, bet bigger for value
+    if (hType === 'fish') {
+      // Don't bluff fish — they call everything
+      if (baseDec.action === 'raise' && gs.handStrength < 0.35 && gs.stage !== 'preflop') {
+        if (rand < 0.60 * el) return { action: 'check' };
+      }
+      // Value bet bigger — fish will call with worse
+      if (gs.handStrength > 0.55 && gs.toCall === 0 && gs.stage !== 'preflop') {
+        return { action: 'raise', amount: Math.min(Math.floor(gs.pot * (0.7 + cryptoRandomFloat() * 0.3)), gs.myChips) };
+      }
+    }
+
+    // vs LAG: trap more, let them bluff, then raise
+    if (hType === 'lag' || hType === 'maniac') {
+      // Don't 3-bet light — LAG will 4-bet
+      if (gs.stage === 'preflop' && baseDec.action === 'raise' && gs.handStrength < 0.70) {
+        if (rand < 0.30 * el) return { action: 'call' }; // flat instead of 3-bet
+      }
+      // Call down lighter postflop — LAG bluffs a lot
+      if (baseDec.action === 'fold' && gs.handStrength > 0.30 && gs.stage !== 'preflop') {
+        if (rand < 0.35 * el) return { action: 'call' };
+      }
+    }
+
+    // vs TAG: respect their raises, steal their blinds
+    if (hType === 'tag') {
+      // TAG 3-bets = strong → fold more
+      if (gs.toCall > gs.bigBlind * 5 && gs.handStrength < 0.50 && rand < 0.30 * el) {
+        return { action: 'fold' };
+      }
+    }
+
     // ═══ DEEP STREET-BY-STREET EXPLOIT ═══
 
     // Hero folds too much on FLOP → c-bet/bet more on flop
@@ -544,6 +603,8 @@ export class AdaptiveAI extends BaseAI {
       neverBluffs: this.heroNeverBluffs,
       foldsToBigBets: this.heroFoldsToBigBets,
       exploitLevel: this.exploitLevel,
+      af: this.heroAF,
+      heroType: this.heroType,
       style: this.heroIsAggressive ? 'aggressive' : this.heroIsPassive ? 'passive' : 'balanced',
     };
   }
