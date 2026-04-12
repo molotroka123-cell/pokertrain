@@ -128,12 +128,12 @@ export class BaseAI {
     const stackBB = myChips / Math.max(bigBlind, 1);
     const stage = gs.tournamentStage || 'early'; // early, middle, late, bubble, final_table
 
-    // Tournament stage adjustments — tighter early, looser late
-    const stageAdj = stage === 'early' ? -0.06 :    // early: play tighter (preserve stack)
-      stage === 'middle' ? 0 :                        // middle: standard
-      stage === 'late' ? 0.04 :                       // late: steal more (antes matter)
-      isBubble ? -0.10 :                              // bubble: survival mode
-      isFT ? 0.02 : 0;                               // FT: ICM but pay jumps matter
+    // Tournament stage adjustments — bubble/FT checked FIRST (override stage)
+    const stageAdj = isBubble ? -0.15 :               // bubble: VERY tight (ICM survival)
+      isFT ? -0.12 :                                   // FT: SUPER tight (every pay jump = real $)
+      stage === 'early' ? -0.04 :                      // early: slightly tight
+      stage === 'middle' ? 0 :                         // middle: standard
+      stage === 'late' ? 0.03 : 0;                     // late: steal more (antes)
 
     // Multiway tightening: each extra player in pot
     const mwPenalty = Math.max(0, (playersInHand - 2) * 0.04);
@@ -164,8 +164,8 @@ export class BaseAI {
       if (p.style === 'SCARED_MONEY') pushThreshold -= 0.12;
 
       // Tournament context
-      if (isBubble) pushThreshold -= 0.15; // tighter on bubble
-      if (isFT && stackBB > 25) pushThreshold += 0.05;
+      if (isBubble) pushThreshold -= 0.20; // VERY tight on bubble — survival > chips
+      if (isFT) pushThreshold -= 0.15;   // Super tight FT — every pay jump = real $
 
       // Human error: 10% push too loose, 10% fold too tight
       if (p.style !== 'TAG' && p.style !== 'Nit') {
@@ -420,11 +420,11 @@ export class BaseAI {
     const isFT = gs.isFinalTable;
     const tStage = gs.tournamentStage || 'early';
 
-    // Tournament stage postflop adjustment
-    // Early: play cautiously (deep stacked, chip preservation)
-    // Late/Bubble: play tighter postflop (survival > pots)
-    const postflopTightness = tStage === 'early' ? 0.03 :
-      tStage === 'late' ? 0.02 : gs.isBubble ? 0.05 : 0;
+    // Postflop tightness by stage — bubble/FT = very cautious
+    const postflopTightness = tStage === 'early' ? 0.02 :
+      gs.isBubble ? 0.12 :   // Bubble: almost never bluff, only bet value
+      isFT ? 0.10 :          // FT: minimal bluffs, tight postflop
+      tStage === 'late' ? 0.02 : 0;
     const multiway = (gs.playersInHand || 2) > 2;
     const hi = gs.handInfo || {}; // structured hand info
     const hasDraw = hi.drawType && hi.drawOuts > 0;
@@ -712,7 +712,9 @@ export class BaseAI {
       // Fold vs overbets with medium
       if (betSizePot > 0.80 && strength < 0.50) return { action: 'fold' };
       // Bubble: fold medium in big pots
-      if (isBubble && commitRatio > 0.25 && evOfCall < toCall * 0.2) return { action: 'fold' };
+      // Bubble/FT: fold medium hands in big pots — chips worth more than pots
+      if ((isBubble || isFT) && commitRatio > 0.20 && strength < 0.55) return { action: 'fold' };
+      if (isBubble && commitRatio > 0.15 && evOfCall < toCall * 0.3) return { action: 'fold' };
       // Call only if +EV
       if (evOfCall > 0) return { action: 'call' };
       // Marginal + implied odds (not river)
