@@ -239,6 +239,9 @@ export function loadOpponentProfiles() {
     return JSON.parse(localStorage.getItem('pokertrain_opponents') || '{}');
   } catch (e) { return {}; }
 }
+
+// Analyze parsed hands — same metrics as bot debrief
+export function analyzeRealHands(hands) {
   if (!hands || hands.length === 0) return null;
 
   // Group by tournament
