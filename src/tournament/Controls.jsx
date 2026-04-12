@@ -28,26 +28,52 @@ export default function Controls({ canCheck, canCall, toCall, pot, myChips, minR
   };
 
   const currentBet = toCall || 0;
-  const threeBet = Math.min(currentBet * 3 || bb * 7, myChips);
-  const fourBet = Math.min(currentBet * 2.5 || bb * 20, myChips);
+  const isPreflop = pot <= bb * 6; // rough preflop detection
 
-  const presets = [
-    { label: '3-Bet', val: Math.floor(threeBet), show: currentBet > 0 && currentBet <= bb * 5 },
-    { label: '4-Bet', val: Math.floor(fourBet), show: currentBet > bb * 5 && currentBet <= bb * 20 },
-    { label: '5-Bet', val: Math.min(Math.floor(currentBet * 2.5), myChips), show: currentBet > bb * 20 },
-    { label: '2.5x', val: Math.floor(currentBet * 2.5), show: currentBet > 0 && currentBet <= bb * 5 },
-    { label: '50%', val: Math.floor(pot * 0.5), show: true },
-    { label: '75%', val: Math.floor(pot * 0.75), show: true },
-    { label: 'Pot', val: pot, show: true },
-    { label: 'ALL IN', val: myChips, show: true },
-  ].filter(p => p.show && p.val >= (minRaise || 0) && p.val <= myChips);
+  // Smart presets depending on situation
+  let presets = [];
+  if (isPreflop && currentBet <= bb) {
+    // OPENING: no one raised yet → show BB multipliers
+    presets = [
+      { label: '2x', val: Math.floor(bb * 2) },
+      { label: '2.5x', val: Math.floor(bb * 2.5) },
+      { label: '3x', val: Math.floor(bb * 3) },
+      { label: '4x', val: Math.floor(bb * 4) },
+      { label: 'ALL IN', val: myChips },
+    ];
+  } else if (isPreflop && currentBet > bb && currentBet <= bb * 6) {
+    // FACING OPEN: show 3-bet sizes
+    const openSize = currentBet + (toCall || 0); // approximate total open
+    presets = [
+      { label: '3-Bet', val: Math.floor(openSize * 3) },
+      { label: '3-Bet+', val: Math.floor(openSize * 3.5) },
+      { label: '2.5x', val: Math.floor(openSize * 2.5) },
+      { label: 'ALL IN', val: myChips },
+    ];
+  } else if (isPreflop && currentBet > bb * 6) {
+    // FACING 3-BET: show 4-bet / 5-bet / jam
+    presets = [
+      { label: '4-Bet', val: Math.min(Math.floor(currentBet * 2.2), myChips) },
+      { label: '4-Bet+', val: Math.min(Math.floor(currentBet * 2.8), myChips) },
+      { label: 'ALL IN', val: myChips },
+    ];
+  } else {
+    // POSTFLOP: pot fraction sizing
+    presets = [
+      { label: '33%', val: Math.floor(pot * 0.33) },
+      { label: '50%', val: Math.floor(pot * 0.5) },
+      { label: '67%', val: Math.floor(pot * 0.67) },
+      { label: '75%', val: Math.floor(pot * 0.75) },
+      { label: 'Pot', val: pot },
+      { label: 'ALL IN', val: myChips },
+    ];
+  }
 
+  // Filter: valid range only, deduplicate
   const seen = new Set();
-  const uniquePresets = presets.filter(p => {
-    if (seen.has(p.val)) return false;
-    seen.add(p.val);
-    return true;
-  });
+  const uniquePresets = presets
+    .filter(p => p.val >= (minRaise || 0) && p.val <= myChips)
+    .filter(p => { if (seen.has(p.val)) return false; seen.add(p.val); return true; });
 
   const fillPct = maxRaise > (minRaise || 0)
     ? ((raiseAmount - (minRaise || 0)) / (maxRaise - (minRaise || 0))) * 100
