@@ -716,6 +716,11 @@ function HUDBar({ heroChips, pot, mVal, position, rank, blinds, theme, level, pl
         </div>
         {/* Right: Rank + M + Sound toggle */}
         <div style={{ textAlign: 'right', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {position && position !== '—' && <span style={{
+            fontWeight: 700, fontSize: '12px', padding: '1px 6px', borderRadius: '4px',
+            background: position === 'BTN' ? '#2a4a1a' : position === 'SB' || position === 'BB' ? '#3a2a1a' : '#1a2a3a',
+            color: position === 'BTN' ? '#6dce3a' : position === 'CO' ? '#4ac0e0' : position === 'SB' || position === 'BB' ? '#e0a040' : '#7a9aba',
+          }}>{position}</span>}
           <span style={{ color: '#7a8a9a' }}>#{rank}</span>
           <span style={{
             fontWeight: 700,
