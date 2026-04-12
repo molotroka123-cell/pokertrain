@@ -126,8 +126,16 @@ export class BaseAI {
     const isFT = gs.isFinalTable;
     const isBubble = gs.isBubble;
     const stackBB = myChips / Math.max(bigBlind, 1);
+    const stage = gs.tournamentStage || 'early'; // early, middle, late, bubble, final_table
 
-    // Multiway tightening: each extra player = ~15% tighter range
+    // Tournament stage adjustments — tighter early, looser late
+    const stageAdj = stage === 'early' ? -0.06 :    // early: play tighter (preserve stack)
+      stage === 'middle' ? 0 :                        // middle: standard
+      stage === 'late' ? 0.04 :                       // late: steal more (antes matter)
+      isBubble ? -0.10 :                              // bubble: survival mode
+      isFT ? 0.02 : 0;                               // FT: ICM but pay jumps matter
+
+    // Multiway tightening: each extra player in pot
     const mwPenalty = Math.max(0, (playersInHand - 2) * 0.04);
 
     // ═══ SHORT STACK BEHAVIOR — realistic human patterns ═══
@@ -225,7 +233,7 @@ export class BaseAI {
         p.style === 'SemiLAG' ? 1.10 : p.style === 'LAG' ? 1.35 :
         p.style === 'Maniac' ? 1.50 : p.style === 'STATION' ? 1.30 :
         p.style === 'LIMPER' ? 1.40 : p.style === 'SCARED_MONEY' ? 0.75 : 1.0) + stealBonus;
-      const openThreshold = baseThreshold * styleScale + (rand - 0.5) * this.noise;
+      const openThreshold = baseThreshold * styleScale + stageAdj + (rand - 0.5) * this.noise;
 
       if (handVal > openThreshold) return { action: 'fold' };
 
@@ -279,7 +287,7 @@ export class BaseAI {
         p.style === 'LAG' ? 1.1 : p.style === 'Maniac' ? 1.35 :
         p.style === 'SCARED_MONEY' ? 0.45 : p.style === 'LIMPER' ? 1.2 :
         0.85; // TAG/SemiLAG = ~34% defense
-      const bbDefThreshold = 0.60 * bbScale; // base: top 48%, TAG: top 34%
+      const bbDefThreshold = 0.60 * bbScale + stageAdj; // stage-adjusted
 
       if (raiseBBs <= 3.5) {
         if (isIn3BetRange(holeCards[0], holeCards[1], 'BB') && rand < (p.threeBet || 0.08)) {
@@ -322,7 +330,7 @@ export class BaseAI {
     const ccBase = posCallBase[position] || 0.20;
     const ccScale = p.style === 'STATION' ? 1.4 : p.style === 'Maniac' ? 1.2 :
       p.style === 'LAG' ? 1.1 : p.style === 'Nit' ? 0.5 : p.style === 'SCARED_MONEY' ? 0.55 : 0.80;
-    const adjColdCall = ccBase * ccScale - mwPenalty * 3;
+    const adjColdCall = ccBase * ccScale + stageAdj - mwPenalty * 3;
 
     if (p.style === 'Maniac' && rand < 0.20) {
       return { action: 'raise', amount: Math.min(Math.floor(currentBet * (2.5 + cryptoRandomFloat())), myChips) };
@@ -410,6 +418,13 @@ export class BaseAI {
     const p = this.profile;
     const af = p.af || 2.5;
     const isFT = gs.isFinalTable;
+    const tStage = gs.tournamentStage || 'early';
+
+    // Tournament stage postflop adjustment
+    // Early: play cautiously (deep stacked, chip preservation)
+    // Late/Bubble: play tighter postflop (survival > pots)
+    const postflopTightness = tStage === 'early' ? 0.03 :
+      tStage === 'late' ? 0.02 : gs.isBubble ? 0.05 : 0;
     const multiway = (gs.playersInHand || 2) > 2;
     const hi = gs.handInfo || {}; // structured hand info
     const hasDraw = hi.drawType && hi.drawOuts > 0;
@@ -459,7 +474,7 @@ export class BaseAI {
       const styleBoost = (af - 2.5) / 6;
       const bubbleAdj = isBubble ? -0.10 : 0;
 
-      if (rand < cbetFreq + styleBoost + bubbleAdj) {
+      if (rand < cbetFreq + styleBoost + bubbleAdj - postflopTightness) {
         return { action: 'raise', amount: getSizing(purpose, pot, myChips, isIP) };
       }
       return { action: 'check' };
