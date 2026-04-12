@@ -445,14 +445,13 @@ export class BaseAI {
 
     // ═══ MONSTER (strength > 0.7) ═══
     if (strength > 0.7) {
-      // Final table: NEVER slow-play, max value
       if (isFT) {
         const sizing = getSizing(strength > 0.85 ? 'polarized' : 'protection', pot, myChips, isIP);
         return { action: 'raise', amount: sizing };
       }
-      // OOP: sometimes check-raise trap (12%)
-      if (!isIP && rand < 0.12 && p.style !== 'STATION') {
-        return { action: 'check' }; // Planning check-raise
+      // OOP: slow-play trap 25% (then check-raise next street)
+      if (!isIP && rand < 0.25 && p.style !== 'STATION' && !multiway) {
+        return { action: 'check' };
       }
       const sizing = getSizing(strength > 0.85 ? 'polarized' : 'protection', pot, myChips, isIP);
       return { action: 'raise', amount: sizing };
@@ -466,12 +465,12 @@ export class BaseAI {
         cbetFreq = strength > 0.55 ? 0.60 : strength > 0.40 ? 0.25 : 0.05;
         purpose = 'protection';
       } else switch (texture.category) {
-        case 'dry':      cbetFreq = 0.90; purpose = 'range_bet'; break;     // K72r: bet entire range small
-        case 'paired':   cbetFreq = 0.80; purpose = 'range_bet'; break;     // KK4: bet most range small
-        case 'medium':   cbetFreq = 0.55; purpose = 'thin_value'; break;    // QJ4tt: selective
-        case 'wet':      cbetFreq = 0.35; purpose = 'protection'; break;    // JT9ss: only strong + some draws
-        case 'monotone': cbetFreq = 0.30; purpose = 'protection'; break;    // All hearts: very selective
-        default:         cbetFreq = 0.55; purpose = 'thin_value'; break;
+        case 'dry':      cbetFreq = 0.80; purpose = 'range_bet'; break;     // K72r: range bet small
+        case 'paired':   cbetFreq = 0.70; purpose = 'range_bet'; break;     // KK4: most of range
+        case 'medium':   cbetFreq = 0.50; purpose = 'thin_value'; break;    // QJ4tt: selective
+        case 'wet':      cbetFreq = 0.30; purpose = 'protection'; break;    // JT9ss: only strong + draws
+        case 'monotone': cbetFreq = 0.25; purpose = 'protection'; break;    // All hearts: very selective
+        default:         cbetFreq = 0.45; purpose = 'thin_value'; break;
       }
 
       // Adjust for strength: always c-bet strong, sometimes c-bet air
