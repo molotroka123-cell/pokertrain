@@ -34,8 +34,18 @@ export class AdaptiveAI extends BaseAI {
       // Reactive tracking (#20-#31)
       heroLimps: 0,             // #20: iso vs hero limps
       recentBarrelFolds: 0,     // #2: fast barrel exploit
-      heroSizings: [],          // #25: sizing pattern detection [{size, wasBluff}]
-      heroDecisionTimes: [],    // #27: timing tells [{timeMs, action, stage}]
+      heroSizings: [],          // #25: sizing pattern detection
+      heroDecisionTimes: [],    // #27: timing tells
+      // Deep analysis tracking
+      raisesByStreet: { preflop: 0, flop: 0, turn: 0, river: 0 },
+      callsByStreet: { preflop: 0, flop: 0, turn: 0, river: 0 },
+      foldsByStreet: { preflop: 0, flop: 0, turn: 0, river: 0 },
+      checkRaises: 0,           // how often hero check-raises
+      donkBets: 0,              // how often hero donk-bets (non-aggressor bets)
+      foldToBarrel: { flop: 0, turn: 0, river: 0 },    // folds per street facing bet
+      facedBetOnStreet: { flop: 0, turn: 0, river: 0 }, // times faced bet per street
+      heroCbets: 0,             // hero c-bet count
+      heroCbetOpportunities: 0, // times hero could c-bet
     };
     this.exploitLevel = 0;
     this.minHandsToExploit = 3;
@@ -114,6 +124,25 @@ export class AdaptiveAI extends BaseAI {
   get heroNeverBluffs() { return this.heroModel.showdowns > 5 && this.heroModel.bluffsDetected / this.heroModel.showdowns < 0.10; }
   get heroFoldsToBigBets() { return this.heroModel.bigPotFolds + this.heroModel.bigPotCalls > 5 && this.heroModel.bigPotFolds / (this.heroModel.bigPotFolds + this.heroModel.bigPotCalls) > 0.6; }
 
+  // Deep reads
+  get heroFoldToFlopBet() {
+    const f = this.heroModel.facedBetOnStreet.flop;
+    return f > 3 ? this.heroModel.foldToBarrel.flop / f : 0.45;
+  }
+  get heroFoldToTurnBet() {
+    const f = this.heroModel.facedBetOnStreet.turn;
+    return f > 3 ? this.heroModel.foldToBarrel.turn / f : 0.40;
+  }
+  get heroFoldToRiverBet() {
+    const f = this.heroModel.facedBetOnStreet.river;
+    return f > 2 ? this.heroModel.foldToBarrel.river / f : 0.50;
+  }
+  get heroRiverAggFreq() {
+    const st = this.heroModel.raisesByStreet.river;
+    const total = st + (this.heroModel.callsByStreet.river || 0) + (this.heroModel.foldsByStreet.river || 0);
+    return total > 3 ? st / total : 0.15;
+  }
+
   // Called ONCE per hand with all hero actions (not per-action!)
   observeHeroHand(actions, context) {
     const h = this.heroModel;
@@ -122,9 +151,15 @@ export class AdaptiveAI extends BaseAI {
     let didVpip = false, didPfr = false;
     for (const a of actions) {
       h.totalActions++;
-      if (a.action === 'fold') h.totalFolds++;
-      if (a.action === 'call') h.totalCalls++;
-      if (a.action === 'raise') h.totalRaises++;
+      if (a.action === 'fold') { h.totalFolds++; if (h.foldsByStreet[a.stage]) h.foldsByStreet[a.stage]++; }
+      if (a.action === 'call') { h.totalCalls++; if (h.callsByStreet[a.stage]) h.callsByStreet[a.stage]++; }
+      if (a.action === 'raise') { h.totalRaises++; if (h.raisesByStreet[a.stage]) h.raisesByStreet[a.stage]++; }
+
+      // Track fold-to-barrel per street
+      if (a.stage !== 'preflop' && (a._toCall || 0) > 0) {
+        if (h.facedBetOnStreet[a.stage]) h.facedBetOnStreet[a.stage]++;
+        if (a.action === 'fold' && h.foldToBarrel[a.stage]) h.foldToBarrel[a.stage]++;
+      }
 
       if (a.stage === 'preflop') {
         if (a.action === 'call' || a.action === 'raise') didVpip = true;
@@ -445,6 +480,42 @@ export class AdaptiveAI extends BaseAI {
       // Hero is short → pressure with wider range
       if (heroRatio < 0.5 && baseDec.action === 'fold' && gs.handStrength > 0.35 && gs.stage === 'preflop' && rand < 0.30 * el) {
         return { action: 'raise', amount: Math.min(Math.floor(gs.bigBlind * 2.5), gs.myChips) };
+      }
+    }
+
+    // ═══ DEEP STREET-BY-STREET EXPLOIT ═══
+
+    // Hero folds too much on FLOP → c-bet/bet more on flop
+    if (this.heroFoldToFlopBet > 0.55 && gs.stage === 'flop' && gs.toCall === 0) {
+      if (baseDec.action === 'check' && rand < 0.50 * el) {
+        return { action: 'raise', amount: Math.floor(gs.pot * (0.33 + cryptoRandomFloat() * 0.20)) };
+      }
+    }
+
+    // Hero folds too much on TURN → double barrel
+    if (this.heroFoldToTurnBet > 0.50 && gs.stage === 'turn' && gs.toCall === 0) {
+      if (baseDec.action === 'check' && rand < 0.45 * el) {
+        return { action: 'raise', amount: Math.floor(gs.pot * (0.50 + cryptoRandomFloat() * 0.25)) };
+      }
+    }
+
+    // Hero folds too much on RIVER → triple barrel / bluff river
+    if (this.heroFoldToRiverBet > 0.55 && gs.stage === 'river' && gs.toCall === 0) {
+      if (baseDec.action === 'check' && rand < 0.40 * el) {
+        return { action: 'raise', amount: Math.floor(gs.pot * (0.65 + cryptoRandomFloat() * 0.30)) };
+      }
+    }
+
+    // Hero never bets river → take free showdowns, don't fold to small bets
+    if (this.heroRiverAggFreq < 0.10 && gs.stage === 'river' && gs.toCall > 0) {
+      // Hero rarely bets river → when they DO bet, it's always value → fold more
+      if (gs.handStrength < 0.50 && rand < 0.35 * el) return { action: 'fold' };
+    }
+
+    // Hero always bets river → call down with bluff-catchers
+    if (this.heroRiverAggFreq > 0.40 && gs.stage === 'river' && gs.toCall > 0) {
+      if (baseDec.action === 'fold' && gs.handStrength > 0.30 && rand < 0.35 * el) {
+        return { action: 'call' };
       }
     }
 
