@@ -1,6 +1,6 @@
 // RealAnalysis.jsx — Beautiful dashboard for real money hand history analysis
 import React, { useState } from 'react';
-import { parseHandHistory, analyzeRealHands, saveOpponentProfiles, loadOpponentProfiles } from '../lib/hhParser.js';
+import { parseHandHistory, analyzeRealHands, saveOpponentProfiles, loadOpponentProfiles, saveRealSession } from '../lib/hhParser.js';
 
 export default function RealAnalysis({ onBack }) {
   const [analysis, setAnalysis] = useState(null);
@@ -24,6 +24,8 @@ export default function RealAnalysis({ onBack }) {
       const result = analyzeRealHands(hands);
       const oppProfiles = saveOpponentProfiles(hands);
       result.opponentProfiles = oppProfiles;
+      // Save to persistent history for GameHistory screen
+      saveRealSession(hands, result);
       setAnalysis(result);
       setLoading(false);
     };

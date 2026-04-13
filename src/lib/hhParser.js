@@ -317,3 +317,75 @@ export function analyzeRealHands(hands) {
     hands, // all parsed hands for detailed view
   };
 }
+
+// Save real game sessions to localStorage for GameHistory display
+export function saveRealSession(hands, analysis) {
+  if (!hands || hands.length === 0) return;
+  try {
+    const sessions = JSON.parse(localStorage.getItem('pokertrain_real_sessions') || '[]');
+    // Group by tournament
+    const byTourney = {};
+    for (const h of hands) {
+      const tid = h.tournId || 'cash_' + Date.now();
+      if (!byTourney[tid]) byTourney[tid] = [];
+      byTourney[tid].push(h);
+    }
+    for (const [tid, tHands] of Object.entries(byTourney)) {
+      // Skip if this tournament was already saved
+      if (sessions.find(s => s.tournId === tid)) continue;
+      const sorted = tHands.sort((a, b) => a.timestamp - b.timestamp);
+      const firstHand = sorted[0];
+      const lastHand = sorted[sorted.length - 1];
+      // Compute basic stats
+      const pfHands = sorted.filter(h => h.actions.some(a => a.stage === 'preflop'));
+      const vpipCount = pfHands.filter(h => { const pf = h.actions.find(a => a.stage === 'preflop'); return pf && pf.action !== 'fold'; }).length;
+      const pfrCount = pfHands.filter(h => { const pf = h.actions.find(a => a.stage === 'preflop'); return pf && pf.action === 'raises'; }).length;
+      const vpip = pfHands.length > 0 ? Math.round(vpipCount / pfHands.length * 100) : 0;
+      const pfr = pfHands.length > 0 ? Math.round(pfrCount / pfHands.length * 100) : 0;
+      const totalWon = sorted.reduce((a, h) => a + (h.potWon || 0), 0);
+      const isCash = tid === 'cash' || tid.startsWith('cash_');
+      sessions.push({
+        id: 'real_' + tid + '_' + Date.now(),
+        tournId: tid,
+        isReal: true,
+        isCash,
+        timestamp: firstHand.timestamp || Date.now(),
+        format: isCash ? 'Cash Game' : `Tournament #${tid}`,
+        totalHands: sorted.length,
+        maxPlayers: firstHand.maxPlayers || 8,
+        blindsRange: `${firstHand.blinds?.sb}/${firstHand.blinds?.bb} — ${lastHand.blinds?.sb}/${lastHand.blinds?.bb}`,
+        finalChips: lastHand.heroChipsBefore + (lastHand.potWon || 0),
+        result: lastHand.result === 'won' ? 'win' : 'loss',
+        totalWon,
+        vpip, pfr,
+        vpipPfrGap: vpip - pfr,
+        hands: sorted.map(h => ({
+          handId: h.handId,
+          position: h.position,
+          holeCards: h.holeCards,
+          community: h.community,
+          heroAction: h.heroAction,
+          actions: h.actions,
+          allActions: h.allActions,
+          result: h.result,
+          potWon: h.potWon,
+          blinds: h.blinds,
+          heroChipsBefore: h.heroChipsBefore,
+          opponentCards: h.opponentCards,
+          players: h.players?.length || 0,
+        })),
+        opponents: Object.keys(analysis?.opponentProfiles || {}),
+      });
+    }
+    // Keep last 30 real sessions
+    if (sessions.length > 30) sessions.splice(0, sessions.length - 30);
+    localStorage.setItem('pokertrain_real_sessions', JSON.stringify(sessions));
+  } catch (e) { console.warn('Failed to save real session:', e); }
+}
+
+// Load real sessions from localStorage
+export function loadRealSessions() {
+  try {
+    return JSON.parse(localStorage.getItem('pokertrain_real_sessions') || '[]');
+  } catch { return []; }
+}
