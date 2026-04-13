@@ -26,6 +26,7 @@ import RiverDrill from './drills/RiverDrill.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
 import CoachScreen from './coach/Coach.jsx';
 import RealAnalysis from './stats/RealAnalysis.jsx';
+import GameHistory from './stats/GameHistory.jsx';
 import { Sounds } from './lib/sounds.js';
 import { getLiveTell } from './lib/liveTells.js';
 import { getTheme } from './lib/themes.js';
@@ -102,7 +103,7 @@ function ProfileSelect({ onSelect }) {
   );
 }
 
-function Lobby({ onStart, onDrills, onStats, onCoach, playerName, onSwitchProfile }) {
+function Lobby({ onStart, onDrills, onStats, onHistory, onCoach, playerName, onSwitchProfile }) {
   const [format, setFormat] = useState('WSOP_Main');
   const [name, setName] = useState('');
   const [showFormats, setShowFormats] = useState(false);
@@ -290,16 +291,21 @@ function Lobby({ onStart, onDrills, onStats, onCoach, playerName, onSwitchProfil
           Upload Real Games — GGPoker / PokerStars
         </button>
 
-        {/* ═══ STATS & COACH ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+        {/* ═══ STATS, HISTORY & COACH ═══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '14px' }}>
           <button onClick={onStats} style={{
-            padding: '16px', borderRadius: '12px', border: '1px solid #1a2230', cursor: 'pointer',
-            background: 'rgba(10,14,20,0.8)', color: '#8a9aaa', fontWeight: 700, fontSize: '14px',
+            padding: '14px 8px', borderRadius: '12px', border: '1px solid #1a2230', cursor: 'pointer',
+            background: 'rgba(10,14,20,0.8)', color: '#8a9aaa', fontWeight: 700, fontSize: '13px',
             transition: 'transform 0.12s',
           }} onMouseDown={btnPress} onMouseUp={btnRelease}>Statistics</button>
+          <button onClick={onHistory} style={{
+            padding: '14px 8px', borderRadius: '12px', border: '1px solid #1a2a30', cursor: 'pointer',
+            background: 'rgba(10,14,20,0.8)', color: '#d4af37', fontWeight: 700, fontSize: '13px',
+            transition: 'transform 0.12s',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease}>Game History</button>
           <button onClick={onCoach} style={{
-            padding: '16px', borderRadius: '12px', border: '1px solid #1a2230', cursor: 'pointer',
-            background: 'rgba(10,14,20,0.8)', color: '#8a9aaa', fontWeight: 700, fontSize: '14px',
+            padding: '14px 8px', borderRadius: '12px', border: '1px solid #1a2230', cursor: 'pointer',
+            background: 'rgba(10,14,20,0.8)', color: '#8a9aaa', fontWeight: 700, fontSize: '13px',
             transition: 'transform 0.12s',
           }} onMouseDown={btnPress} onMouseUp={btnRelease}>AI Coach</button>
         </div>
@@ -1672,6 +1678,11 @@ function AppInner() {
   if (screen === 'stats') {
     return <div style={appBg}><StatsScreen onBack={() => setScreen('lobby')} /></div>;
   }
+  if (screen === 'history') {
+    return <div style={appBg}><GameHistory onBack={() => setScreen('lobby')}
+      currentProfile={currentProfile}
+      allProfiles={JSON.parse(localStorage.getItem('pokertrain_profiles') || '[]')} /></div>;
+  }
   if (screen === 'realanalysis') {
     return <RealAnalysis onBack={() => setScreen('lobby')} />;
   }
@@ -1729,6 +1740,7 @@ function AppInner() {
     onStart={(fmt, name) => { if (fmt === '__realanalysis__') { setScreen('realanalysis'); return; } startSession(fmt); setDirector(new TournamentDirector(fmt, name || currentProfile?.name || 'Hero')); setScreen('tournament'); }}
     onDrills={() => setScreen('drills')}
     onStats={() => setScreen('stats')}
+    onHistory={() => setScreen('history')}
     onCoach={() => setScreen('coach')}
     playerName={currentProfile?.name}
     onSwitchProfile={() => { setCurrentProfile(null); localStorage.removeItem('pokertrain_current_profile'); setScreen('profiles'); }} />;

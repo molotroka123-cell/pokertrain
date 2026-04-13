@@ -1,7 +1,8 @@
-// RFIDrill.jsx — Raise First In drill with GTO frequencies, timer, streaks
+// RFIDrill.jsx — Raise First In drill with GTO frequencies, timer, streaks, visual range
 import React, { useState, useCallback } from 'react';
 import DrillShell, { drillStyles as ds, GTOFrequencies } from './DrillShell.jsx';
 import Card from '../components/Card.jsx';
+import RangeGrid from '../components/RangeGrid.jsx';
 import { freshDeck, deal, cryptoRandom } from '../engine/deck.js';
 import { isInOpenRange, isIn3BetRange, handString, getHandValue, POSITION_THRESHOLDS } from '../engine/ranges.js';
 
@@ -23,6 +24,7 @@ export default function RFIDrill({ onBack }) {
   const [position, setPosition] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [answered, setAnswered] = useState(false);
+  const [showRange, setShowRange] = useState(false);
 
   const newHand = useCallback(() => {
     const deck = freshDeck();
@@ -30,6 +32,7 @@ export default function RFIDrill({ onBack }) {
     setPosition(randomPosition());
     setFeedback(null);
     setAnswered(false);
+    setShowRange(false);
   }, []);
 
   if (cards.length === 0) newHand();
@@ -113,13 +116,20 @@ export default function RFIDrill({ onBack }) {
               {feedback.explanation}
             </div>
             <GTOFrequencies frequencies={feedback.frequencies} heroAction={feedback.heroAction} isCorrect={feedback.isCorrect} />
-            <button onClick={newHand} style={{
-              marginTop: '8px', width: '100%', padding: '12px', borderRadius: '8px',
-              background: '#1a3a2a', border: 'none', color: '#fff', fontWeight: 700, cursor: 'pointer',
-            }}>Next Hand</button>
+            <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+              <button onClick={() => setShowRange(true)} style={{
+                flex: 1, padding: '10px', borderRadius: '8px',
+                background: '#1a2a4a', border: '1px solid #2a4a6a', color: '#3a8aba', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+              }}>Show Range</button>
+              <button onClick={newHand} style={{
+                flex: 1, padding: '10px', borderRadius: '8px',
+                background: '#1a3a2a', border: 'none', color: '#fff', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+              }}>Next Hand</button>
+            </div>
           </div>
         )}
       </div>
+      {showRange && <RangeGrid position={position} heroCards={cards} onClose={() => setShowRange(false)} />}
     </DrillShell>
   );
 }

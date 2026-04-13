@@ -377,6 +377,8 @@ export class GameEngine {
       tournamentStage: this._tournamentStage || 'early',
       isFinalTable: this._isFinalTable || false,
       isBubble: this._isBubble || false,
+      allStacks: this.players.filter(p => !p.eliminated && p.chips > 0).map(p => p.chips),
+      heroIndex: this.players.filter(p => !p.eliminated && p.chips > 0).findIndex(p => p.id === player.id),
       // Multi-street context — AI sees full hand history
       streetActions: this._streetActions || [],
       isAggressor: this._handAggressor === player.id,

@@ -56,10 +56,10 @@ const FISH_TYPES = ['STATION', 'LIMPER', 'TILTER', 'SCARED_MONEY', 'MANIAC_FISH'
 
 // Field distributions by stake level
 const FIELD_DISTRIBUTIONS = {
-  // Calibrated from 235 real GGPoker hands (NL1/2 + NL2.5/5)
-  // Real table: 2x STATION(40%), 1x TAG(20%), 1x PASSIVE_FISH(20%), 1x SHORT/NIT(20%)
-  micro: [['STATION',0.30],['LIMPER',0.15],['TAG',0.20],['LAG',0.08],['SemiLAG',0.08],['Nit',0.08],['SCARED_MONEY',0.06],['MANIAC_FISH',0.05]],
-  low:   [['TAG',0.22],['STATION',0.22],['LIMPER',0.12],['LAG',0.12],['SemiLAG',0.12],['Nit',0.08],['SCARED_MONEY',0.06],['MANIAC_FISH',0.06]],
+  // Calibrated from 189 real GGPoker hands, 44 opponents analyzed
+  // Real NL5 table: 2x STATION, 1x PASSIVE_FISH, 1x TAG, 1x LAG/MANIAC, 1x random
+  micro: [['STATION',0.25],['PASSIVE_FISH',0.18],['TAG',0.18],['LIMPER',0.10],['LAG',0.09],['SemiLAG',0.08],['MANIAC_FISH',0.05],['SCARED_MONEY',0.05],['Nit',0.02]],
+  low:   [['TAG',0.22],['STATION',0.18],['PASSIVE_FISH',0.14],['LAG',0.12],['SemiLAG',0.12],['LIMPER',0.08],['Nit',0.06],['SCARED_MONEY',0.04],['MANIAC_FISH',0.04]],
   mid:   [['TAG',0.30],['LAG',0.20],['SemiLAG',0.15],['Nit',0.10],['STATION',0.10],['LIMPER',0.05],['SCARED_MONEY',0.05],['MANIAC_FISH',0.05]],
   high:  [['TAG',0.35],['LAG',0.25],['SemiLAG',0.20],['Nit',0.10],['STATION',0.05],['LIMPER',0.03],['SCARED_MONEY',0.02]],
 };
@@ -176,6 +176,7 @@ function generateProfileForStyle(style, id) {
     case 'STATION': vpip = 0.50 + cryptoRandomFloat() * 0.10; pfr = 0.03 + cryptoRandomFloat() * 0.04; af = 0.2 + cryptoRandomFloat() * 0.3; threeBet = 0.00 + cryptoRandomFloat() * 0.01; quirks = ['never_folds_pair']; break;
     case 'LIMPER': vpip = 0.40 + cryptoRandomFloat() * 0.15; pfr = 0.00 + cryptoRandomFloat() * 0.03; af = 0.2 + cryptoRandomFloat() * 0.2; threeBet = 0.00; quirks = ['limps_everything']; break;
     case 'MANIAC_FISH': style = 'Maniac'; vpip = 0.50 + cryptoRandomFloat() * 0.20; pfr = 0.35 + cryptoRandomFloat() * 0.15; af = 4.0 + cryptoRandomFloat() * 3.0; threeBet = 0.10 + cryptoRandomFloat() * 0.10; quirks = ['overbets_river']; break;
+    case 'PASSIVE_FISH': vpip = 0.30 + cryptoRandomFloat() * 0.10; pfr = 0.00 + cryptoRandomFloat() * 0.10; af = 0.2 + cryptoRandomFloat() * 0.15; threeBet = 0.00; quirks = ['fit_or_fold']; break;
     case 'SCARED_MONEY': vpip = 0.18 + cryptoRandomFloat() * 0.08; pfr = 0.08 + cryptoRandomFloat() * 0.05; af = 1.0 + cryptoRandomFloat() * 0.5; threeBet = 0.01 + cryptoRandomFloat() * 0.02; break;
     default: vpip = 0.22; pfr = 0.16; af = 2.5; threeBet = 0.06; break;
   }

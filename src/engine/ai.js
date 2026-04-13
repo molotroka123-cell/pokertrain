@@ -6,6 +6,7 @@
 import { getHandValue, isInOpenRange, isIn3BetRange, handCategory } from './ranges.js';
 import { potOdds, mRatio as calcMRatio } from './equity.js';
 import { cryptoRandomFloat } from './deck.js';
+import { icmPressure } from './icm.js';
 
 const RV = { '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'T':10,'J':11,'Q':12,'K':13,'A':14 };
 const IP_POSITIONS = new Set(['BTN', 'CO', 'HJ']);
@@ -163,9 +164,25 @@ export class BaseAI {
       if (p.style === 'Nit') pushThreshold -= 0.10;
       if (p.style === 'SCARED_MONEY') pushThreshold -= 0.12;
 
-      // Tournament context
-      if (isBubble) pushThreshold -= 0.20; // VERY tight on bubble — survival > chips
-      if (isFT) pushThreshold -= 0.15;   // Super tight FT — every pay jump = real $
+      // Tournament context with ICM pressure
+      if (isBubble || isFT) {
+        // Use ICM pressure for nuanced adjustments
+        const allStacks = gs.allStacks || [];
+        const heroIdx = gs.heroIndex >= 0 ? gs.heroIndex : 0;
+        const pressure = allStacks.length > 2
+          ? icmPressure(allStacks, heroIdx, [], allStacks.length, allStacks.length + 5)
+          : 0.3;
+        // Chip leader at bubble: less pressure → push wider
+        const avgStack = allStacks.reduce((a, b) => a + b, 0) / Math.max(1, allStacks.length);
+        const isChipLeader = myChips > avgStack * 1.8;
+        const isShortVsField = myChips < avgStack * 0.5;
+        if (isBubble) {
+          pushThreshold -= isChipLeader ? 0.08 : isShortVsField ? 0.25 : 0.18;
+        }
+        if (isFT) {
+          pushThreshold -= isChipLeader ? 0.06 : 0.15;
+        }
+      }
 
       // Human error: 10% push too loose, 10% fold too tight
       if (p.style !== 'TAG' && p.style !== 'Nit') {
@@ -232,13 +249,14 @@ export class BaseAI {
       const styleScale = (p.style === 'Nit' ? 0.70 : p.style === 'TAG' ? 1.05 :
         p.style === 'SemiLAG' ? 1.10 : p.style === 'LAG' ? 1.35 :
         p.style === 'Maniac' ? 1.50 : p.style === 'STATION' ? 1.30 :
-        p.style === 'LIMPER' ? 1.40 : p.style === 'SCARED_MONEY' ? 0.75 : 1.0) + stealBonus;
+        p.style === 'LIMPER' ? 1.40 : p.style === 'PASSIVE_FISH' ? 1.10 :
+        p.style === 'SCARED_MONEY' ? 0.75 : 1.0) + stealBonus;
       const openThreshold = baseThreshold * styleScale + stageAdj + (rand - 0.5) * this.noise;
 
       if (handVal > openThreshold) return { action: 'fold' };
 
       // Fish limp with medium, raise premium
-      if (p.style === 'STATION' || p.style === 'LIMPER') {
+      if (p.style === 'STATION' || p.style === 'LIMPER' || p.style === 'PASSIVE_FISH') {
         if (handVal <= baseThreshold * 0.4) {
           return { action: 'raise', amount: Math.min(Math.floor(bigBlind * (2.2 + cryptoRandomFloat() * 0.5)), myChips) };
         }
@@ -328,8 +346,9 @@ export class BaseAI {
     // IP (BTN/CO) can call wider, EP very tight
     const posCallBase = { UTG: 0.10, 'UTG+1': 0.12, MP: 0.15, HJ: 0.22, CO: 0.30, BTN: 0.38 };
     const ccBase = posCallBase[position] || 0.20;
-    const ccScale = p.style === 'STATION' ? 1.4 : p.style === 'Maniac' ? 1.2 :
-      p.style === 'LAG' ? 1.1 : p.style === 'Nit' ? 0.5 : p.style === 'SCARED_MONEY' ? 0.55 : 0.80;
+    const ccScale = p.style === 'STATION' ? 1.4 : p.style === 'PASSIVE_FISH' ? 1.0 :
+      p.style === 'Maniac' ? 1.2 : p.style === 'LAG' ? 1.1 : p.style === 'Nit' ? 0.5 :
+      p.style === 'SCARED_MONEY' ? 0.55 : p.style === 'LIMPER' ? 1.1 : 0.80;
     const adjColdCall = ccBase * ccScale + stageAdj - mwPenalty * 3;
 
     if (p.style === 'Maniac' && rand < 0.20) {
@@ -387,7 +406,7 @@ export class BaseAI {
   // Fish-specific overrides (Item 4: realistic fish patterns)
   fishOverride(gs, strength, rand) {
     const p = this.profile;
-    if (p.style !== 'STATION' && p.style !== 'LIMPER' && p.style !== 'Maniac') return null;
+    if (p.style !== 'STATION' && p.style !== 'LIMPER' && p.style !== 'PASSIVE_FISH' && p.style !== 'Maniac') return null;
     const hi = gs.handInfo || {};
     const mh = hi.madeHand || '';
     const { stage, pot, myChips, bigBlind } = gs;
@@ -428,12 +447,14 @@ export class BaseAI {
     const isFT = gs.isFinalTable;
     const tStage = gs.tournamentStage || 'early';
 
-    // PASSIVE FISH OVERRIDE: STATION/LIMPER almost never bet/raise postflop
+    // PASSIVE FISH OVERRIDE: STATION/LIMPER/PASSIVE_FISH almost never bet/raise postflop
     // Only bet with trips+ or nut draw. Default = check.
-    if (p.style === 'STATION' || p.style === 'LIMPER') {
+    if (p.style === 'STATION' || p.style === 'LIMPER' || p.style === 'PASSIVE_FISH') {
       const mh = (gs.handInfo || {}).madeHand || '';
       const isNuts = ['trips', 'set', 'straight', 'flush', 'full_house', 'quads'].includes(mh);
       if (!isNuts) {
+        // PASSIVE_FISH is fit-or-fold: fold 70% without pair/draw
+        if (p.style === 'PASSIVE_FISH' && strength < 0.25 && cryptoRandomFloat() < 0.70) return { action: 'check' };
         // 90% of the time just check (passive fish)
         if (cryptoRandomFloat() < 0.90) return { action: 'check' };
       }
@@ -796,6 +817,8 @@ export class BaseAI {
       // (#7) Multiway fish: STATION calls with any pair in multiway ("big pot, must see")
       if (p.style === 'STATION' && multiway && strength > 0.18) return { action: 'call' };
       if (p.style === 'STATION' && strength > 0.25) return { action: 'call' };
+      // PASSIVE_FISH: calls with pair but folds wider than STATION (fit-or-fold)
+      if (p.style === 'PASSIVE_FISH' && strength > 0.35) return { action: 'call' };
       if (p.style === 'Maniac' && rand < 0.15) return { action: 'call' };
       return { action: 'fold' };
     }
@@ -803,6 +826,7 @@ export class BaseAI {
     // ═══ RIVER: bluff-catching with blocker awareness (#12) ═══
     if (stage === 'river') {
       if (p.style === 'STATION' && strength > 0.25) return { action: 'call' };
+      if (p.style === 'PASSIVE_FISH' && strength > 0.40) return { action: 'call' }; // Tighter river calls
       const mdf = 1 - betSizePot / (1 + betSizePot);
       // Blocker adjustment: if we block villain's value → call wider
       const blockerAdj = hi.hasBlockers ? 1.25 : 0.90;
