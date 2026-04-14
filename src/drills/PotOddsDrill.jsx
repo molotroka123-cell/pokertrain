@@ -1,18 +1,17 @@
 // PotOddsDrill.jsx — Pot odds quiz with equity display, GTO frequencies, streaks
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import DrillShell, { drillStyles as ds, GTOFrequencies } from './DrillShell.jsx';
 import { cryptoRandom, cryptoRandomFloat } from '../engine/deck.js';
 
 function genScenario() {
   const pot = (3 + cryptoRandom(30)) * 100;
-  const bet = Math.round(pot * (0.25 + cryptoRandomFloat() * 0.75) / 50) * 50;
+  const bet = Math.max(50, Math.round(pot * (0.25 + cryptoRandomFloat() * 0.75) / 50) * 50);
   const totalPot = pot + bet;
   const odds = bet / (totalPot + bet);
   const pctNeeded = Math.round(odds * 100);
   const outs = 2 + cryptoRandom(14);
   const equity = Math.round(outs * 2.2);
   const shouldCall = equity >= pctNeeded;
-  // GTO frequencies based on equity vs odds margin
   const margin = equity - pctNeeded;
   const callFreq = margin > 15 ? 95 : margin > 5 ? 75 : margin > 0 ? 55 : margin > -5 ? 25 : 5;
   const raiseFreq = margin > 20 && outs >= 9 ? 15 : margin > 10 ? 8 : 0;
@@ -24,16 +23,21 @@ export default function PotOddsDrill({ onBack }) {
   const [correct, setCorrect] = useState(0);
   const [total, setTotal] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [sc, setSc] = useState(null);
+  const [sc, setSc] = useState(() => genScenario());
   const [feedback, setFeedback] = useState(null);
   const [answered, setAnswered] = useState(false);
+  const answeredRef = useRef(false);
 
-  const newQ = useCallback(() => { setSc(genScenario()); setFeedback(null); setAnswered(false); }, []);
-  if (!sc) newQ();
-  if (!sc) return null;
+  const newQ = useCallback(() => {
+    setSc(genScenario());
+    setFeedback(null);
+    setAnswered(false);
+    answeredRef.current = false;
+  }, []);
 
-  const answer = (action) => {
-    if (answered) return;
+  const answer = useCallback((action) => {
+    if (answeredRef.current) return;
+    answeredRef.current = true;
     setAnswered(true);
     const frequencies = { call: sc.callFreq, fold: sc.foldFreq };
     if (sc.raiseFreq > 0) frequencies.raise = sc.raiseFreq;
@@ -50,9 +54,11 @@ export default function PotOddsDrill({ onBack }) {
         `Margin: ${sc.margin > 0 ? '+' : ''}${sc.margin}pp. ` +
         (sc.shouldCall ? 'Profitable call — you have enough equity.' : 'Not enough equity — save chips and fold.'),
     });
-  };
+  }, [sc]);
 
-  const onTimeout = useCallback(() => { if (!answered) answer('fold'); }, [answered, sc]);
+  const onTimeout = useCallback(() => {
+    if (!answeredRef.current) answer('fold');
+  }, [answer]);
 
   return (
     <DrillShell title="Pot Odds Quiz" correct={correct} total={total} streak={streak}

@@ -1,10 +1,9 @@
-// RiverDrill.jsx — River decisions only: value bet, bluff, check, call, fold
-import React, { useState, useCallback } from 'react';
+// RiverDrill.jsx — River decisions: value bet, bluff, check, call, fold
+import React, { useState, useCallback, useRef } from 'react';
 import DrillShell, { drillStyles as ds, GTOFrequencies } from './DrillShell.jsx';
 import Card from '../components/Card.jsx';
 import { freshDeck, deal, cryptoRandom, cryptoRandomFloat } from '../engine/deck.js';
 import { evaluateHand } from '../engine/evaluator.js';
-import { getHandValue } from '../engine/ranges.js';
 
 const POSITIONS = ['BTN', 'CO', 'BB', 'SB'];
 
@@ -15,32 +14,36 @@ function genRiverSpot() {
   const opp = deal(deck, 2);
   const pos = POSITIONS[cryptoRandom(POSITIONS.length)];
   const pot = (4 + cryptoRandom(20)) * 100;
-  const heroHand = evaluateHand(hero, board);
-  const oppHand = evaluateHand(opp, board);
+
+  let heroHand, oppHand;
+  try {
+    heroHand = evaluateHand(hero, board);
+    oppHand = evaluateHand(opp, board);
+  } catch (e) {
+    heroHand = { rank: 1, value: 0, name: 'High Card' };
+    oppHand = { rank: 1, value: 0, name: 'High Card' };
+  }
+
   const str = heroHand?.value || 0;
   const oppStr = oppHand?.value || 0;
   const wouldWin = str > oppStr;
 
-  // Scenario type
   const facingBet = cryptoRandomFloat() > 0.5;
-  const betSize = facingBet ? Math.floor(pot * (0.3 + cryptoRandomFloat() * 0.7)) : 0;
+  const betSize = facingBet ? Math.max(50, Math.floor(pot * (0.3 + cryptoRandomFloat() * 0.7))) : 0;
   const isIP = pos === 'BTN' || pos === 'CO';
 
-  // GTO frequencies based on hand strength relative ranking
   let freq;
-  const rank = heroHand?.rank || 0;
+  const rank = heroHand?.rank || 1;
   if (facingBet) {
-    // Facing bet: call with medium+, fold weak, raise strong
-    if (rank >= 5) freq = { call: 20, raise: 75, fold: 5 };         // straight+
-    else if (rank >= 3) freq = { call: 70, raise: 20, fold: 10 };   // two pair+
-    else if (rank >= 2) freq = { call: 55, raise: 5, fold: 40 };    // pair
-    else freq = { call: 15, raise: 5, fold: 80 };                    // high card
+    if (rank >= 5) freq = { call: 20, raise: 75, fold: 5 };
+    else if (rank >= 3) freq = { call: 70, raise: 20, fold: 10 };
+    else if (rank >= 2) freq = { call: 55, raise: 5, fold: 40 };
+    else freq = { call: 15, raise: 5, fold: 80 };
   } else {
-    // Checked to hero: bet value, check medium, bluff some air
-    if (rank >= 5) freq = { raise: 85, check: 15 };                  // strong: bet big
-    else if (rank >= 3) freq = { raise: 60, check: 40 };             // medium: thin value
-    else if (rank >= 2) freq = { raise: 30, check: 70 };             // pair: block/check
-    else freq = { raise: 20, check: 80 };                            // air: bluff sometimes
+    if (rank >= 5) freq = { raise: 85, check: 15 };
+    else if (rank >= 3) freq = { raise: 60, check: 40 };
+    else if (rank >= 2) freq = { raise: 30, check: 70 };
+    else freq = { raise: 20, check: 80 };
   }
 
   return { hero, board, opp, pos, pot, betSize, facingBet, heroHand, oppHand, wouldWin, freq, isIP, rank };
@@ -50,16 +53,21 @@ export default function RiverDrill({ onBack }) {
   const [correct, setCorrect] = useState(0);
   const [total, setTotal] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [spot, setSpot] = useState(null);
+  const [spot, setSpot] = useState(() => genRiverSpot());
   const [feedback, setFeedback] = useState(null);
   const [answered, setAnswered] = useState(false);
+  const answeredRef = useRef(false);
 
-  const newSpot = useCallback(() => { setSpot(genRiverSpot()); setFeedback(null); setAnswered(false); }, []);
-  if (!spot) newSpot();
-  if (!spot) return null;
+  const newSpot = useCallback(() => {
+    setSpot(genRiverSpot());
+    setFeedback(null);
+    setAnswered(false);
+    answeredRef.current = false;
+  }, []);
 
-  const answer = (action) => {
-    if (answered) return;
+  const answer = useCallback((action) => {
+    if (answeredRef.current) return;
+    answeredRef.current = true;
     setAnswered(true);
     const freq = spot.freq;
     const heroFreq = freq[action] || 0;
@@ -76,9 +84,11 @@ export default function RiverDrill({ onBack }) {
           : `Checked to you. Pot: ${spot.pot}.`) +
         `\n${spot.wouldWin ? 'You would WIN at showdown.' : 'You would LOSE at showdown.'}`,
     });
-  };
+  }, [spot]);
 
-  const onTimeout = useCallback(() => { if (!answered) answer(spot?.facingBet ? 'fold' : 'check'); }, [answered, spot]);
+  const onTimeout = useCallback(() => {
+    if (!answeredRef.current) answer(spot?.facingBet ? 'fold' : 'check');
+  }, [answer, spot]);
 
   const actions = spot.facingBet
     ? [{ id: 'call', label: 'CALL', color: '#3498db' }, { id: 'raise', label: 'RAISE', color: '#27ae60' }, { id: 'fold', label: 'FOLD', color: '#e74c3c' }]
