@@ -32,6 +32,7 @@ import { getLiveTell } from './lib/liveTells.js';
 import { getTheme } from './lib/themes.js';
 import { ClaudeBossBot } from './engine/claudeAI.js';
 import { generateProfile } from './data/aiProfiles.js';
+import { updateBankroll } from './lib/achievements.js';
 import { RegBossAI } from './engine/regBossAI.js';
 
 function fmt(n) {
@@ -108,9 +109,9 @@ function Lobby({ onStart, onDrills, onStats, onHistory, onCoach, playerName, onS
   const [name, setName] = useState('');
   const [showFormats, setShowFormats] = useState(false);
 
-  // Bankroll from localStorage
-  const sessions = JSON.parse(localStorage.getItem('wsop_sessions') || '[]');
-  const bankroll = 10000 + sessions.length * 500;
+  // Real bankroll from persistent storage
+  const br = JSON.parse(localStorage.getItem('pokertrain_bankroll') || '{"balance":10000}');
+  const bankroll = br.balance || 10000;
 
   const btnPress = (e) => { e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.filter = 'brightness(1.1)'; };
   const btnRelease = (e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none'; };
@@ -1720,14 +1721,30 @@ function AppInner() {
       try {
         const records = getRecords();
         saveSession();
+        // Calculate prize and update bankroll
+        const f = finish || {};
+        const pos = f.position || 999;
+        const total = f.total || 500;
+        const fmt = records[0]?.tournamentFormat;
+        const buyIn = { WSOP_Main: 10000, WSOP_Daily: 1500, EPT_Main: 5300, WPT_500: 500, HARDCORE: 50000, GTD_100K: 500 }[fmt] || 1000;
+        const pool = total * buyIn;
+        let prize = 0;
+        if (pos === 1) prize = pool * 0.22;
+        else if (pos === 2) prize = pool * 0.14;
+        else if (pos === 3) prize = pool * 0.10;
+        else if (pos <= 5) prize = pool * 0.05;
+        else if (pos <= Math.ceil(total * 0.15)) prize = pool * 0.015;
+        updateBankroll(0, Math.round(prize)); // Buy-in already deducted at start
         let aiExploit = null;
         try {
-          const bots = Object.values(finish?.aiBots || {});
+          const bots = Object.values(f.aiBots || {});
           const bot = bots.find(b => b.getHeroSummary);
           if (bot) aiExploit = bot.getHeroSummary();
         } catch (e) {}
         const debrief = records.length > 0 ? generateDebrief(records) : { totalMistakes: 0, criticalMistakes: 0, top5: [], estimatedEVLost: 0, summary: 'No data.', patterns: [] };
-        setDebriefData({ debrief, finish: finish || {}, records, aiExploit });
+        debrief.prize = Math.round(prize);
+        debrief.buyIn = buyIn;
+        setDebriefData({ debrief, finish: f, records, aiExploit });
         setScreen('debrief');
       } catch (e) {
         console.error('Exit error:', e);
@@ -1737,7 +1754,16 @@ function AppInner() {
   }
 
   return <Lobby
-    onStart={(fmt, name) => { if (fmt === '__realanalysis__') { setScreen('realanalysis'); return; } startSession(fmt); setDirector(new TournamentDirector(fmt, name || currentProfile?.name || 'Hero')); setScreen('tournament'); }}
+    onStart={(fmt, name) => {
+      if (fmt === '__realanalysis__') { setScreen('realanalysis'); return; }
+      // Deduct buy-in from bankroll
+      const fmtObj = FORMATS[fmt] || CASH_FORMATS[fmt];
+      const buyIn = fmtObj?.buyIn || 1000;
+      updateBankroll(buyIn, 0);
+      startSession(fmt);
+      setDirector(new TournamentDirector(fmt, name || currentProfile?.name || 'Hero'));
+      setScreen('tournament');
+    }}
     onDrills={() => setScreen('drills')}
     onStats={() => setScreen('stats')}
     onHistory={() => setScreen('history')}

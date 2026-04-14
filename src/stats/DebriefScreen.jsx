@@ -112,6 +112,16 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
         <div style={{ fontSize: '13px', color: '#5a6a7a', marginTop: '4px' }}>
           of {finish?.total || '?'} players · {new Set(records?.map(r => r.handNumber)).size || 0} hands played
         </div>
+        {debrief.prize > 0 && (
+          <div style={{ fontSize: '18px', fontWeight: 800, color: '#ffd700', marginTop: '6px' }}>
+            +${debrief.prize.toLocaleString()} prize
+          </div>
+        )}
+        {debrief.buyIn > 0 && (
+          <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>
+            Buy-in: ${debrief.buyIn.toLocaleString()} | ROI: {debrief.prize > 0 ? `+${Math.round((debrief.prize / debrief.buyIn - 1) * 100)}%` : '-100%'}
+          </div>
+        )}
 
         {/* Stats row */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '16px' }}>
@@ -225,10 +235,43 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
         return (
           <div style={s.section}>
             <div style={s.sectionTitle}>Stack Graph</div>
-            <svg viewBox={`0 0 ${w} ${h + 10}`} style={{ width: '100%', height: '120px' }}>
+            <svg viewBox={`0 0 ${w} ${h + 24}`} style={{ width: '100%', height: '150px' }}>
+              {/* Grid lines */}
+              {[0.25, 0.5, 0.75].map(pct => (
+                <line key={pct} x1="0" y1={h * (1 - pct)} x2={w} y2={h * (1 - pct)} stroke="#141a22" strokeWidth="0.5"/>
+              ))}
+              {/* Start line */}
               <line x1="0" y1={startY} x2={w} y2={startY} stroke="#3a4a5a" strokeWidth="0.5" strokeDasharray="4"/>
-              <polyline points={points} fill="none" stroke={chips[chips.length - 1] >= startChips ? '#27ae60' : '#e74c3c'} strokeWidth="2"/>
-              {/* EV line (blue) — what you should have based on EV */}
+              {/* Stage markers */}
+              {(() => {
+                try {
+                  const stages = [];
+                  let lastStage = '';
+                  handNums.forEach((r, i) => {
+                    const st = r.isFinalTable ? 'FT' : r.isBubble ? 'Bubble' : r.blindLevel >= 8 ? 'Late' : r.blindLevel >= 4 ? 'Mid' : 'Early';
+                    if (st !== lastStage) { stages.push({ i, stage: st }); lastStage = st; }
+                  });
+                  return stages.map(({ i, stage }) => {
+                    const x = (i / Math.max(chips.length - 1, 1)) * w;
+                    const colors = { Early: '#27ae60', Mid: '#f39c12', Late: '#e74c3c', Bubble: '#e74c3c', FT: '#ffd700' };
+                    return <g key={i}>
+                      <line x1={x} y1="0" x2={x} y2={h} stroke={colors[stage] || '#3a4a5a'} strokeWidth="0.5" strokeDasharray="2"/>
+                      <text x={x + 2} y={h + 10} fill={colors[stage] || '#5a6a7a'} fontSize="7" fontWeight="600">{stage}</text>
+                    </g>;
+                  });
+                } catch(e) { return null; }
+              })()}
+              {/* Gradient fill under the line */}
+              <defs>
+                <linearGradient id="chipFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={chips[chips.length - 1] >= startChips ? '#27ae6040' : '#e74c3c40'}/>
+                  <stop offset="100%" stopColor="transparent"/>
+                </linearGradient>
+              </defs>
+              <polygon points={`0,${h} ${points} ${w},${h}`} fill="url(#chipFill)"/>
+              {/* Actual chip line */}
+              <polyline points={points} fill="none" stroke={chips[chips.length - 1] >= startChips ? '#27ae60' : '#e74c3c'} strokeWidth="2.5" strokeLinecap="round"/>
+              {/* EV line */}
               {(() => {
                 try {
                   let cumEV = startChips;
@@ -240,9 +283,18 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
                   return <polyline points={evPoints} fill="none" stroke="#3498db" strokeWidth="1.5" strokeDasharray="4" opacity="0.6"/>;
                 } catch(e) { return null; }
               })()}
-              <text x="2" y={startY - 3} fill="#5a6a7a" fontSize="8">Start</text>
-              <text x={w - 25} y="8" fill="#27ae60" fontSize="7">Actual</text>
-              <text x={w - 15} y="16" fill="#3498db" fontSize="7">EV</text>
+              {/* Peak marker */}
+              {(() => {
+                const peakIdx = chips.indexOf(maxC);
+                const peakX = (peakIdx / Math.max(chips.length - 1, 1)) * w;
+                return <circle cx={peakX} cy={h - ((maxC - minC) / range) * h} r="3" fill="#ffd700" stroke="#0a0d12" strokeWidth="1"/>;
+              })()}
+              <text x="2" y={startY - 3} fill="#5a6a7a" fontSize="7">Start {startChips.toLocaleString()}</text>
+              {/* Legend */}
+              <line x1={w - 50} y1={h + 16} x2={w - 38} y2={h + 16} stroke="#27ae60" strokeWidth="2"/>
+              <text x={w - 36} y={h + 19} fill="#5a6a7a" fontSize="6">Chips</text>
+              <line x1={w - 20} y1={h + 16} x2={w - 10} y2={h + 16} stroke="#3498db" strokeWidth="1.5" strokeDasharray="2"/>
+              <text x={w - 8} y={h + 19} fill="#5a6a7a" fontSize="6">EV</text>
             </svg>
           </div>
         );
@@ -294,17 +346,47 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
         </div>
       )}
 
-      {/* Tournament Stage Analysis */}
+      {/* Tournament Stage Analysis — Visual */}
       {debrief.stageAnalysis && Object.keys(debrief.stageAnalysis).length > 0 && (
         <div style={s.section}>
-          <div style={s.sectionTitle}>Stage Analysis</div>
-          {Object.entries(debrief.stageAnalysis).map(([stage, data]) => (
-            <div key={stage} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '12px', borderBottom: '1px solid #1a2230' }}>
-              <span style={{ color: '#c0d0e0', fontWeight: 600, textTransform: 'capitalize' }}>{stage.replace('_', ' ')}</span>
-              <span style={{ color: '#6b7b8d' }}>VPIP {data.vpip}% | PFR {data.pfr}%</span>
-              <span style={{ color: data.mistakes > 0 ? '#f39c12' : '#27ae60' }}>{data.mistakes} err</span>
-            </div>
-          ))}
+          <div style={s.sectionTitle}>Stage Breakdown</div>
+          {Object.entries(debrief.stageAnalysis).map(([stage, data]) => {
+            const stageColors = { early: '#27ae60', middle: '#3498db', late: '#f39c12', bubble: '#e74c3c', final_table: '#ffd700' };
+            const color = stageColors[stage] || '#6b7b8d';
+            const stageNames = { early: 'Early Game', middle: 'Mid Game', late: 'Late Game', bubble: 'Bubble', final_table: 'Final Table' };
+            return (
+              <div key={stage} style={{ marginBottom: '10px', padding: '10px', background: '#0a0d12', borderRadius: '10px', border: '1px solid #141a22' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color }}>{stageNames[stage] || stage}</span>
+                  <span style={{ fontSize: '10px', color: '#5a6a7a' }}>{data.hands} hands | M≈{data.avgM || '?'}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {/* VPIP bar */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '9px', color: '#4a5a6a', marginBottom: '2px' }}>VPIP</div>
+                    <div style={{ height: '6px', background: '#141a22', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.min(data.vpip || 0, 100)}%`, background: (data.vpip >= 20 && data.vpip <= 30) ? '#27ae60' : '#f39c12', borderRadius: '3px' }}/>
+                    </div>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#c0d0e0', marginTop: '1px' }}>{data.vpip}%</div>
+                  </div>
+                  {/* PFR bar */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '9px', color: '#4a5a6a', marginBottom: '2px' }}>PFR</div>
+                    <div style={{ height: '6px', background: '#141a22', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.min(data.pfr || 0, 100)}%`, background: (data.pfr >= 15 && data.pfr <= 25) ? '#27ae60' : '#f39c12', borderRadius: '3px' }}/>
+                    </div>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#c0d0e0', marginTop: '1px' }}>{data.pfr}%</div>
+                  </div>
+                  {/* Errors */}
+                  <div style={{ minWidth: '50px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '9px', color: '#4a5a6a', marginBottom: '2px' }}>Errors</div>
+                    <div style={{ fontSize: '16px', fontWeight: 800, color: data.mistakes > 0 ? '#e74c3c' : '#27ae60' }}>{data.mistakes}</div>
+                    {data.evLost > 0 && <div style={{ fontSize: '8px', color: '#e74c3c' }}>-{data.evLost} EV</div>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

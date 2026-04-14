@@ -330,16 +330,47 @@ export function recordDecision({
 
   // Opponent sizing as fraction of pot
   const betSizePotFraction = potSize > 0 && toCall > 0
-    ? Math.round((toCall / (potSize - toCall)) * 100) / 100
+    ? Math.round((toCall / Math.max(potSize - toCall, 1)) * 100) / 100
     : null;
 
-  // EV calculations using range-weighted equity
-  const evOfCall = toCall > 0 ? (equity * (potSize + toCall)) - ((1 - equity) * toCall) : 0;
+  // ═══ COMPREHENSIVE EV CALCULATION ═══
+  // 1. Position equity realization: IP realizes ~5% more equity than OOP
+  const ipPositions = ['BTN', 'CO', 'HJ'];
+  const isIP = ipPositions.includes(position);
+  const positionAdj = isIP ? 1.05 : (position === 'SB' ? 0.90 : 0.97);
+
+  // 2. Implied odds for draws (future street value)
+  let impliedOddsAdj = 0;
+  if (draws && draws.drawType !== 'none' && stage !== 'river') {
+    const drawMult = draws.isCombo ? 0.15 : draws.hasFlushDraw ? 0.10 : draws.hasStraightDraw ? 0.08 : draws.hasGutshot ? 0.04 : 0;
+    // Implied odds = % of time we hit AND get paid off (stack depth matters)
+    const stackDepthMult = Math.min(1, effectiveStackBB / 50); // deeper stacks = more implied odds
+    impliedOddsAdj = drawMult * stackDepthMult * potSize;
+  }
+
+  // 3. EV of call (adjusted for position + implied odds)
+  const adjustedEquity = Math.min(0.98, equity * positionAdj);
+  const evOfCall = toCall > 0
+    ? (adjustedEquity * (potSize + toCall)) - ((1 - adjustedEquity) * toCall) + impliedOddsAdj
+    : 0;
+
+  // 4. EV of raise (includes fold equity)
+  let evOfRaise = null;
+  if (raiseAmount && raiseAmount > 0) {
+    // Fold equity estimate: villain folds based on bet sizing and position
+    const foldFreq = Math.min(0.70, betSizePotFraction ? betSizePotFraction * 0.40 : 0.30);
+    const potIfFold = potSize; // We win current pot when villain folds
+    const potIfCall = potSize + raiseAmount + toCall;
+    const equityWhenCalled = adjustedEquity * 0.95; // Slightly less equity vs calling range
+    evOfRaise = foldFreq * potIfFold + (1 - foldFreq) * (equityWhenCalled * potIfCall - (1 - equityWhenCalled) * raiseAmount);
+  }
+
+  // 5. Commit ratio — how much of stack this costs
   const commitRatio = myChips > 0 ? toCall / myChips : 0;
 
   const isEVPositive = action === 'fold' ? false :
     action === 'call' ? evOfCall > 0 :
-    action === 'raise' ? (raiseEV != null ? raiseEV > 0 : equity > 0.35) :
+    action === 'raise' ? (evOfRaise != null ? evOfRaise > 0 : raiseEV != null ? raiseEV > 0 : adjustedEquity > 0.35) :
     true;
 
   // ICM-adjusted EV — chips worth more near money
@@ -526,6 +557,9 @@ export function recordDecision({
     mRatio: Math.round(m * 10) / 10,
     numOpponents,
     evOfCall: Math.round(evOfCall),
+    evOfRaise: evOfRaise != null ? Math.round(evOfRaise) : null,
+    impliedOdds: Math.round(impliedOddsAdj),
+    positionAdj: Math.round(positionAdj * 100) / 100,
     commitRatio: Math.round(commitRatio * 100) / 100,
     raiseEV,
     bestActionEV,
