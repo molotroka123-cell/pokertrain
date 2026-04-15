@@ -579,32 +579,35 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
                 {/* Avatar — style-colored circle (tappable for stats) */}
                 <div onClick={() => { if (typeof gs._onSelectOpponent === 'function') gs._onSelectOpponent(p); }} style={{
                   width: 46, height: 46, borderRadius: '50%', margin: '0 auto', cursor: 'pointer',
-                  background: isWinner ? T.avatarWin : (() => {
+                  background: p._isEasterEgg ? 'none' : isWinner ? T.avatarWin : (() => {
                     const sc = { TAG: '#0a2040', LAG: '#3a1800', Nit: '#1a1a1a', SemiLAG: '#1a1040', STATION: '#0a2a0a', LIMPER: '#1a2a10', Maniac: '#3a0a0a', SCARED_MONEY: '#2a2a1a', TILTER: '#3a1a00' };
                     const baseC = p._isBoss ? '#4a3510' : (sc[p.profile?.style] || '#1a2030');
                     const lightC = p._isBoss ? '#b8922a' : baseC.replace(/0/g, '4').replace(/1/g, '3');
                     return `linear-gradient(145deg, ${baseC}, ${lightC})`;
                   })(),
-                  border: `2.5px solid ${isWinner ? T.accent : p._isBoss ? '#c8a230' : (() => {
+                  border: `2.5px solid ${p._isEasterEgg ? '#ffd700' : isWinner ? T.accent : p._isBoss ? '#c8a230' : (() => {
                     const bc = { TAG: '#2a60a0', LAG: '#c06020', Nit: '#5a5a5a', SemiLAG: '#6a40a0', STATION: '#2a6a2a', Maniac: '#c02020' };
                     return (bc[p.profile?.style] || '#3a4a5a') + '88';
                   })()}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '17px', fontWeight: 800,
                   color: isWinner ? '#fff' : p._isBoss ? '#1a0a00' : '#8a9aaa',
-                  boxShadow: isWinner
-                    ? `0 0 24px ${T.accentGlow}, 0 0 48px ${T.ambientColor}`
+                  boxShadow: p._isEasterEgg
+                    ? '0 0 16px rgba(255,215,0,0.4), 0 0 32px rgba(255,215,0,0.15)'
+                    : isWinner ? `0 0 24px ${T.accentGlow}, 0 0 48px ${T.ambientColor}`
                     : p._isBoss ? '0 0 18px rgba(212,175,55,0.5), inset 0 -4px 8px rgba(0,0,0,0.3)' : '0 4px 14px rgba(0,0,0,0.6), inset 0 -4px 8px rgba(0,0,0,0.2)',
                   willChange: 'transform',
                   position: 'relative', overflow: 'hidden',
                 }}>
-                  {p.emoji || (p.name || 'P')[0].toUpperCase()}
+                  {p._isEasterEgg
+                    ? <img src="https://i.postimg.cc/TPxfxLx5/IMG-7466.jpg" alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}/>
+                    : (p.emoji || (p.name || 'P')[0].toUpperCase())}
                   {/* Glossy top highlight */}
-                  <div style={{
+                  {!p._isEasterEgg && <div style={{
                     position: 'absolute', top: 0, left: '10%', width: '80%', height: '45%',
                     background: 'linear-gradient(180deg, rgba(255,255,255,0.12) 0%, transparent 100%)',
                     borderRadius: '50%', pointerEvents: 'none',
-                  }} />
+                  }} />}
                 </div>
 
                 {/* Showdown cards */}
@@ -904,6 +907,14 @@ function Game({ director, onExit }) {
         } else {
           bots[p.id] = localAI;
         }
+      }
+      // Easter egg: rare special avatar bot (~5% in tournaments, ~2% in hardcore)
+      const eggChance = isHardcore ? 0.02 : 0.05;
+      if (Math.random() < eggChance && botPlayers.length > 0) {
+        const eggIdx = Math.floor(Math.random() * botPlayers.length);
+        botPlayers[eggIdx]._isEasterEgg = true;
+        botPlayers[eggIdx].name = 'SwapMe';
+        botPlayers[eggIdx].emoji = null; // Will use photo instead
       }
       aiBotsRef.current = bots;
     }

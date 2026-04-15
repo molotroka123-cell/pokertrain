@@ -20,11 +20,12 @@ export default function RFIDrill({ onBack }) {
   const [correct, setCorrect] = useState(0);
   const [total, setTotal] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [cards, setCards] = useState([]);
-  const [position, setPosition] = useState('');
+  const [cards, setCards] = useState(() => { const d = freshDeck(); return deal(d, 2); });
+  const [position, setPosition] = useState(() => randomPosition());
   const [feedback, setFeedback] = useState(null);
   const [answered, setAnswered] = useState(false);
   const [showRange, setShowRange] = useState(false);
+  const answeredRef = React.useRef(false);
 
   const newHand = useCallback(() => {
     const deck = freshDeck();
@@ -33,9 +34,8 @@ export default function RFIDrill({ onBack }) {
     setFeedback(null);
     setAnswered(false);
     setShowRange(false);
+    answeredRef.current = false;
   }, []);
-
-  if (cards.length === 0) newHand();
 
   const answer = (action) => {
     if (answered) return;
@@ -75,8 +75,8 @@ export default function RFIDrill({ onBack }) {
   };
 
   const onTimeout = useCallback(() => {
-    if (!answered) answer('fold'); // Auto-fold on timeout
-  }, [answered, cards, position]);
+    if (!answeredRef.current) answer('fold');
+  }, [cards, position]);
 
   return (
     <DrillShell title="RFI Drill" correct={correct} total={total} streak={streak}

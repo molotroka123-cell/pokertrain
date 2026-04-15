@@ -13,8 +13,8 @@ const BB_3BET = { UTG: 0.10, MP: 0.12, HJ: 0.16, CO: 0.20, BTN: 0.24, SB: 0.22 }
 export default function BBDefenseDrill({ onBack }) {
   const [correct, setCorrect] = useState(0);
   const [total, setTotal] = useState(0);
-  const [cards, setCards] = useState([]);
-  const [opener, setOpener] = useState('');
+  const [cards, setCards] = useState(() => deal(freshDeck(), 2));
+  const [opener, setOpener] = useState(() => OPENERS[cryptoRandom(OPENERS.length)]);
   const [feedback, setFeedback] = useState(null);
   const [answered, setAnswered] = useState(false);
 
@@ -24,8 +24,6 @@ export default function BBDefenseDrill({ onBack }) {
     setFeedback(null);
     setAnswered(false);
   }, []);
-
-  if (cards.length === 0) newHand();
 
   const answer = (action) => {
     if (answered) return;
