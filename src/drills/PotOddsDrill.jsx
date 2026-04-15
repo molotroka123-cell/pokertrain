@@ -52,9 +52,9 @@ export default function PotOddsDrill({ onBack }) {
       isCorrect, heroAction: action, frequencies,
       explanation: `Pot: ${sc.pot} + Bet: ${sc.bet} = ${sc.totalPot + sc.bet} total.\n` +
         `Need: ${sc.bet}/${sc.totalPot + sc.bet} = ${sc.pctNeeded}% equity to call.\n` +
-        `Your ${sc.outs} outs ≈ ${sc.equity}% equity (rule of 2).\n` +
+        `Your ${sc.outs} outs × 2.2 ≈ ${sc.equity}% equity (1 card to come + implied odds).\n` +
         `Margin: ${sc.margin > 0 ? '+' : ''}${sc.margin}pp. ` +
-        (sc.shouldCall ? 'Profitable call — you have enough equity.' : 'Not enough equity — save chips and fold.'),
+        (sc.shouldCall ? 'Profitable call — equity > pot odds.' : 'Not enough equity — fold and save chips.'),
     });
   }, [sc]);
 
