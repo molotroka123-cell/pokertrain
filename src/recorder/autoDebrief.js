@@ -1,5 +1,64 @@
 // autoDebrief.js — Auto tournament debrief with 6-layer mistake explanations
-// Per MASTER + CRITICAL-FIXES specs
+// Uses exact GTO ranges for preflop mistake detection
+
+// ═══ GTO RFI RANGES (exact Set-based, source: GTO Wizard) ═══
+const GTO_RFI = {
+  UTG: new Set(["AA","KK","QQ","JJ","TT","99","88","77","66","AKs","AQs","AJs","ATs","A9s","A5s","KQs","KJs","KTs","QJs","QTs","JTs","T9s","98s","AKo","AQo"]),
+  HJ: new Set(["AA","KK","QQ","JJ","TT","99","88","77","66","55","44","33","22","AKs","AQs","AJs","ATs","A9s","A8s","A7s","A6s","A5s","A4s","A3s","A2s","KQs","KJs","KTs","K9s","K8s","QJs","QTs","Q9s","JTs","J9s","T9s","98s","87s","76s","65s","54s","AKo","AQo","AJo","ATo","KQo","KJo"]),
+  CO: new Set(["AA","KK","QQ","JJ","TT","99","88","77","66","55","44","33","22","AKs","AQs","AJs","ATs","A9s","A8s","A7s","A6s","A5s","A4s","A3s","A2s","KQs","KJs","KTs","K9s","K8s","K7s","QJs","QTs","Q9s","Q8s","JTs","J9s","J8s","T9s","T8s","98s","97s","87s","86s","76s","75s","65s","64s","54s","43s","AKo","AQo","AJo","ATo","A9o","KQo","KJo","KTo","QJo","QTo","JTo"]),
+  BTN: new Set(["AA","KK","QQ","JJ","TT","99","88","77","66","55","44","33","22","AKs","AQs","AJs","ATs","A9s","A8s","A7s","A6s","A5s","A4s","A3s","A2s","KQs","KJs","KTs","K9s","K8s","K7s","K6s","K5s","K4s","K3s","K2s","QJs","QTs","Q9s","Q8s","Q7s","Q6s","Q5s","JTs","J9s","J8s","J7s","J6s","T9s","T8s","T7s","T6s","98s","97s","96s","87s","86s","85s","76s","75s","65s","64s","54s","53s","43s","AKo","AQo","AJo","ATo","A9o","A8o","A7o","A6o","A5o","A4o","A3o","A2o","KQo","KJo","KTo","K9o","K8o","K7o","QJo","QTo","Q9o","Q8o","JTo","J9o","J8o","T9o","T8o","98o","97o","87o","76o"]),
+  SB: new Set(["AA","KK","QQ","JJ","TT","99","88","77","66","55","44","AKs","AQs","AJs","ATs","A9s","A8s","A7s","A6s","A5s","A4s","A3s","A2s","KQs","KJs","KTs","K9s","K8s","K6s","QJs","QTs","Q9s","JTs","J9s","T9s","T8s","98s","87s","76s","65s","AKo","AQo","AJo","ATo","A9o","KQo","KJo","KTo","QJo"]),
+};
+const GTO_BB_DEFEND = {
+  vs_BTN: new Set(["AA","KK","QQ","JJ","TT","99","88","77","66","55","44","33","22","AKs","AQs","AJs","ATs","A9s","A8s","A7s","A6s","A5s","A4s","A3s","A2s","KQs","KJs","KTs","K9s","K8s","K7s","K6s","K5s","QJs","QTs","Q9s","Q8s","Q7s","JTs","J9s","J8s","J7s","T9s","T8s","T7s","98s","97s","87s","86s","76s","75s","65s","64s","54s","53s","43s","AKo","AQo","AJo","ATo","A9o","A8o","A7o","A6o","A5o","A4o","A3o","A2o","KQo","KJo","KTo","K9o","K8o","K7o","QJo","QTo","Q9o","Q8o","JTo","J9o","J8o","T9o","T8o","98o","97o","87o"]),
+  vs_CO: new Set(["AA","KK","QQ","JJ","TT","99","88","77","66","55","44","33","22","AKs","AQs","AJs","ATs","A9s","A8s","A7s","A6s","A5s","A4s","A3s","A2s","KQs","KJs","KTs","K9s","K8s","K7s","QJs","QTs","Q9s","Q8s","Q7s","JTs","J9s","J8s","J7s","T9s","T8s","T7s","98s","97s","96s","87s","86s","85s","76s","75s","74s","65s","64s","63s","54s","43s","AKo","AQo","AJo","ATo","A9o","A8o","A7o","KQo","KJo","KTo","K9o","QJo","QTo","Q9o","JTo","T9o"]),
+  vs_UTG: new Set(["AA","KK","QQ","JJ","TT","99","88","77","66","55","44","33","22","AKs","AQs","AJs","ATs","A9s","KQs","KJs","QJs","JTs","T9s","98s","AKo","AQo"]),
+};
+
+// Normalize "Ah Ks" → "AKo", "Ah Kh" → "AKs", "7h 7d" → "77"
+function normalizeHand(holeCards) {
+  if (!holeCards || typeof holeCards !== 'string') return null;
+  const parts = holeCards.split(' ');
+  if (parts.length < 2) return null;
+  const r1 = parts[0][0], s1 = parts[0][1], r2 = parts[1][0], s2 = parts[1][1];
+  const RANK_ORDER = 'AKQJT98765432';
+  const i1 = RANK_ORDER.indexOf(r1), i2 = RANK_ORDER.indexOf(r2);
+  if (i1 < 0 || i2 < 0) return null;
+  if (i1 === i2) return r1 + r2; // pair
+  const suited = s1 === s2 ? 's' : 'o';
+  return i1 < i2 ? r1 + r2 + suited : r2 + r1 + suited;
+}
+
+// Check if a preflop fold is a GTO mistake
+function isGTOBadFold(holeCards, position, facingAction, openerPos) {
+  const hand = normalizeHand(holeCards);
+  if (!hand) return null;
+
+  // RFI spot: folded to you, should you open?
+  if (!facingAction || facingAction === 'fold' || facingAction === 'check') {
+    const range = GTO_RFI[position];
+    if (range && range.has(hand)) {
+      return { reason: `${hand} в RFI диапазоне ${position}. Рейз, не фолд.` };
+    }
+    return null;
+  }
+
+  // BB vs raise: should you defend?
+  if (position === 'BB' && facingAction === 'raise') {
+    const key = openerPos ? 'vs_' + openerPos : 'vs_BTN';
+    const range = GTO_BB_DEFEND[key] || GTO_BB_DEFEND.vs_BTN;
+    if (range.has(hand)) {
+      return { reason: `${hand} в BB defend диапазоне vs ${openerPos || 'open'}. Колл или 3-бет.` };
+    }
+    // Any pair from BB vs single raise = always call (set mining)
+    if (hand.length === 2 && hand[0] === hand[1]) {
+      return { reason: `Пара ${hand} из BB vs raise = всегда колл (set mining).` };
+    }
+    return null;
+  }
+
+  return null;
+}
 
 export function generateDebrief(records) {
   if (!records || records.length === 0) {
@@ -10,9 +69,6 @@ export function generateDebrief(records) {
 
   // INDEPENDENT mistake detection — recalculate from raw data
   for (const d of records) {
-    // Skip preflop folds (compact records without equity)
-    if (!d.equity && d.action === 'fold' && d.stage === 'preflop') continue;
-
     const eq = d.equity || 0;
     const toCall = d.toCall || 0;
     const pot = d.potSize || 0;
@@ -24,8 +80,32 @@ export function generateDebrief(records) {
 
     let mistake = null;
 
-    // FOLD analysis
-    if (d.action === 'fold' && toCall > 0) {
+    // ═══ PREFLOP GTO CHECK (uses exact Set-based ranges, not equity) ═══
+    if (d.stage === 'preflop' && d.action === 'fold' && d.holeCards) {
+      const openerPos = d.facingAction?.position || null;
+      const facingType = toCall > (d.blinds ? parseInt(String(d.blinds).split('/')[1]) || 0 : 0) ? 'raise' : (toCall > 0 ? 'raise' : 'fold');
+      const gtoCheck = isGTOBadFold(d.holeCards, d.position, facingType, openerPos);
+      if (gtoCheck) {
+        const bb = d.blinds ? parseInt(String(d.blinds).split('/')[1]) || 200 : 200;
+        mistake = { type: 'bad_fold', severity: 'medium', evLost: Math.round(bb * 2.5),
+          reason: gtoCheck.reason };
+      }
+    }
+
+    // SB flat call = always a mistake (SB = 3-bet or fold)
+    if (d.stage === 'preflop' && d.action === 'call' && d.position === 'SB' && !mistake) {
+      const bb = d.blinds ? parseInt(String(d.blinds).split('/')[1]) || 200 : 200;
+      if (toCall > 0 && toCall <= bb * 5) { // vs normal raise, not vs shove
+        mistake = { type: 'bad_call', severity: 'medium', evLost: Math.round(toCall * 0.3),
+          reason: `SB flat call = ошибка. SB = 3-bet or fold, никогда лимп/колл.` };
+      }
+    }
+
+    // Skip remaining checks for preflop folds without equity data
+    if (!d.equity && d.action === 'fold' && d.stage === 'preflop' && !mistake) continue;
+
+    // FOLD analysis (postflop or preflop with equity data)
+    if (d.action === 'fold' && toCall > 0 && !mistake) {
       // Strong hand folded = critical mistake
       const strongHands = ['two_pair', 'trips', 'set', 'straight', 'flush', 'full_house', 'quads', 'straight_flush'];
       if (strongHands.includes(mh) && eq > odds + 0.05) {
@@ -60,8 +140,17 @@ export function generateDebrief(records) {
       }
     }
 
+    // River call with nuts = too passive (should raise)
+    if (!mistake && d.action === 'call' && d.stage === 'river' && toCall > 0) {
+      const nutsHands = ['flush', 'full_house', 'quads', 'straight_flush', 'straight', 'set'];
+      if (nutsHands.includes(mh) && eq > 0.75) {
+        mistake = { type: 'too_passive', severity: 'medium', evLost: Math.round(pot * 0.25),
+          reason: `Натс (${mh}) на ривере = рейз для вэлью, не колл! Упущено ~25% пота.` };
+      }
+    }
+
     // CALL analysis
-    if (d.action === 'call' && toCall > 0) {
+    if (!mistake && d.action === 'call' && toCall > 0) {
       if (d.stage === 'river' && eq < odds - 0.08 && ev < -toCall * 0.10) {
         mistake = { type: 'bad_call', severity: eq < 0.05 ? 'critical' : 'medium', evLost: Math.round(Math.abs(ev)),
           reason: `Коллировал с ${Math.round(eq*100)}% equity при нужных ${Math.round(odds*100)}%. ${mh || 'Слабая рука'} не стоит колла.` };
