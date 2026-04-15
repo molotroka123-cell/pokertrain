@@ -448,10 +448,10 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
   const opponents = seated.slice(1);
 
   return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: '750px', margin: '0 auto' }}>
+    <div style={{ position: 'relative', width: '100%', maxWidth: '100vw', margin: '0 auto' }}>
       {/* ═══ TABLE AREA ═══ */}
       <div style={{
-        position: 'relative', width: '100%', height: 'min(340px, 44dvh)',
+        position: 'relative', width: '100%', height: 'min(320px, 42dvh)',
         overflow: 'visible', contain: 'layout style',
       }}>
         {/* Bokeh background lights */}
@@ -614,7 +614,7 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
 
                 {/* Avatar — style-colored circle (tappable for stats) */}
                 <div onClick={() => { if (typeof gs._onSelectOpponent === 'function') gs._onSelectOpponent(p); }} style={{
-                  width: 46, height: 46, borderRadius: '50%', margin: '0 auto', cursor: 'pointer',
+                  width: 'min(46px, 11vw)', height: 'min(46px, 11vw)', borderRadius: '50%', margin: '0 auto', cursor: 'pointer',
                   background: p._isEasterEgg ? 'none' : isWinner ? T.avatarWin : (() => {
                     const sc = { TAG: '#0a2040', LAG: '#3a1800', Nit: '#1a1a1a', SemiLAG: '#1a1040', STATION: '#0a2a0a', LIMPER: '#1a2a10', Maniac: '#3a0a0a', SCARED_MONEY: '#2a2a1a', TILTER: '#3a1a00' };
                     const baseC = p._isBoss ? '#4a3510' : (sc[p.profile?.style] || '#1a2030');
@@ -1442,11 +1442,12 @@ function Game({ director, onExit }) {
           60% { opacity:1; transform:translate(-50%,-50%) scale(1.1) translateY(-3px); }
           100% { transform:translate(-50%,-50%) scale(1) translateY(0); }
         }
-        @keyframes chipFly0 { 0% { opacity:1; transform:translate(-50%,-50%); } 100% { opacity:0; transform:translate(-80px,60px) scale(0.5); } }
-        @keyframes chipFly1 { 0% { opacity:1; transform:translate(-50%,-50%); } 100% { opacity:0; transform:translate(60px,70px) scale(0.5); } }
-        @keyframes chipFly2 { 0% { opacity:1; transform:translate(-50%,-50%); } 100% { opacity:0; transform:translate(-30px,80px) scale(0.4); } }
-        @keyframes chipFly3 { 0% { opacity:1; transform:translate(-50%,-50%); } 100% { opacity:0; transform:translate(40px,50px) scale(0.5); } }
-        @keyframes chipFly4 { 0% { opacity:1; transform:translate(-50%,-50%); } 100% { opacity:0; transform:translate(0px,90px) scale(0.3); } }
+        @keyframes chipFly0 { 0% { opacity:1; transform:translate(-50%,-50%) scale(1); } 100% { opacity:0; transform:translate(-40px,30px) scale(0.4); } }
+        @keyframes chipFly1 { 0% { opacity:1; transform:translate(-50%,-50%) scale(1); } 100% { opacity:0; transform:translate(30px,35px) scale(0.4); } }
+        @keyframes chipFly2 { 0% { opacity:1; transform:translate(-50%,-50%) scale(1); } 100% { opacity:0; transform:translate(-15px,40px) scale(0.3); } }
+        @keyframes chipFly3 { 0% { opacity:1; transform:translate(-50%,-50%) scale(1); } 100% { opacity:0; transform:translate(20px,25px) scale(0.4); } }
+        @keyframes chipFly4 { 0% { opacity:1; transform:translate(-50%,-50%) scale(1); } 100% { opacity:0; transform:translate(0px,45px) scale(0.3); } }
+        @keyframes raiseSlideIn { 0% { opacity:0; transform:translateY(10px); } 100% { opacity:1; transform:translateY(0); } }
         @keyframes winPopup {
           0% { opacity:0; transform:translateX(-50%) scale(0.5) translateY(15px); }
           60% { transform:translateX(-50%) scale(1.08) translateY(-2px); }

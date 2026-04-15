@@ -136,18 +136,18 @@ export default function Controls({ canCheck, canCall, toCall, pot, myChips, minR
         </div>
       )}
 
-      {/* Action buttons — pill style like PokerStars mobile */}
+      {/* Action buttons — pill style, mobile-optimized */}
       <div style={{
-        display: 'flex', padding: '6px 10px 10px', gap: '8px',
+        display: 'flex', padding: '6px 8px max(10px, env(safe-area-inset-bottom, 10px))', gap: '6px',
         background: 'linear-gradient(180deg, #080c12, #040608)',
         borderTop: '1px solid #141a22',
       }}>
         {/* Fold — muted, pill shape */}
         <button className="btn-action" onClick={() => { onAction('fold'); setShowRaise(false); }}
           style={{
-            padding: '14px 0', borderRadius: '24px', border: '1px solid #2a2020',
-            fontWeight: 800, fontSize: '13px', letterSpacing: '1px',
-            textTransform: 'uppercase', flex: 0.7, minHeight: '50px',
+            padding: '12px 0', borderRadius: '24px', border: '1px solid #2a2020',
+            fontWeight: 800, fontSize: '12px', letterSpacing: '0.5px',
+            textTransform: 'uppercase', flex: 0.8, minHeight: '48px',
             color: '#8a6060', cursor: 'pointer',
             background: 'linear-gradient(180deg, #1a1214, #120c0e)',
           }}>FOLD</button>
@@ -156,9 +156,9 @@ export default function Controls({ canCheck, canCall, toCall, pot, myChips, minR
         {canCheck ? (
           <button className="btn-action" onClick={() => { onAction('check'); setShowRaise(false); }}
             style={{
-              padding: '14px 0', borderRadius: '24px', border: '1px solid #1a3040',
-              fontWeight: 800, fontSize: '14px', letterSpacing: '1px',
-              textTransform: 'uppercase', flex: 1.5, minHeight: '50px',
+              padding: '12px 0', borderRadius: '24px', border: '1px solid #1a3040',
+              fontWeight: 800, fontSize: '13px', letterSpacing: '0.5px',
+              textTransform: 'uppercase', flex: 1.3, minHeight: '48px',
               color: '#e0e0e0', cursor: 'pointer',
               background: 'linear-gradient(180deg, #14283a, #0c1a28)',
               boxShadow: '0 2px 12px rgba(20,80,130,0.2)',
@@ -167,8 +167,8 @@ export default function Controls({ canCheck, canCall, toCall, pot, myChips, minR
           <button className="btn-action" onClick={() => { onAction('call'); setShowRaise(false); }}
             style={{
               padding: '10px 0', borderRadius: '24px', border: '1px solid #1a4030',
-              fontWeight: 800, fontSize: '14px', letterSpacing: '0.5px',
-              textTransform: 'uppercase', flex: 1.5, minHeight: '50px',
+              fontWeight: 800, fontSize: '13px', letterSpacing: '0.5px',
+              textTransform: 'uppercase', flex: 1.3, minHeight: '48px',
               color: '#fff', cursor: 'pointer',
               background: callBg,
               boxShadow: '0 2px 16px rgba(30,100,60,0.25)',
