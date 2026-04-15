@@ -360,28 +360,35 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
                   <span style={{ fontSize: '13px', fontWeight: 700, color }}>{stageNames[stage] || stage}</span>
                   <span style={{ fontSize: '10px', color: '#5a6a7a' }}>{data.hands} hands | M≈{data.avgM || '?'}</span>
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {/* VPIP bar */}
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                  {/* VPIP bar with GTO target */}
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '9px', color: '#4a5a6a', marginBottom: '2px' }}>VPIP</div>
-                    <div style={{ height: '6px', background: '#141a22', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${Math.min(data.vpip || 0, 100)}%`, background: (data.vpip >= 20 && data.vpip <= 30) ? '#27ae60' : '#f39c12', borderRadius: '3px' }}/>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                      <span style={{ fontSize: '9px', color: '#4a5a6a' }}>VPIP</span>
+                      <span style={{ fontSize: '10px', fontWeight: 800, color: (data.vpip >= 18 && data.vpip <= 32) ? '#27ae60' : data.vpip > 40 ? '#e74c3c' : '#f39c12' }}>{data.vpip}%</span>
                     </div>
-                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#c0d0e0', marginTop: '1px' }}>{data.vpip}%</div>
+                    <div style={{ height: '10px', background: '#141a22', borderRadius: '5px', overflow: 'hidden', position: 'relative' }}>
+                      <div style={{ height: '100%', width: `${Math.min(data.vpip || 0, 100)}%`, background: (data.vpip >= 18 && data.vpip <= 32) ? 'linear-gradient(90deg, #1a5a30, #27ae60)' : data.vpip > 40 ? 'linear-gradient(90deg, #8a2020, #e74c3c)' : 'linear-gradient(90deg, #8a6a10, #f39c12)', borderRadius: '5px', transition: 'width 0.5s' }}/>
+                      {/* GTO target marker at 25% */}
+                      <div style={{ position: 'absolute', left: '25%', top: 0, bottom: 0, width: '2px', background: '#27ae6088', borderRadius: '1px' }}/>
+                    </div>
                   </div>
-                  {/* PFR bar */}
+                  {/* PFR bar with GTO target */}
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '9px', color: '#4a5a6a', marginBottom: '2px' }}>PFR</div>
-                    <div style={{ height: '6px', background: '#141a22', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${Math.min(data.pfr || 0, 100)}%`, background: (data.pfr >= 15 && data.pfr <= 25) ? '#27ae60' : '#f39c12', borderRadius: '3px' }}/>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                      <span style={{ fontSize: '9px', color: '#4a5a6a' }}>PFR</span>
+                      <span style={{ fontSize: '10px', fontWeight: 800, color: (data.pfr >= 14 && data.pfr <= 26) ? '#27ae60' : data.pfr > 35 ? '#e74c3c' : '#f39c12' }}>{data.pfr}%</span>
                     </div>
-                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#c0d0e0', marginTop: '1px' }}>{data.pfr}%</div>
+                    <div style={{ height: '10px', background: '#141a22', borderRadius: '5px', overflow: 'hidden', position: 'relative' }}>
+                      <div style={{ height: '100%', width: `${Math.min(data.pfr || 0, 100)}%`, background: (data.pfr >= 14 && data.pfr <= 26) ? 'linear-gradient(90deg, #1a5a30, #27ae60)' : data.pfr > 35 ? 'linear-gradient(90deg, #8a2020, #e74c3c)' : 'linear-gradient(90deg, #8a6a10, #f39c12)', borderRadius: '5px', transition: 'width 0.5s' }}/>
+                      <div style={{ position: 'absolute', left: '20%', top: 0, bottom: 0, width: '2px', background: '#27ae6088', borderRadius: '1px' }}/>
+                    </div>
                   </div>
-                  {/* Errors */}
-                  <div style={{ minWidth: '50px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '9px', color: '#4a5a6a', marginBottom: '2px' }}>Errors</div>
-                    <div style={{ fontSize: '16px', fontWeight: 800, color: data.mistakes > 0 ? '#e74c3c' : '#27ae60' }}>{data.mistakes}</div>
-                    {data.evLost > 0 && <div style={{ fontSize: '8px', color: '#e74c3c' }}>-{data.evLost} EV</div>}
+                  {/* Errors badge */}
+                  <div style={{ minWidth: '52px', textAlign: 'center', padding: '4px 6px', borderRadius: '8px', background: data.mistakes > 3 ? '#2a0a0a' : data.mistakes > 0 ? '#1a1a0a' : '#0a1a0a', border: `1px solid ${data.mistakes > 3 ? '#5a1a1a' : data.mistakes > 0 ? '#3a3a1a' : '#1a3a1a'}` }}>
+                    <div style={{ fontSize: '18px', fontWeight: 900, color: data.mistakes > 3 ? '#e74c3c' : data.mistakes > 0 ? '#f39c12' : '#27ae60' }}>{data.mistakes}</div>
+                    <div style={{ fontSize: '7px', color: '#5a6a7a' }}>errors</div>
+                    {data.evLost > 0 && <div style={{ fontSize: '8px', color: '#e74c3c', marginTop: '1px' }}>-{Math.round(data.evLost / 1000)}K</div>}
                   </div>
                 </div>
               </div>

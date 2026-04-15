@@ -397,9 +397,12 @@ function computePositionStats(records) {
       const firstRec = handRecs[0];
       const lastRec = handRecs[handRecs.length - 1];
       if (firstRec && lastRec?.chipsAfter != null) {
-        // chipsBeforeHand = chips before blinds posted, chipsAfter = chips after pot awarded
         const startChips = firstRec.chipsBeforeHand || firstRec.myChips;
-        totalProfit += lastRec.chipsAfter - startChips;
+        if (startChips > 0) {
+          const profit = lastRec.chipsAfter - startChips;
+          // Sanity: cap per-hand profit to ±5x starting stack (avoids display bugs)
+          totalProfit += Math.max(-startChips, Math.min(startChips * 5, profit));
+        }
       }
     }
     stats[pos] = {
@@ -426,8 +429,12 @@ function computeSessionStats(records) {
   const totalHands = pfUnique.length;
   if (totalHands === 0) return null;
 
-  // VPIP: voluntarily put $ in pot (call or raise preflop, not BB walk)
-  const vpipCount = pfUnique.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length;
+  // VPIP: voluntarily put $ in pot (call or raise preflop, not BB walk/check)
+  const vpipCount = pfUnique.filter(r => {
+    if (r.action === 'fold' || r.action === 'bb_walk') return false;
+    if (r.action === 'check' && r.position === 'BB') return false;
+    return true;
+  }).length;
   const vpip = Math.round((vpipCount / totalHands) * 100);
 
   // PFR: preflop raise
@@ -588,7 +595,12 @@ function computeStageAnalysis(records) {
     const hands = pfUnique.length;
     if (hands === 0) continue;
 
-    const vpip = Math.round(pfUnique.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length / hands * 100);
+    // VPIP = voluntarily put money in (excludes BB checks and walks)
+    const vpip = Math.round(pfUnique.filter(r => {
+      if (r.action === 'fold' || r.action === 'bb_walk') return false;
+      if (r.action === 'check' && r.position === 'BB') return false; // BB check is not voluntary
+      return true;
+    }).length / hands * 100);
     const pfr = Math.round(pfUnique.filter(r => r.action === 'raise').length / hands * 100);
     const mistakes = recs.filter(r => r.mistakeType).length;
     const evLost = recs.filter(r => r.mistakeType).reduce((a, r) => a + (r.evLost || 0), 0);
