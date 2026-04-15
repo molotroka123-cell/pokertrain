@@ -845,6 +845,81 @@ function HandLog({ entries }) {
 }
 
 // ════════════════════════════════════════════
+// PUSH/FOLD CALCULATOR (floating overlay)
+// ════════════════════════════════════════════
+const PF_RANKS = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+const PF_RANGES = {
+  SB:{10:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,K4s,K3s,K2s,QJs,QTs,Q9s,Q8s,Q7s,Q6s,Q5s,J9s,J8s,J7s,JTs,T9s,T8s,T7s,98s,97s,96s,87s,86s,76s,75s,65s,54s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,K7o,K6o,K5o,QJo,QTo,Q9o,Q8o,JTo,J9o,T9o',7:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,K4s,K3s,K2s,QJs,QTs,Q9s,Q8s,Q7s,Q6s,Q5s,Q4s,Q3s,Q2s,J9s,J8s,J7s,J6s,JTs,T9s,T8s,T7s,T6s,98s,97s,96s,87s,86s,85s,76s,75s,65s,64s,54s,53s,43s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,K7o,K6o,K5o,K4o,K3o,K2o,QJo,QTo,Q9o,Q8o,Q7o,Q6o,JTo,J9o,J8o,T9o,T8o,98o,97o,87o',5:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,K4s,K3s,K2s,QJs,QTs,Q9s,Q8s,Q7s,Q6s,Q5s,Q4s,Q3s,Q2s,JTs,J9s,J8s,J7s,J6s,J5s,J4s,J3s,J2s,T9s,T8s,T7s,T6s,T5s,T4s,98s,97s,96s,95s,87s,86s,85s,76s,75s,74s,65s,64s,54s,53s,43s,42s,32s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,K7o,K6o,K5o,K4o,K3o,K2o,QJo,QTo,Q9o,Q8o,Q7o,Q6o,Q5o,Q4o,Q3o,JTo,J9o,J8o,J7o,T9o,T8o,T7o,98o,97o,96o,87o,86o,76o,75o,65o',3:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,K4s,K3s,K2s,QJs,QTs,Q9s,Q8s,Q7s,Q6s,Q5s,Q4s,Q3s,Q2s,JTs,J9s,J8s,J7s,J6s,J5s,J4s,J3s,J2s,T9s,T8s,T7s,T6s,T5s,T4s,T3s,T2s,98s,97s,96s,95s,94s,87s,86s,85s,84s,76s,75s,74s,73s,65s,64s,63s,54s,53s,52s,43s,42s,32s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,K7o,K6o,K5o,K4o,K3o,K2o,QJo,QTo,Q9o,Q8o,Q7o,Q6o,Q5o,Q4o,Q3o,Q2o,JTo,J9o,J8o,J7o,J6o,J5o,T9o,T8o,T7o,T6o,98o,97o,96o,87o,86o,85o,76o,75o,65o,64o,54o,53o'},
+  BTN:{10:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,QJs,QTs,Q9s,Q8s,Q7s,JTs,J9s,J8s,T9s,T8s,98s,97s,87s,76s,65s,54s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,QJo,QTo,Q9o,JTo,J9o,T9o',7:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,K4s,K3s,K2s,QJs,QTs,Q9s,Q8s,Q7s,Q6s,Q5s,JTs,J9s,J8s,J7s,T9s,T8s,T7s,98s,97s,96s,87s,86s,76s,75s,65s,64s,54s,53s,43s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,K7o,K6o,QJo,QTo,Q9o,Q8o,JTo,J9o,J8o,T9o,T8o,98o',5:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,K4s,K3s,K2s,QJs,QTs,Q9s,Q8s,Q7s,Q6s,Q5s,Q4s,Q3s,Q2s,JTs,J9s,J8s,J7s,J6s,J5s,T9s,T8s,T7s,T6s,98s,97s,96s,87s,86s,85s,76s,75s,65s,64s,54s,53s,43s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,K7o,K6o,K5o,K4o,K3o,QJo,QTo,Q9o,Q8o,Q7o,Q6o,JTo,J9o,J8o,J7o,T9o,T8o,98o,97o,87o,76o',3:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,K4s,K3s,K2s,QJs,QTs,Q9s,Q8s,Q7s,Q6s,Q5s,Q4s,Q3s,Q2s,JTs,J9s,J8s,J7s,J6s,J5s,J4s,J3s,T9s,T8s,T7s,T6s,T5s,T4s,98s,97s,96s,95s,87s,86s,85s,76s,75s,74s,65s,64s,54s,53s,43s,42s,32s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,K7o,K6o,K5o,K4o,K3o,K2o,QJo,QTo,Q9o,Q8o,Q7o,Q6o,Q5o,Q4o,Q3o,JTo,J9o,J8o,J7o,J6o,T9o,T8o,T7o,98o,97o,96o,87o,86o,76o,75o,65o,54o'},
+  CO:{10:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,QJs,QTs,Q9s,JTs,J9s,T9s,98s,87s,76s,65s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,KQo,KJo,KTo,K9o,QJo,QTo,JTo',7:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,QJs,QTs,Q9s,Q8s,Q7s,JTs,J9s,J8s,T9s,T8s,98s,97s,87s,86s,76s,75s,65s,54s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,KQo,KJo,KTo,K9o,K8o,QJo,QTo,Q9o,JTo,J9o,T9o',5:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,K4s,K3s,K2s,QJs,QTs,Q9s,Q8s,Q7s,Q6s,Q5s,JTs,J9s,J8s,J7s,T9s,T8s,T7s,98s,97s,96s,87s,86s,76s,75s,65s,64s,54s,53s,43s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,K7o,K6o,QJo,QTo,Q9o,Q8o,JTo,J9o,J8o,T9o,T8o,98o,87o',3:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,K5s,K4s,K3s,K2s,QJs,QTs,Q9s,Q8s,Q7s,Q6s,Q5s,Q4s,Q3s,Q2s,JTs,J9s,J8s,J7s,J6s,J5s,T9s,T8s,T7s,T6s,T5s,98s,97s,96s,95s,87s,86s,85s,76s,75s,74s,65s,64s,54s,53s,43s,42s,32s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,K7o,K6o,K5o,K4o,K3o,QJo,QTo,Q9o,Q8o,Q7o,Q6o,Q5o,JTo,J9o,J8o,J7o,T9o,T8o,T7o,98o,97o,87o,86o,76o,65o'},
+  UTG:{10:'AA,KK,QQ,JJ,TT,99,88,77,AKs,AQs,AJs,ATs,A9s,A5s,KQs,KJs,QJs,JTs,AKo,AQo,AJo,ATo',7:'AA,KK,QQ,JJ,TT,99,88,77,66,55,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A5s,A4s,KQs,KJs,KTs,K9s,QJs,QTs,JTs,T9s,98s,AKo,AQo,AJo,ATo,A9o,KQo,KJo',5:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,QJs,QTs,Q9s,JTs,J9s,T9s,98s,87s,76s,65s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,KQo,KJo,KTo,K9o,QJo,QTo',3:'AA,KK,QQ,JJ,TT,99,88,77,66,55,44,33,22,AKs,AQs,AJs,ATs,A9s,A8s,A7s,A6s,A5s,A4s,A3s,A2s,KQs,KJs,KTs,K9s,K8s,K7s,K6s,QJs,QTs,Q9s,Q8s,Q7s,JTs,J9s,J8s,T9s,T8s,T7s,98s,97s,87s,86s,76s,75s,65s,54s,AKo,AQo,AJo,ATo,A9o,A8o,A7o,A6o,A5o,A4o,A3o,A2o,KQo,KJo,KTo,K9o,K8o,K7o,QJo,QTo,Q9o,Q8o,JTo,J9o,T9o,98o'}
+};
+function _pfParse(s) { const r = new Set(); (s||'').split(',').forEach(h => r.add(h.trim())); return r; }
+function _pfHand(ri,ci) { if(ri===ci) return PF_RANKS[ri]+PF_RANKS[ci]; return ri<ci ? PF_RANKS[ri]+PF_RANKS[ci]+'s' : PF_RANKS[ci]+PF_RANKS[ri]+'o'; }
+
+function PushFoldFAB() {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState('SB');
+  const [m, setM] = useState(5);
+  if (!open) return (
+    <div onClick={() => setOpen(true)} style={{
+      position: 'fixed', bottom: '80px', right: '14px', zIndex: 200,
+      width: '48px', height: '48px', borderRadius: '50%', cursor: 'pointer',
+      background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', color: '#000',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: '11px', fontWeight: 900, lineHeight: 1.1, textAlign: 'center',
+      boxShadow: '0 4px 20px rgba(251,191,36,0.4)', border: '2px solid #fbbf2488',
+    }}>P/F</div>
+  );
+  const range = _pfParse(PF_RANGES[pos]?.[m] || '');
+  let pushCount = 0;
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.92)', overflowY: 'auto', padding: '12px' }}>
+      <div style={{ maxWidth: '400px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <div style={{ fontSize: '18px', fontWeight: 900, color: '#fbbf24' }}>GTO PUSH/FOLD</div>
+          <div onClick={() => setOpen(false)} style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '16px', cursor: 'pointer', fontWeight: 700 }}>X</div>
+        </div>
+        <div style={{ fontSize: '10px', color: '#666', marginBottom: '8px' }}>M&lt;10 = ALL-IN или FOLD. Nash Equilibrium.</div>
+        {/* Position tabs */}
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '6px' }}>
+          {['SB','BTN','CO','UTG'].map(p => (
+            <div key={p} onClick={() => setPos(p)} style={{ flex: 1, padding: '7px', borderRadius: '7px', textAlign: 'center', cursor: 'pointer', fontSize: '12px', fontWeight: 700, background: pos === p ? '#fbbf24' : '#1a1a1a', color: pos === p ? '#000' : '#888', border: `1px solid ${pos === p ? '#fbbf24' : '#333'}` }}>{p}</div>
+          ))}
+        </div>
+        {/* M tabs */}
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
+          {[10,7,5,3].map(mv => (
+            <div key={mv} onClick={() => setM(mv)} style={{ flex: 1, padding: '5px', borderRadius: '6px', textAlign: 'center', cursor: 'pointer', fontSize: '11px', fontWeight: 600, background: m === mv ? '#0a1a1f' : '#111', color: m === mv ? '#06b6d4' : '#666', border: `1px solid ${m === mv ? '#06b6d4' : '#333'}` }}>M={mv}</div>
+          ))}
+        </div>
+        {/* 13×13 Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(14, 1fr)', gap: '1px', fontSize: '8px', fontFamily: "'JetBrains Mono', monospace" }}>
+          <div style={{ background: '#111', padding: '2px', textAlign: 'center', color: '#555', fontWeight: 600 }}></div>
+          {PF_RANKS.map(r => <div key={r} style={{ background: '#111', padding: '2px', textAlign: 'center', color: '#555', fontWeight: 600 }}>{r}</div>)}
+          {PF_RANKS.map((r, ri) => (
+            <React.Fragment key={ri}>
+              <div style={{ background: '#111', padding: '2px', textAlign: 'center', color: '#555', fontWeight: 600 }}>{r}</div>
+              {PF_RANKS.map((c, ci) => {
+                const hand = _pfHand(ri, ci);
+                const isPush = range.has(hand);
+                if (isPush) pushCount++;
+                const label = ri === ci ? r+c : (ri < ci ? r+c : c+r);
+                return <div key={ci} style={{ padding: '3px 1px', textAlign: 'center', fontWeight: 700, fontSize: '7px', borderRadius: '2px', background: isPush ? '#166534' : '#1a1a1a', color: isPush ? '#4ade80' : '#333' }}>{label}</div>;
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '8px', fontSize: '12px', color: '#fbbf24', fontWeight: 700 }}>
+          {pos} M={m}: Push {Math.round(pushCount / 169 * 100)}% рук
+        </div>
+        <div style={{ textAlign: 'center', fontSize: '9px', color: '#444', marginTop: '4px' }}>Nash Equilibrium push/fold. 6-max.</div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════
 // MAIN GAME SCREEN
 // ════════════════════════════════════════════
 function Game({ director, onExit }) {
@@ -1630,6 +1705,9 @@ function Game({ director, onExit }) {
 
       {/* Hand Log */}
       <HandLog entries={gs?.actionLog} />
+
+      {/* Push/Fold Calculator FAB */}
+      <PushFoldFAB />
     </div>
   );
 }
