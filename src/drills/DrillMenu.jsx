@@ -6,6 +6,7 @@ const DRILLS = [
   { id: '3bet', name: '3-Bet Drill', desc: '3-bet, call, or fold vs opens', icon: '🔥', color: '#f39c12' },
   { id: 'bbdef', name: 'BB Defense', desc: 'Defend your big blind correctly', icon: '🛡', color: '#2980b9' },
   { id: 'pushfold', name: 'Push/Fold', desc: 'Nash charts for short stacks', icon: '💣', color: '#e74c3c' },
+  { id: 'solverpf', name: 'Solver Push/Fold', desc: 'Nash ICM — 7 stacks, push + call, weak spots', icon: '♠', color: '#ff4444', isNew: true },
   { id: 'postflop', name: 'Postflop Spots', desc: '25+ real postflop scenarios', icon: '🃏', color: '#9b59b6' },
   { id: 'sizing', name: 'Bet Sizing', desc: 'Choose optimal bet size', icon: '📏', color: '#1abc9c' },
   { id: 'potodds', name: 'Pot Odds Quiz', desc: 'Calculate pot odds + outs', icon: '🧮', color: '#3498db' },
@@ -27,16 +28,23 @@ export default function DrillMenu({ onSelect, onBack }) {
       {DRILLS.map(d => (
         <div key={d.id} onClick={() => onSelect(d.id)} style={{
           display: 'flex', alignItems: 'center', gap: '14px',
-          padding: '14px', background: '#111820', border: '1px solid #1e2a3a',
+          padding: '14px', background: d.isNew ? '#1a0a10' : '#111820',
+          border: d.isNew ? '2px solid #ff4444' : '1px solid #1e2a3a',
           borderRadius: '12px', marginBottom: '10px', cursor: 'pointer',
-          transition: 'border-color 0.2s',
+          transition: 'border-color 0.2s', position: 'relative',
+          boxShadow: d.isNew ? '0 0 16px rgba(255,68,68,0.15)' : 'none',
         }}>
+          {d.isNew && <div style={{
+            position: 'absolute', top: '-6px', right: '10px',
+            background: '#ff4444', color: '#fff', fontSize: '9px', fontWeight: 800,
+            padding: '2px 8px', borderRadius: '6px', letterSpacing: '1px',
+          }}>NEW</div>}
           <div style={{ fontSize: '28px', width: '42px', textAlign: 'center' }}>{d.icon}</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '15px', fontWeight: 700, color: d.color }}>{d.name}</div>
             <div style={{ fontSize: '12px', color: '#6b7b8d', marginTop: '2px' }}>{d.desc}</div>
           </div>
-          <div style={{ color: '#2a3a4a', fontSize: '18px' }}>›</div>
+          <div style={{ color: d.isNew ? '#ff4444' : '#2a3a4a', fontSize: '18px' }}>›</div>
         </div>
       ))}
     </div>
