@@ -3,7 +3,8 @@ import React, { useState, useCallback } from 'react';
 import DrillShell, { drillStyles as ds } from './DrillShell.jsx';
 import Card from '../components/Card.jsx';
 import { freshDeck, deal, cryptoRandom } from '../engine/deck.js';
-import { isIn3BetRange, isInOpenRange, handString, getHandValue, THREEBET_THRESHOLDS, POSITION_THRESHOLDS } from '../engine/ranges.js';
+import { handString, getHandValue, THREEBET_THRESHOLDS, POSITION_THRESHOLDS } from '../engine/ranges.js';
+import { getThreeBetAction } from '../data/gtoRanges.js';
 
 const HERO_POS = ['CO', 'BTN', 'SB', 'BB'];
 const VILLAIN_POS = ['UTG', 'UTG+1', 'MP', 'HJ', 'CO'];
@@ -30,15 +31,10 @@ export default function ThreeBetDrill({ onBack }) {
     setAnswered(true);
     const handVal = getHandValue(cards[0], cards[1]);
 
-    // Adjust thresholds based on villain position (tighter vs EP, wider vs LP)
-    const villainTightness = { UTG: 0.70, 'UTG+1': 0.75, MP: 0.80, HJ: 0.90, CO: 1.0 };
-    const vAdj = villainTightness[villainPos] || 0.85;
-    const threeBetThresh = (THREEBET_THRESHOLDS[heroPos] || 0.12) * vAdj;
-    const callThresh = (POSITION_THRESHOLDS[heroPos] || 0.30) * vAdj;
-
-    const is3Bet = handVal <= threeBetThresh;
-    const isCallable = handVal <= callThresh && !is3Bet;
-    const correctAction = is3Bet ? '3bet' : isCallable ? 'call' : 'fold';
+    // Use exact GTO 3-bet ranges per villain position
+    const correctAction = getThreeBetAction(cards[0], cards[1], heroPos, villainPos);
+    const threeBetThresh = THREEBET_THRESHOLDS[heroPos] || 0.12;
+    const callThresh = POSITION_THRESHOLDS[heroPos] || 0.30;
     const isCorrect = action === correctAction;
 
     setTotal(t => t + 1);

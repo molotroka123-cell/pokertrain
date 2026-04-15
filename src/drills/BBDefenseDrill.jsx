@@ -3,7 +3,8 @@ import React, { useState, useCallback } from 'react';
 import DrillShell, { drillStyles as ds } from './DrillShell.jsx';
 import Card from '../components/Card.jsx';
 import { freshDeck, deal, cryptoRandom } from '../engine/deck.js';
-import { getHandValue, handString, isIn3BetRange } from '../engine/ranges.js';
+import { getHandValue, handString } from '../engine/ranges.js';
+import { getBBDefenseAction } from '../data/gtoRanges.js';
 
 const OPENERS = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
 // BB defend thresholds (GTO vs 2.5x open): wider vs later positions
@@ -30,13 +31,9 @@ export default function BBDefenseDrill({ onBack }) {
     if (answered) return;
     setAnswered(true);
     const handVal = getHandValue(cards[0], cards[1]);
-    const threeBetThresh = BB_3BET[opener] || 0.12;
-    const defendThresh = BB_DEFEND[opener] || 0.40;
 
-    let correctAction;
-    if (handVal <= threeBetThresh) correctAction = '3bet';
-    else if (handVal <= defendThresh) correctAction = 'call';
-    else correctAction = 'fold';
+    // Use exact GTO BB defense ranges per opener position
+    const correctAction = getBBDefenseAction(cards[0], cards[1], opener);
 
     const isCorrect = action === correctAction;
     setTotal(t => t + 1);

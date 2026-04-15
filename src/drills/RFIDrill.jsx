@@ -1,10 +1,11 @@
-// RFIDrill.jsx — Raise First In drill with GTO frequencies, timer, streaks, visual range
+// RFIDrill.jsx — Raise First In drill with exact GTO ranges
 import React, { useState, useCallback } from 'react';
 import DrillShell, { drillStyles as ds, GTOFrequencies } from './DrillShell.jsx';
 import Card from '../components/Card.jsx';
 import RangeGrid from '../components/RangeGrid.jsx';
 import { freshDeck, deal, cryptoRandom } from '../engine/deck.js';
-import { isInOpenRange, isIn3BetRange, handString, getHandValue, POSITION_THRESHOLDS } from '../engine/ranges.js';
+import { handString, getHandValue, POSITION_THRESHOLDS } from '../engine/ranges.js';
+import { isGTORfi } from '../data/gtoRanges.js';
 
 const POSITIONS = ['UTG', 'UTG+1', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
 let _lastPos = '';
@@ -43,7 +44,7 @@ export default function RFIDrill({ onBack }) {
 
     const handVal = getHandValue(cards[0], cards[1]);
     const threshold = POSITION_THRESHOLDS[position] || 0.30;
-    const shouldOpen = isInOpenRange(cards[0], cards[1], position);
+    const shouldOpen = isGTORfi(cards[0], cards[1], position);
 
     // GTO frequencies (approximate from ranges)
     const raiseFreq = handVal <= threshold * 0.8 ? 100 :
