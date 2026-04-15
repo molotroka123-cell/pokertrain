@@ -42,7 +42,8 @@ export function getLiveTell(villainHandStrength, villainAction) {
 
   // 20% chance of reverse tell (makes it realistic — tells aren't always reliable)
   if (Math.random() < 0.20) {
-    category = category === 'strong' ? 'weak' : category === 'weak' ? 'strong' : category;
+    const opposites = { strong: 'weak', weak: 'strong', draw: 'bluff', bluff: 'draw' };
+    category = opposites[category] || category;
   }
 
   const pool = TELLS[category] || TELLS.weak;

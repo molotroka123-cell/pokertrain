@@ -11,9 +11,9 @@ const VILLAIN_POS = ['UTG', 'UTG+1', 'MP', 'HJ', 'CO'];
 export default function ThreeBetDrill({ onBack }) {
   const [correct, setCorrect] = useState(0);
   const [total, setTotal] = useState(0);
-  const [cards, setCards] = useState([]);
-  const [heroPos, setHeroPos] = useState('');
-  const [villainPos, setVillainPos] = useState('');
+  const [cards, setCards] = useState(() => deal(freshDeck(), 2));
+  const [heroPos, setHeroPos] = useState(() => HERO_POS[cryptoRandom(HERO_POS.length)]);
+  const [villainPos, setVillainPos] = useState(() => VILLAIN_POS[cryptoRandom(VILLAIN_POS.length)]);
   const [feedback, setFeedback] = useState(null);
   const [answered, setAnswered] = useState(false);
 
@@ -25,22 +25,24 @@ export default function ThreeBetDrill({ onBack }) {
     setAnswered(false);
   }, []);
 
-  if (cards.length === 0) newHand();
-
   const answer = (action) => {
     if (answered) return;
     setAnswered(true);
-    const is3Bet = isIn3BetRange(cards[0], cards[1], heroPos);
-    const isCallable = isInOpenRange(cards[0], cards[1], heroPos) && !is3Bet;
+    const handVal = getHandValue(cards[0], cards[1]);
+
+    // Adjust thresholds based on villain position (tighter vs EP, wider vs LP)
+    const villainTightness = { UTG: 0.70, 'UTG+1': 0.75, MP: 0.80, HJ: 0.90, CO: 1.0 };
+    const vAdj = villainTightness[villainPos] || 0.85;
+    const threeBetThresh = (THREEBET_THRESHOLDS[heroPos] || 0.12) * vAdj;
+    const callThresh = (POSITION_THRESHOLDS[heroPos] || 0.30) * vAdj;
+
+    const is3Bet = handVal <= threeBetThresh;
+    const isCallable = handVal <= callThresh && !is3Bet;
     const correctAction = is3Bet ? '3bet' : isCallable ? 'call' : 'fold';
     const isCorrect = action === correctAction;
 
     setTotal(t => t + 1);
     if (isCorrect) setCorrect(c => c + 1);
-
-    const handVal = getHandValue(cards[0], cards[1]);
-    const threeBetThresh = THREEBET_THRESHOLDS[heroPos] || 0.12;
-    const callThresh = POSITION_THRESHOLDS[heroPos] || 0.30;
 
     setFeedback({
       isCorrect, correctAction,

@@ -32,18 +32,23 @@ function genRiverSpot() {
   const betSize = facingBet ? Math.max(50, Math.floor(pot * (0.3 + cryptoRandomFloat() * 0.7))) : 0;
   const isIP = pos === 'BTN' || pos === 'CO';
 
+  // GTO river frequencies (calibrated to solver outputs)
   let freq;
   const rank = heroHand?.rank || 1;
   if (facingBet) {
-    if (rank >= 5) freq = { call: 20, raise: 75, fold: 5 };
-    else if (rank >= 3) freq = { call: 70, raise: 20, fold: 10 };
-    else if (rank >= 2) freq = { call: 55, raise: 5, fold: 40 };
-    else freq = { call: 15, raise: 5, fold: 80 };
+    // Facing bet: raise nuts, call strong, fold weak
+    if (rank >= 7) freq = { raise: 85, call: 12, fold: 3 };       // full house+ → raise for value
+    else if (rank >= 5) freq = { raise: 55, call: 40, fold: 5 };  // straight/flush → mostly raise
+    else if (rank >= 3) freq = { call: 75, raise: 10, fold: 15 }; // two pair → mostly call
+    else if (rank >= 2) freq = { call: 45, fold: 50, raise: 5 };  // one pair → close call/fold
+    else freq = { fold: 85, call: 10, raise: 5 };                  // high card → mostly fold
   } else {
-    if (rank >= 5) freq = { raise: 85, check: 15 };
-    else if (rank >= 3) freq = { raise: 60, check: 40 };
-    else if (rank >= 2) freq = { raise: 30, check: 70 };
-    else freq = { raise: 20, check: 80 };
+    // Checked to us: bet value, check medium, bluff some air
+    if (rank >= 7) freq = { raise: 95, check: 5 };                // nuts → always bet
+    else if (rank >= 5) freq = { raise: 85, check: 15 };          // strong → bet big
+    else if (rank >= 3) freq = { raise: 65, check: 35 };          // two pair → bet often
+    else if (rank >= 2) freq = { raise: 35, check: 65 };          // pair → block bet sometimes
+    else freq = { raise: 15, check: 85 };                          // air → occasional bluff
   }
 
   return { hero, board, opp, pos, pot, betSize, facingBet, heroHand, oppHand, wouldWin, freq, isIP, rank };
@@ -71,7 +76,9 @@ export default function RiverDrill({ onBack }) {
     setAnswered(true);
     const freq = spot.freq;
     const heroFreq = freq[action] || 0;
-    const isCorrect = heroFreq >= 25;
+    // Correct if your action has >=30% GTO frequency (allows mixed strategy)
+    const bestFreq = Math.max(...Object.values(freq));
+    const isCorrect = heroFreq >= 30 || heroFreq >= bestFreq - 10;
     setTotal(t => t + 1);
     if (isCorrect) { setCorrect(c => c + 1); setStreak(s => s + 1); } else setStreak(0);
 

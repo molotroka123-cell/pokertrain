@@ -7,9 +7,11 @@ function genScenario() {
   const pot = (3 + cryptoRandom(30)) * 100;
   const bet = Math.max(50, Math.round(pot * (0.25 + cryptoRandomFloat() * 0.75) / 50) * 50);
   const totalPot = pot + bet;
+  // Pot odds: call_amount / (pot_after_we_call) = bet / (pot + 2*bet)
   const odds = bet / (totalPot + bet);
   const pctNeeded = Math.round(odds * 100);
   const outs = 2 + cryptoRandom(14);
+  // Rule of ~2.2: one card to come with slight implied odds adjustment
   const equity = Math.round(outs * 2.2);
   const shouldCall = equity >= pctNeeded;
   const margin = equity - pctNeeded;

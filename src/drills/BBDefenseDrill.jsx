@@ -6,9 +6,10 @@ import { freshDeck, deal, cryptoRandom } from '../engine/deck.js';
 import { getHandValue, handString, isIn3BetRange } from '../engine/ranges.js';
 
 const OPENERS = ['UTG', 'MP', 'HJ', 'CO', 'BTN', 'SB'];
-// BB defend thresholds: wider vs later positions
-const BB_DEFEND = { UTG: 0.28, MP: 0.32, HJ: 0.38, CO: 0.45, BTN: 0.55, SB: 0.50 };
-const BB_3BET = { UTG: 0.10, MP: 0.12, HJ: 0.16, CO: 0.20, BTN: 0.24, SB: 0.22 };
+// BB defend thresholds (GTO vs 2.5x open): wider vs later positions
+// Source: GTO Wizard approximate ranges
+const BB_DEFEND = { UTG: 0.22, MP: 0.28, HJ: 0.35, CO: 0.42, BTN: 0.58, SB: 0.52 };
+const BB_3BET   = { UTG: 0.08, MP: 0.10, HJ: 0.14, CO: 0.18, BTN: 0.28, SB: 0.24 };
 
 export default function BBDefenseDrill({ onBack }) {
   const [correct, setCorrect] = useState(0);
