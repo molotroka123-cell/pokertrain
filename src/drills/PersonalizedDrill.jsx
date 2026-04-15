@@ -56,17 +56,23 @@ export default function PersonalizedDrill({ onBack }) {
 
       setSpots(drillSpots.slice(0, 10));
     } catch (e) { setSpots([]); }
+    // If no recorded mistakes, use known GTO leaks
+    if (spots.length === 0) {
+      const defaultLeaks = [
+        { holeCards: 'Q4o', position: 'CO', stage: 'preflop', potSize: 600, toCall: 0, equity: 0, potOdds: 0, correctAction: 'fold', mistakeType: 'offsuit_trash', evLost: 200, facingAction: null, madeHand: null, draws: null },
+        { holeCards: 'A9s', position: 'SB', stage: 'preflop', potSize: 400, toCall: 200, equity: 0.45, potOdds: 0.33, correctAction: 'raise', mistakeType: 'sb_too_tight', evLost: 300, facingAction: null, madeHand: null, draws: null },
+        { holeCards: '86o', position: 'BB', stage: 'preflop', potSize: 600, toCall: 200, equity: 0.35, potOdds: 0.25, correctAction: 'call', mistakeType: 'bb_too_tight', evLost: 150, facingAction: { action: 'raise', position: 'CO' }, madeHand: null, draws: null },
+        { holeCards: 'AQo', position: 'CO', stage: 'preflop', potSize: 4000, toCall: 3000, equity: 0.55, potOdds: 0.43, correctAction: 'call', mistakeType: 'bad_fold', evLost: 800, facingAction: { action: 'raise', position: 'HJ' }, madeHand: null, draws: null },
+        { holeCards: 'K9o', position: 'SB', stage: 'preflop', potSize: 400, toCall: 200, equity: 0.30, potOdds: 0.33, correctAction: 'fold', mistakeType: 'sb_flat_call', evLost: 200, facingAction: null, madeHand: null, draws: null },
+        { holeCards: '53s', position: 'BTN', stage: 'preflop', potSize: 400, toCall: 0, equity: 0, potOdds: 0, correctAction: 'raise', mistakeType: 'btn_too_tight', evLost: 100, facingAction: null, madeHand: null, draws: null },
+        { holeCards: 'QJo', position: 'SB', stage: 'preflop', potSize: 600, toCall: 400, equity: 0.40, potOdds: 0.40, correctAction: 'raise', mistakeType: 'sb_flat_call', evLost: 250, facingAction: { action: 'raise', position: 'HJ' }, madeHand: null, draws: null },
+        { holeCards: 'A5o', position: 'BTN', stage: 'preflop', potSize: 600, toCall: 0, equity: 0, potOdds: 0, correctAction: 'raise', mistakeType: 'offsuit_confusion', evLost: 150, facingAction: null, madeHand: null, draws: null },
+        { holeCards: '98o', position: 'CO', stage: 'preflop', potSize: 400, toCall: 0, equity: 0, potOdds: 0, correctAction: 'fold', mistakeType: 'offsuit_trash', evLost: 200, facingAction: null, madeHand: null, draws: null },
+        { holeCards: 'J9o', position: 'UTG', stage: 'preflop', potSize: 400, toCall: 0, equity: 0, potOdds: 0, correctAction: 'fold', mistakeType: 'offsuit_trash', evLost: 250, facingAction: null, madeHand: null, draws: null },
+      ];
+      setSpots(defaultLeaks);
+    }
   }, []);
-
-  if (spots.length === 0) {
-    return (
-      <div style={{ padding: '40px 20px', textAlign: 'center', color: '#6b7b8d' }}>
-        <div style={{ fontSize: '16px', marginBottom: '10px' }}>Not enough mistakes to generate drills</div>
-        <div style={{ fontSize: '13px' }}>Play more tournaments first!</div>
-        <button onClick={onBack} style={{ marginTop: '20px', padding: '12px 24px', background: '#1a2230', border: 'none', borderRadius: '10px', color: '#8899aa', fontSize: '14px', cursor: 'pointer' }}>Back</button>
-      </div>
-    );
-  }
 
   if (current >= spots.length) {
     const pct = score.total > 0 ? Math.round(score.correct / score.total * 100) : 0;

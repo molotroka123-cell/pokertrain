@@ -537,7 +537,10 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
       )}
 
       {/* Actions */}
-      <button onClick={onClose} style={s.btn}>Back to Lobby</button>
+      <button onClick={() => { if (onClose) onClose(); setTimeout(() => { try { window.__gotoGTO?.(); } catch {} }, 100); }} style={{
+        ...s.btn, background: 'linear-gradient(135deg, #0a2a14, #22c55e)', marginBottom: '6px',
+      }}>GTO Analysis</button>
+      <button onClick={onClose} style={{ ...s.btn, background: '#1a2a3a' }}>Back to Lobby</button>
       {onExport && (
         <button onClick={onExport} style={s.exportBtn}>Export Session JSON (for Claude analysis)</button>
       )}

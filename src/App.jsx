@@ -114,6 +114,13 @@ function Lobby({ onStart, onDrills, onStats, onGTO, onHistory, onCoach, playerNa
   // Real bankroll from persistent storage
   const br = JSON.parse(localStorage.getItem('pokertrain_bankroll') || '{"balance":10000}');
   const bankroll = br.balance || 10000;
+  const lowBankroll = bankroll < 3000; // < 3 buy-ins warning
+
+  // Learning path: calculate from sessions
+  const sessCount = JSON.parse(localStorage.getItem('wsop_sessions') || '[]').length;
+  const skillLevel = sessCount >= 30 ? 'Advanced' : sessCount >= 10 ? 'Intermediate' : 'Beginner';
+  const skillPct = Math.min(100, Math.round(sessCount / 30 * 100));
+  const skillColors = { Beginner: '#ef4444', Intermediate: '#fbbf24', Advanced: '#22c55e' };
 
   const btnPress = (e) => { e.currentTarget.style.transform = 'scale(0.96)'; e.currentTarget.style.filter = 'brightness(1.1)'; };
   const btnRelease = (e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.filter = 'none'; };
@@ -165,6 +172,7 @@ function Lobby({ onStart, onDrills, onStats, onGTO, onHistory, onCoach, playerNa
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             filter: 'drop-shadow(0 2px 12px rgba(212,175,55,0.25))',
           }}>POKER TRAINER</div>
+          <div style={{ fontSize: '10px', color: '#4a6a8a', marginTop: '2px', letterSpacing: '2px' }}>V2.0 — GTO EDITION</div>
         </div>
 
         {/* ═══ PLAYER CARD ═══ */}
@@ -192,8 +200,26 @@ function Lobby({ onStart, onDrills, onStats, onGTO, onHistory, onCoach, playerNa
           </div>
           <div style={{
             fontSize: '16px', fontWeight: 800,
-            color: '#ffd700', textShadow: '0 0 10px rgba(212,175,55,0.3)',
+            color: lowBankroll ? '#ef4444' : '#ffd700',
+            textShadow: lowBankroll ? '0 0 10px rgba(239,68,68,0.3)' : '0 0 10px rgba(212,175,55,0.3)',
           }}>${bankroll.toLocaleString()}</div>
+        </div>
+        {/* Learning path + bankroll alert */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+              <span style={{ fontSize: '9px', color: '#4a5a6a', letterSpacing: '1px' }}>SKILL PATH</span>
+              <span style={{ fontSize: '10px', fontWeight: 700, color: skillColors[skillLevel] }}>{skillLevel}</span>
+            </div>
+            <div style={{ height: '6px', background: '#141a22', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${skillPct}%`, background: `linear-gradient(90deg, ${skillColors[skillLevel]}88, ${skillColors[skillLevel]})`, borderRadius: '3px', transition: 'width 0.5s' }}/>
+            </div>
+          </div>
+          {lowBankroll && (
+            <div style={{ fontSize: '9px', color: '#ef4444', fontWeight: 700, padding: '4px 8px', borderRadius: '6px', background: '#2a0a0a', border: '1px solid #5a1a1a', whiteSpace: 'nowrap' }}>
+              LOW BR!
+            </div>
+          )}
         </div>
 
         {/* ═══ MAIN BUTTONS ROW ═══ */}
@@ -993,13 +1019,22 @@ function Game({ director, onExit }) {
           bots[p.id] = localAI;
         }
       }
-      // Easter egg: rare special avatar bot (~5% in tournaments, ~2% in hardcore)
-      const eggChance = isHardcore ? 0.02 : 0.05;
-      if (Math.random() < eggChance && botPlayers.length > 0) {
-        const eggIdx = Math.floor(Math.random() * botPlayers.length);
-        botPlayers[eggIdx]._isEasterEgg = true;
-        botPlayers[eggIdx].name = 'SwapMe';
-        botPlayers[eggIdx].emoji = null; // Will use photo instead
+      // AI PRO bots in HARDCORE: all get photo avatar
+      if (isHardcore) {
+        for (const p of botPlayers) {
+          if (p._isBoss) {
+            p._isEasterEgg = true; // Use photo avatar for all AI PRO
+            p.emoji = null;
+          }
+        }
+      } else {
+        // Regular tournaments: 5% chance one random bot gets photo
+        if (Math.random() < 0.05 && botPlayers.length > 0) {
+          const eggIdx = Math.floor(Math.random() * botPlayers.length);
+          botPlayers[eggIdx]._isEasterEgg = true;
+          botPlayers[eggIdx].name = 'SwapMe';
+          botPlayers[eggIdx].emoji = null;
+        }
       }
       aiBotsRef.current = bots;
     }
@@ -1759,6 +1794,9 @@ function AppInner() {
   const [director, setDirector] = useState(null);
   const [activeDrill, setActiveDrill] = useState(null);
   const [debriefData, setDebriefData] = useState(null);
+
+  // Wire global GTO navigation for debrief
+  window.__gotoGTO = () => setScreen('gto');
 
   // If profile already selected, skip to lobby
   if (currentProfile && screen === 'profiles') setScreen('lobby');

@@ -112,7 +112,7 @@ export default function DrillShell({ title, correct, total, onBack, streak, chil
       <div style={s.speedToggle}>
         {['casual', 'standard', 'hyper'].map(m => (
           <button key={m} onClick={() => setSpeed(m)} style={s.speedBtn(speed === m)}>
-            {m === 'casual' ? 'No Timer' : m === 'standard' ? '15 sec' : '5 sec'}
+            {m === 'casual' ? 'Easy' : m === 'standard' ? 'Normal (15s)' : 'Hard (5s)'}
           </button>
         ))}
       </div>
