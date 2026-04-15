@@ -285,6 +285,9 @@ export class GameEngine {
 
       if (this.folded.has(p.id) || p.eliminated || this.allIn.has(p.id) || p.chips <= 0) continue;
 
+      // Safety: if only 1 non-folded non-allin player left, no more action needed
+      if (this._canAct().length <= 1 && this._activePlayers().every(ap => ap.id === p.id || this.allIn.has(ap.id))) break;
+
       // If everyone has acted and matched the current bet, street is done
       if (acted.has(p.id) && this.bets[p.id] >= this.currentBet) break;
 
@@ -315,9 +318,13 @@ export class GameEngine {
         await this._delay(150 + Math.floor(cryptoRandomFloat() * 250));
       }
 
-      // FIX: Never fold when toCall is 0 (free check) — preserve meta!
+      // FIX: Never fold when toCall is 0 (free check)
       if (toCall <= 0 && action.action === 'fold') {
-        action = { ...action, action: 'check' }; // Spread preserves _decisionTimeMs etc.
+        action = { ...action, action: 'check' };
+      }
+      // FIX: Player with 0 chips can't fold — they're already all-in
+      if (p.chips <= 0 && action.action === 'fold') {
+        action = { ...action, action: 'check' };
       }
 
       // Apply action
