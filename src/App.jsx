@@ -25,6 +25,7 @@ import PersonalizedDrill from './drills/PersonalizedDrill.jsx';
 import RiverDrill from './drills/RiverDrill.jsx';
 import SolverPushFoldDrill from './drills/SolverPushFoldDrill.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
+import GTOAnalyzer from './stats/GTOAnalyzer.jsx';
 import CoachScreen from './coach/Coach.jsx';
 import RealAnalysis from './stats/RealAnalysis.jsx';
 import GameHistory from './stats/GameHistory.jsx';
@@ -105,7 +106,7 @@ function ProfileSelect({ onSelect }) {
   );
 }
 
-function Lobby({ onStart, onDrills, onStats, onHistory, onCoach, playerName, onSwitchProfile }) {
+function Lobby({ onStart, onDrills, onStats, onGTO, onHistory, onCoach, playerName, onSwitchProfile }) {
   const [format, setFormat] = useState('WSOP_Main');
   const [name, setName] = useState('');
   const [showFormats, setShowFormats] = useState(false);
@@ -294,12 +295,20 @@ function Lobby({ onStart, onDrills, onStats, onHistory, onCoach, playerName, onS
         </button>
 
         {/* ═══ STATS, HISTORY & COACH ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+          <button onClick={onGTO} style={{
+            padding: '16px 8px', borderRadius: '12px', border: '2px solid #22c55e', cursor: 'pointer',
+            background: 'linear-gradient(135deg, rgba(10,30,15,0.9), rgba(15,40,20,0.9))',
+            color: '#22c55e', fontWeight: 800, fontSize: '14px',
+            transition: 'transform 0.12s', boxShadow: '0 0 12px rgba(34,197,94,0.15)',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease}>GTO Analysis</button>
           <button onClick={onStats} style={{
-            padding: '14px 8px', borderRadius: '12px', border: '1px solid #1a2230', cursor: 'pointer',
-            background: 'rgba(10,14,20,0.8)', color: '#8a9aaa', fontWeight: 700, fontSize: '13px',
+            padding: '16px 8px', borderRadius: '12px', border: '1px solid #1a2230', cursor: 'pointer',
+            background: 'rgba(10,14,20,0.8)', color: '#8a9aaa', fontWeight: 700, fontSize: '14px',
             transition: 'transform 0.12s',
           }} onMouseDown={btnPress} onMouseUp={btnRelease}>Statistics</button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
           <button onClick={onHistory} style={{
             padding: '14px 8px', borderRadius: '12px', border: '1px solid #1a2a30', cursor: 'pointer',
             background: 'rgba(10,14,20,0.8)', color: '#d4af37', fontWeight: 700, fontSize: '13px',
@@ -1770,6 +1779,9 @@ function AppInner() {
   if (screen === 'stats') {
     return <div style={appBg}><StatsScreen onBack={() => setScreen('lobby')} /></div>;
   }
+  if (screen === 'gto') {
+    return <div style={appBg}><GTOAnalyzer onBack={() => setScreen('lobby')} /></div>;
+  }
   if (screen === 'history') {
     return <div style={appBg}><GameHistory onBack={() => setScreen('lobby')}
       currentProfile={currentProfile}
@@ -1857,6 +1869,7 @@ function AppInner() {
     }}
     onDrills={() => setScreen('drills')}
     onStats={() => setScreen('stats')}
+    onGTO={() => setScreen('gto')}
     onHistory={() => setScreen('history')}
     onCoach={() => setScreen('coach')}
     playerName={currentProfile?.name}

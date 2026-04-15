@@ -127,6 +127,12 @@ export const WEAK_SPOTS = [
   { hand: '66',  pos: 'vs_HJ', bb: 10, mode: 'call', correct: 'call' },
   { hand: 'QJs', pos: 'vs_CO', bb: 7, mode: 'call', correct: 'call' },
   { hand: 'ATo', pos: 'vs_BTN', bb: 15, mode: 'call', correct: 'call' },
+  // From GTO Wizard analysis (real tournament mistakes)
+  { hand: 'AQo', pos: 'CO', bb: 15, mode: 'push', correct: 'call' },   // Must call HJ all-in with AQo
+  { hand: '86o', pos: 'vs_CO', bb: 16, mode: 'call', correct: 'call' }, // BB defend vs CO
+  { hand: 'QJo', pos: 'SB', bb: 18, mode: 'push', correct: 'push' },   // SB 3-bet or fold, QJo = 3-bet
+  { hand: 'Q9o', pos: 'SB', bb: 12, mode: 'push', correct: 'call' },   // SB multiway, should call
+  { hand: 'A5o', pos: 'BTN', bb: 17, mode: 'push', correct: 'push' },  // BTN open, don't fold vs 3-bet shove
 ];
 
 // ═══ RANGE PARSER ═══
