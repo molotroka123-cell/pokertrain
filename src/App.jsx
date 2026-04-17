@@ -8,6 +8,8 @@ import { mRatio } from './engine/equity.js';
 import { evaluateHand, compareHands } from './engine/evaluator.js';
 import Card from './components/Card.jsx';
 import Controls from './tournament/Controls.jsx';
+import ShotClock from './tournament/ShotClock.jsx';
+import { haptics } from './lib/haptics.js';
 import RangeGrid from './components/RangeGrid.jsx';
 import TournamentDashboard from './tournament/TournamentDashboard.jsx';
 import DebriefScreen from './stats/DebriefScreen.jsx';
@@ -1146,8 +1148,15 @@ function Game({ director, onExit }) {
     else if (action === 'call') Sounds.call();
     else if (action === 'raise' && amount >= (gs?.heroChips || 0)) { Sounds.allIn(); navigator.vibrate?.(200); }
     else if (action === 'raise') Sounds.raise();
+    else haptics.action();
     engineRef.current.submitHeroAction(action, amount);
   }, [gs]);
+
+  const handleShotClockTimeout = useCallback(() => {
+    if (!gs?.waitingForHero) return;
+    const forced = gs.canCheck ? 'check' : 'fold';
+    handleAction(forced);
+  }, [gs, handleAction]);
 
   // Live tell when facing bet
   useEffect(() => {
@@ -1638,6 +1647,25 @@ function Game({ director, onExit }) {
               {advice}
             </div>
           </div>
+        );
+      })()}
+
+      {/* Shot-clock for turbo formats */}
+      {(() => {
+        const fmt = FORMATS[tournState.formatKey];
+        if (!fmt?.shotClock) return null;
+        const bb = bl?.bb || 100;
+        const bigPot = (gs?.pot || 0) >= bb * 10;
+        const shotSec = bigPot ? (fmt.shotClockBigSec || 30) : (fmt.shotClockSec || 15);
+        const actionKey = `${gs?.phase}-${(gs?.actionLog || []).length}`;
+        return (
+          <ShotClock
+            active={!!gs?.waitingForHero}
+            seconds={shotSec}
+            timeBankSec={fmt.timeBankSec || 30}
+            actionKey={actionKey}
+            onTimeout={handleShotClockTimeout}
+          />
         );
       })()}
 
