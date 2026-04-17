@@ -18,22 +18,25 @@ export const RFI_RANGES = {
 // Strategy: Raise (not push) — open-raise sizing 2x-2.5x
 export const MTT_RFI_RANGES = {
   // UTG 24bb — tightest position, Raise 2x, pot odds 28.6%
+  // GTO Wizard correction: 22-44 are fold at this depth (no implied odds)
   UTG: {
     bb: 24,
-    raise: "22+, A2s+, K9s+, QTs+, JTs, T9s, 98s, 87s, 76s, 65s, 54s, ATo+, KJo+, QJo",
+    raise: "55+, A2s+, K9s+, QTs+, JTs, T9s, 98s, 87s, 76s, 65s, 54s, ATo+, KJo+, QJo",
     sizing: '2x',
   },
   // UTG1 27bb — second earliest, Raise 2x, pot odds 28.6%
   UTG1: {
     bb: 27,
-    raise: "22+, A2s+, K9s+, Q9s+, J9s+, T8s+, 97s+, 86s+, 75s, 65s, 54s, ATo+, KJo+, QJo",
+    raise: "55+, A2s+, K9s+, Q9s+, J9s+, T8s+, 97s+, 86s+, 75s, 65s, 54s, ATo+, KJo+, QJo",
     sizing: '2x',
   },
   // LJ (Lojack) 16bb — Raise 2x, pot odds 28.6%
+  // GTO Wizard: at ~23bb, 33 is fold. At 16bb small pairs are still ok push/raise.
   LJ: {
     bb: 16,
     raise: "22+, A2s+, K8s+, Q9s+, J9s+, T8s+, 98s, 87s, 76s, 65s, 54s, ATo+, KJo+, QJo",
     sizing: '2x',
+    note: 'At 20bb+, drop 22-44 (GTO prefers fold or call 3-bet jam instead)',
   },
   // HJ (Hijack) 14bb — Raise 2x, pot odds 28.6%
   HJ: {
@@ -104,11 +107,11 @@ export const CASH_6MAX_RFI_RANGES = {
 export const THREEBET_RANGES = {
   vs_UTG: {
     threebet: "QQ+, AKs, AKo, A5s, A4s, A3s",
-    call: "22-JJ, AQs, AQo, AJs, KQs, ATs, KJs, QJs, JTs, T9s, 98s",
+    call: "22-JJ, AQs, AQo, AJs, AJo, ATs, ATo, KQs, KJs, QJs, QTs, JTs, T9s, 98s, 87s",
   },
   vs_HJ: {
     threebet: "QQ+, AKs, AKo, AQs, A5s, A4s, A3s, A2s, KTs",
-    call: "22-JJ, AQo, AJs, ATs, KQs, KJs, QJs, QTs, JTs, T9s, 98s, 87s",
+    call: "22-JJ, AQo, AJs, AJo, ATs, ATo, KQs, KJs, KJo, QJs, QTs, JTs, T9s, 98s, 87s, 76s",
   },
   vs_CO: {
     threebet: "TT+, AKs, AKo, AQs, AQo, A5s, A4s, A3s, A2s, K9s, QJs, JTs, T9s",
@@ -276,6 +279,17 @@ export function getBBDefenseAction(card1, card2, openerPos) {
   if (isInRange(handKey, ranges.threebet)) return '3bet';
   if (isInRange(handKey, ranges.call)) return 'call';
   return 'fold';
+}
+
+// ═══ HELPER: BB multiway defense — tighter than heads-up ═══
+// When facing raise + 1+ caller, fold almost all trash
+// Based on GTO Wizard: 94o multiway = fold (EV loss 0.15bb to call)
+const MULTIWAY_BB_DEFEND = parseRange(
+  "22+, A2s+, K7s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, 65s, 54s, A9o+, KTo+, QTo+, JTo"
+);
+export function getBBDefenseMultiway(card1, card2) {
+  const handKey = cardsToHandKey(card1, card2);
+  return MULTIWAY_BB_DEFEND.has(handKey) ? 'call' : 'fold';
 }
 
 // ═══ ANALYTICS: Range statistics ═══

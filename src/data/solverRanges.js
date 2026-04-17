@@ -133,6 +133,11 @@ export const WEAK_SPOTS = [
   { hand: 'QJo', pos: 'SB', bb: 18, mode: 'push', correct: 'push' },   // SB 3-bet or fold, QJo = 3-bet
   { hand: 'Q9o', pos: 'SB', bb: 12, mode: 'push', correct: 'call' },   // SB multiway, should call
   { hand: 'A5o', pos: 'BTN', bb: 17, mode: 'push', correct: 'push' },  // BTN open, don't fold vs 3-bet shove
+  // New batch from GTO Wizard (April 2026)
+  { hand: 'A7o', pos: 'SB', bb: 24, mode: 'call', correct: 'call' },   // SB defend vs HJ all-in 6.5bb
+  { hand: '33',  pos: 'LJ', bb: 23, mode: 'open', correct: 'fold' },   // Small pairs fold from early pos ~23bb
+  { hand: 'ATo', pos: 'BTN', bb: 26, mode: 'vs_open', correct: 'call' }, // BTN vs UTG1 3x = call (not fold)
+  { hand: '94o', pos: 'BB', bb: 21, mode: 'defend_mw', correct: 'fold' }, // BB don't defend trash multiway
 ];
 
 // ═══ RANGE PARSER ═══
