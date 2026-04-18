@@ -4,20 +4,20 @@ import { loadSessions } from '../recorder/ActionRecorder.js';
 import { getAchievements, getLeaderboard, getBankroll } from '../lib/achievements.js';
 
 const s = {
-  container: { padding: '16px', maxWidth: '520px', margin: '0 auto' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
-  title: { fontSize: '20px', fontWeight: 700, color: '#ffd700' },
-  back: { padding: '6px 14px', background: '#0d1118', border: '1px solid #1a2230', borderRadius: '8px', color: '#5a7a8a', fontSize: '12px', cursor: 'pointer' },
+  container: { padding: '16px', maxWidth: '520px', margin: '0 auto', minHeight: '100vh', background: '#050b18' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '8px 0' },
+  title: { fontSize: '20px', fontWeight: 900, color: '#4ac8ff', letterSpacing: '2px' },
+  back: { padding: '8px 16px', background: 'rgba(10,20,40,0.8)', border: '1px solid rgba(74,200,255,0.25)', borderRadius: '10px', color: '#4ac8ff', fontSize: '12px', cursor: 'pointer', fontWeight: 700 },
   grid: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '16px' },
-  stat: { background: '#0d1118', borderRadius: '10px', padding: '14px', textAlign: 'center', border: '1px solid #1a2230' },
-  label: { fontSize: '9px', color: '#3a4a5a', textTransform: 'uppercase', letterSpacing: '0.5px' },
-  val: { fontSize: '22px', fontWeight: 700, marginTop: '4px' },
-  section: { background: '#0d1118', borderRadius: '12px', padding: '14px', marginBottom: '12px', border: '1px solid #1a2230' },
-  secTitle: { fontSize: '13px', fontWeight: 700, color: '#e8d48b', marginBottom: '10px' },
-  row: { display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #0a0d12', fontSize: '13px' },
+  stat: { background: 'rgba(8,16,28,0.8)', borderRadius: '14px', padding: '16px', textAlign: 'center', border: '1px solid rgba(74,200,255,0.15)', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' },
+  label: { fontSize: '9px', color: '#4a7a9a', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 700 },
+  val: { fontSize: '24px', fontWeight: 900, marginTop: '6px' },
+  section: { background: 'rgba(8,16,28,0.8)', borderRadius: '16px', padding: '16px', marginBottom: '12px', border: '1px solid rgba(74,200,255,0.12)', boxShadow: '0 4px 16px rgba(0,0,0,0.3)' },
+  secTitle: { fontSize: '13px', fontWeight: 800, color: '#4ac8ff', marginBottom: '12px', letterSpacing: '1px' },
+  row: { display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(74,200,255,0.06)', fontSize: '13px' },
   graph: { display: 'flex', alignItems: 'flex-end', gap: '2px', height: '80px', padding: '8px 0' },
-  bar: (h, color) => ({ width: '100%', height: Math.max(2, h) + '%', background: color, borderRadius: '2px 2px 0 0', transition: 'height 0.3s' }),
-  empty: { textAlign: 'center', padding: '40px', color: '#3a4a5a', fontSize: '14px' },
+  bar: (h, color) => ({ width: '100%', height: Math.max(2, h) + '%', background: color, borderRadius: '3px 3px 0 0', transition: 'height 0.3s' }),
+  empty: { textAlign: 'center', padding: '40px', color: '#3a5a6a', fontSize: '14px' },
 };
 
 export default function StatsScreen({ onBack }) {
@@ -39,7 +39,8 @@ export default function StatsScreen({ onBack }) {
     const recs = sess.records || [];
     const handNums = new Set(recs.map(r => r.handNumber));
     totalHands += handNums.size;
-    totalMistakeCount += recs.filter(r => r.mistakeType).length;
+    const mistakeHands = new Set(recs.filter(r => r.mistakeType).map(r => r.handNumber));
+    totalMistakeCount += mistakeHands.size;
     // Per-session preflop dedup
     const pfMap = new Map();
     for (const r of recs) { if (r.stage === 'preflop' && !pfMap.has(r.handNumber)) pfMap.set(r.handNumber, r); }

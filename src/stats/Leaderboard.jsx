@@ -39,9 +39,13 @@ export default function Leaderboard({ onBack }) {
   const hero = getHeroStats();
   const playerName = localStorage.getItem('pokertrain_current_profile') || 'Hero';
 
+  const weeklyVariance = (seed) => Math.abs(((seed * 9301 + 49297) % 233280) / 233280 * 20 - 10);
+  const players = tab === 'weekly'
+    ? SIMULATED_PLAYERS.map((p, i) => ({ ...p, gtoScore: Math.min(99, Math.max(40, p.gtoScore + Math.round(weeklyVariance(i + 7) - 5))), hands: Math.round(p.hands * 0.08) }))
+    : SIMULATED_PLAYERS;
   const allPlayers = [
-    { name: playerName, flag: '⭐', gtoScore: hero.gtoScore, hands: hero.hands, bestFinish: hero.bestFinish, roi: hero.roi, isHero: true },
-    ...SIMULATED_PLAYERS,
+    { name: playerName, flag: '⭐', gtoScore: hero.gtoScore, hands: tab === 'weekly' ? Math.round(hero.hands * 0.08) : hero.hands, bestFinish: hero.bestFinish, roi: hero.roi, isHero: true },
+    ...players,
   ].sort((a, b) => b.gtoScore - a.gtoScore);
 
   const medals = ['🥇', '🥈', '🥉'];

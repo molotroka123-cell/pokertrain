@@ -128,8 +128,9 @@ export function generateDebrief(records) {
       // Regular +EV fold (adjusted for barrels)
       else {
         let adjEq = eq;
-        if (barrels >= 3) adjEq *= 0.55;
-        else if (barrels >= 2) adjEq *= 0.75;
+        if (barrels >= 3) adjEq *= 0.50;
+        else if (barrels >= 2) adjEq *= 0.70;
+        else if (barrels >= 1) adjEq *= 0.85;
         const adjEv = adjEq * (pot + toCall) - (1 - adjEq) * toCall;
         if (adjEv > 0 && adjEq > odds + 0.08 && Math.abs(adjEv) > (d.blinds ? 200 : 50) * 2) {
           if (!(commit > 0.35 && ['high_card', 'bottom_pair'].includes(mh))) {

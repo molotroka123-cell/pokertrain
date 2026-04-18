@@ -101,9 +101,21 @@ function getDailyMissions(ranked) {
     completed: 0,
   }));
 
-  const data = { date: today, missions, streak: (saved.streak || 0) + (saved.date === new Date(Date.now() - 86400000).toISOString().slice(0, 10) ? 1 : 0) };
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const streakContinues = saved.date === yesterday;
+  const data = { date: today, missions, streak: streakContinues ? (saved.streak || 0) + 1 : 1 };
   localStorage.setItem('pokertrain_daily_missions', JSON.stringify(data));
   return data;
+}
+
+function completeMission(missionId) {
+  const saved = JSON.parse(localStorage.getItem('pokertrain_daily_missions') || '{}');
+  if (!saved.missions) return;
+  const m = saved.missions.find(m => m.id === missionId);
+  if (m && m.completed < m.target) {
+    m.completed = Math.min(m.completed + 1, m.target);
+    localStorage.setItem('pokertrain_daily_missions', JSON.stringify(saved));
+  }
 }
 
 // Baseline tracker

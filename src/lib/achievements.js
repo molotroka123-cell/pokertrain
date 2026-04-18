@@ -43,12 +43,15 @@ export function getAchievements() {
 
 function computeAllTimeStats(sessions) {
   let totalHands = 0, cleanSessions = 0, finalTables = 0, itmCount = 0;
-  let deepRuns = 0, sharkSessions = 0, noTiltStreak = 0, bestFinish = Infinity;
+  let deepRuns = 0, sharkSessions = 0, noTiltStreak = 0, currentTiltStreak = 0, bestFinish = Infinity;
 
   for (const s of sessions) {
     totalHands += s.summary?.handsPlayed || s.records?.length || 0;
     const mistakes = s.summary?.totalMistakes ?? s.records?.filter(r => r.mistakeType)?.length ?? 0;
     if (mistakes === 0 && totalHands > 10) cleanSessions++;
+    const tiltDetected = s.summary?.tiltWindows?.length > 0;
+    if (!tiltDetected) { currentTiltStreak++; noTiltStreak = Math.max(noTiltStreak, currentTiltStreak); }
+    else { currentTiltStreak = 0; }
 
     // Check finish position (from records)
     const recs = s.records || [];
