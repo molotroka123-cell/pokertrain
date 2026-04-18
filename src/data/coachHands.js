@@ -143,7 +143,182 @@ export const COACH_HANDS = [
       'На JJ6 flop как preflop caller vs 3bettor — range vs range невыгодно лидить. 3-better имеет JJ+, AA, KK, QQ намного чаще. 88 нужен чек-колл (bluff-catcher), не bet-jam.',
     lesson: 'После call 3-bet OOP — чекай как default. Лид только на flop которые бьют твой range (98x, 76x, low connectors).',
   },
+
+  // ═══ BATCH 2: Jam-defense pattern (6 hands — systematic BB/SB overfold) ═══
+
+  {
+    id: 'bb_q8_call_btn_jam_14bb',
+    title: 'BB Q8o — call BTN 6bb jam',
+    tags: ['preflop', 'facing_jam', 'bb', 'defend_short'],
+    blinds: '500/1000 (150)',
+    level: 'MTT',
+    hero: { pos: 'BB', cards: 'Q♣8♣', stackBB: 13.8 },
+    players: { CO: 7.87, BTN: 6.17, SB: 14, BB: 13.8 },
+    action: [
+      { street: 'preflop', actor: 'CO', action: 'fold' },
+      { street: 'preflop', actor: 'BTN', action: 'all_in', size: 6.17 },
+      { street: 'preflop', actor: 'SB', action: 'fold' },
+      { street: 'preflop', actor: 'BB', action: 'fold', mistake: true, gto: 'call' },
+    ],
+    verdict: 'Mistake',
+    evLoss: 0.59,
+    explanation:
+      'BTN shove 6bb в BB = огромные шансы банка (~1:1.5). Q8o доминирует много рук из shove range BTN (Qx, 8x, low pairs). Fold теряет 0.59bb EV.',
+    lesson: 'vs BTN jam ≤10bb из BB: call любой Q+ kicker, любой A, любой K, пара 22+, и много suited connectors.',
+  },
+
+  {
+    id: 'sb_t6_jam_10bb',
+    title: 'SB T6o — shove at 10bb',
+    tags: ['preflop', 'rfi', 'sb', 'push_fold'],
+    blinds: '750/1500 (225)',
+    level: 'MTT',
+    hero: { pos: 'SB', cards: 'T♣6♣', stackBB: 10.2 },
+    players: { CO: 6.7, BTN: 7.3, SB: 10.2, BB: 3.7 },
+    action: [
+      { street: 'preflop', actor: 'CO', action: 'fold' },
+      { street: 'preflop', actor: 'BTN', action: 'fold' },
+      { street: 'preflop', actor: 'SB', action: 'fold', mistake: true, gto: 'all_in' },
+    ],
+    verdict: 'Mistake',
+    evLoss: 0.66,
+    explanation:
+      'SB 10bb vs BB 3.7bb (короче) — мощный ICM-мотив бить. T6o 93% GTO шов: BB не может защищаться широко с 3.7bb стеком (фолды → +1.5bb pot). Любой 2-карты, pair+, Kx, Ax — jam.',
+    lesson: 'SB 10bb vs коротыш BB: Nash чарты дают всё что выше 72o. Fold = leak.',
+  },
+
+  {
+    id: 'bb_j2_call_sb_jam_4bb',
+    title: 'BB J2o — call SB 4bb jam',
+    tags: ['preflop', 'facing_jam', 'bb', 'defend_micro'],
+    blinds: '125/250 (38)',
+    level: 'MTT',
+    hero: { pos: 'BB', cards: 'J♦2♦', stackBB: 15.8 },
+    players: { CO: 19, BTN: 14, SB: 4, BB: 15.8 },
+    action: [
+      { street: 'preflop', actor: 'CO', action: 'fold' },
+      { street: 'preflop', actor: 'BTN', action: 'fold' },
+      { street: 'preflop', actor: 'SB', action: 'all_in', size: 4 },
+      { street: 'preflop', actor: 'BB', action: 'fold', mistake: true, gto: 'call' },
+    ],
+    verdict: 'Mistake',
+    evLoss: 0.74,
+    explanation:
+      'SB 4bb jam — отчаянный шов, range почти any-two (80%+). J-high уже сильно впереди. Шансы банка 2.5:1. Fold = huge leak.',
+    lesson: 'vs SB jam ≤5bb: call ЛЮБЫМИ картами где high card J+. Даже J2o, T2s — это call.',
+  },
+
+  {
+    id: 'sb_qq_river_overbet_100bb',
+    title: 'SB QQ river overbet 99% — GTO 23%',
+    tags: ['postflop', 'river', 'sb', 'sizing_error'],
+    blinds: '25/50 (8)',
+    level: 'MTT',
+    hero: { pos: 'SB', cards: 'Q♥Q♠', stackBB: 66 },
+    players: { CO: 66, BTN: 66, SB: 66, BB: 66 },
+    action: [
+      { street: 'preflop', actor: 'CO', action: 'fold' },
+      { street: 'preflop', actor: 'BB', action: 'fold' },
+      { street: 'preflop', actor: 'BTN', action: 'raise', size: 2.5 },
+      { street: 'preflop', actor: 'SB', action: 'raise', size: 10 },
+      { street: 'preflop', actor: 'BTN', action: 'call' },
+      { street: 'flop', board: 'Q♦6♠4♠', pot: 14.1 },
+      { street: 'flop', actor: 'SB', action: 'check' },
+      { street: 'flop', actor: 'BTN', action: 'check' },
+      { street: 'turn', board: '9♠', pot: 14.1 },
+      { street: 'turn', actor: 'SB', action: 'bet', size: 7 },
+      { street: 'turn', actor: 'BTN', action: 'call' },
+      { street: 'river', board: '9♦', pot: 28.2 },
+      { street: 'river', actor: 'SB', action: 'bet', size: 28, mistake: true, gto: 'bet_small' },
+    ],
+    verdict: 'Mistake',
+    evLoss: 1.17,
+    explanation:
+      'River double-paired (9♠9♦) убивает вэлью оверберта. QQ = 3-й nuts, но 99 и 66 тебя бьют. BTN коллирует small с pair, овербет выгоняет весь вэлью range кроме AA/KK/QQ-blockers.',
+    lesson: 'River на paired-paired борде: thin value size (20-30% pot). Overbet только на nuts или чистый bluff.',
+  },
+
+  {
+    id: 'bb_jt_call_btn_jam_54bb',
+    title: 'BB JTo — call BTN 10bb jam (deep stack)',
+    tags: ['preflop', 'facing_jam', 'bb', 'defend_short'],
+    blinds: '600/1200 (150)',
+    level: 'MTT',
+    hero: { pos: 'BB', cards: 'J♣T♣', stackBB: 53.9 },
+    players: { LJ: 32.2, HJ: 39.2, CO: 17.1, BTN: 10.1, SB: 17.8, BB: 53.9 },
+    action: [
+      { street: 'preflop', actor: 'LJ', action: 'fold' },
+      { street: 'preflop', actor: 'HJ', action: 'fold' },
+      { street: 'preflop', actor: 'CO', action: 'fold' },
+      { street: 'preflop', actor: 'BTN', action: 'all_in', size: 10.1 },
+      { street: 'preflop', actor: 'SB', action: 'fold' },
+      { street: 'preflop', actor: 'BB', action: 'fold', mistake: true, gto: 'call' },
+    ],
+    verdict: 'Mistake',
+    evLoss: 0.76,
+    explanation:
+      'BTN 10bb jam range = ~50% рук (Q5s+, 22+, Ax, Kx, some connectors). JTo имеет ~42% equity vs этот range. Шансы банка 2.2:1 → break-even на 31%. Call = +0.76bb EV.',
+    lesson: 'Covered BB vs BTN jam ~10bb: call всеми broadway, A+, K+, 22+, JTo/JT9/T9s connectors.',
+  },
+
+  {
+    id: 'bb_qt_call_btn_jam_60bb',
+    title: 'BB QTo — call BTN 10bb jam',
+    tags: ['preflop', 'facing_jam', 'bb', 'defend_short'],
+    blinds: '600/1200 (150)',
+    level: 'MTT',
+    hero: { pos: 'BB', cards: 'Q♠T♥', stackBB: 60.2 },
+    players: { LJ: 27.4, HJ: 64.2, CO: 3.77, BTN: 9.98, SB: 10.4, BB: 60.2 },
+    action: [
+      { street: 'preflop', actor: 'LJ', action: 'fold' },
+      { street: 'preflop', actor: 'HJ', action: 'fold' },
+      { street: 'preflop', actor: 'CO', action: 'fold' },
+      { street: 'preflop', actor: 'BTN', action: 'all_in', size: 9.98 },
+      { street: 'preflop', actor: 'SB', action: 'fold' },
+      { street: 'preflop', actor: 'BB', action: 'fold', mistake: true, gto: 'call' },
+    ],
+    verdict: 'Mistake',
+    evLoss: 1.05,
+    explanation:
+      'Ещё один BB overfold vs BTN 10bb jam. QTo ещё сильнее чем JTo: Q-blocker, T-blocker, пара Q+ с любой масти. Call = +1.05bb EV.',
+    lesson: 'ПОВТОРЕНИЕ: BB vs BTN 10bb jam — QTo, JTo, KXo, AXo все call. Даже Q8o, J8s call.',
+  },
 ];
+
+// ═══ Bot training dataset: aggregated corrections for AI to learn from ═══
+// Used by adaptiveAI to adjust bot ranges based on real GTO solutions
+export const BOT_GTO_CORRECTIONS = {
+  // BB defense vs short jams — systematic correction
+  bb_vs_jam_6_10bb: {
+    call: 'J2s+, T3s+, 93s+, 82s+, 72s+, 63s+, 53s+, 22+, A2o+, K4o+, Q7o+, J8o+, T8o+, 98o, any_suited_connector',
+    evLossIfFold: 0.5,
+  },
+  bb_vs_jam_4_5bb: {
+    call: 'any_two_cards_with_high_card_8_or_better', // ~85% of hands
+    evLossIfFold: 0.7,
+  },
+  sb_jam_10bb_vs_short_bb: {
+    jam: '22+, A2+, K2+, Q2+, J2+, T2+, 92s+, 82s+, 72s+, 62s+, 52s+, 42s+', // jam ~70% of hands
+    evLossIfFold: 0.6,
+  },
+  // Small pairs early position — fold not raise
+  small_pair_early_mtt: {
+    positions: ['UTG', 'UTG1', 'LJ'],
+    stackRange: [18, 35],
+    fold: ['22', '33', '44'],
+    evLossIfRaise: 0.07,
+  },
+  // BTN vs UTG open — flat wider
+  btn_vs_early_open_call: {
+    call: 'ATo, AJo, KJo, KQo, A9s, KJs, QJs, JTs, T9s, 98s, 87s, 76s, 22+',
+    evLossIfFold: 0.13,
+  },
+  // Big pair river overbet on paired-paired
+  river_overbet_paired_board: {
+    rule: 'On double-paired river, size down to 25-35% pot even with nuts',
+    evLossIfOverbet: 1.17,
+  },
+};
 
 // Group by tag for filtering
 export function getHandsByTag(tag) {

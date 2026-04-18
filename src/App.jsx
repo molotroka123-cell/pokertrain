@@ -178,201 +178,323 @@ function Lobby({ onStart, onDrills, onStats, onGTO, onLeaks, onHistory, onCoach,
           <div style={{ fontSize: '10px', color: '#4a6a8a', marginTop: '2px', letterSpacing: '2px' }}>V2.0 — GTO EDITION</div>
         </div>
 
-        {/* ═══ PLAYER CARD ═══ */}
+        {/* ═══ PREMIUM PLAYER STRIP ═══ */}
         <div style={{
-          display: 'flex', alignItems: 'center', gap: '14px',
-          padding: '14px 18px', borderRadius: '14px', marginBottom: '16px',
-          background: 'linear-gradient(135deg, rgba(15,20,30,0.9), rgba(20,28,40,0.9))',
-          border: '1px solid #1a2a3a', backdropFilter: 'blur(8px)',
+          padding: '14px 16px', borderRadius: '18px', marginBottom: '16px',
+          background: 'linear-gradient(135deg, rgba(18,22,32,0.95), rgba(12,16,24,0.95))',
+          border: '1px solid rgba(212,175,55,0.12)',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
         }}>
-          {/* Avatar */}
-          <div style={{
-            width: '50px', height: '50px', borderRadius: '50%',
-            background: 'linear-gradient(145deg, #1a2a40, #0a1520)',
-            border: '2px solid #2a4060', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '20px', color: '#4a6a8a', flexShrink: 0,
-          }}>♠</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: '#c0d0e0' }}>{playerName || 'Hero'}</div>
-            {onSwitchProfile && <div onClick={onSwitchProfile} style={{ fontSize: '10px', color: '#4a6a8a', cursor: 'pointer', marginTop: '2px' }}>Switch profile</div>}
-            <input value={name} onChange={e => setName(e.target.value)} placeholder={playerName || "Hero"}
-              style={{
-                width: '100%', padding: 0, background: 'transparent', border: 'none',
-                color: '#e0e0e0', fontSize: '18px', fontWeight: 700, outline: 'none',
-              }} />
-          </div>
-          <div style={{
-            fontSize: '16px', fontWeight: 800,
-            color: lowBankroll ? '#ef4444' : '#ffd700',
-            textShadow: lowBankroll ? '0 0 10px rgba(239,68,68,0.3)' : '0 0 10px rgba(212,175,55,0.3)',
-          }}>${bankroll.toLocaleString()}</div>
-        </div>
-        {/* Learning path + bankroll alert */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'center' }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-              <span style={{ fontSize: '9px', color: '#4a5a6a', letterSpacing: '1px' }}>SKILL PATH</span>
-              <span style={{ fontSize: '10px', fontWeight: 700, color: skillColors[skillLevel] }}>{skillLevel}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '44px', height: '44px', borderRadius: '14px',
+              background: 'linear-gradient(145deg, #ffd700, #8a7520)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '20px', fontWeight: 900, color: '#1a1204',
+              boxShadow: '0 4px 14px rgba(212,175,55,0.35)',
+              flexShrink: 0,
+            }}>
+              {(playerName || name || 'H')[0].toUpperCase()}
             </div>
-            <div style={{ height: '6px', background: '#141a22', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${skillPct}%`, background: `linear-gradient(90deg, ${skillColors[skillLevel]}88, ${skillColors[skillLevel]})`, borderRadius: '3px', transition: 'width 0.5s' }}/>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder={playerName || "Hero"}
+                style={{
+                  width: '100%', padding: 0, background: 'transparent', border: 'none',
+                  color: '#fff', fontSize: '16px', fontWeight: 800, outline: 'none',
+                  letterSpacing: '0.3px',
+                }} />
+              {onSwitchProfile && (
+                <div onClick={onSwitchProfile} style={{
+                  fontSize: '10px', color: '#4a6a8a', cursor: 'pointer', marginTop: '2px',
+                  display: 'inline-block',
+                }}>Switch ↗</div>
+              )}
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '9px', color: '#5a6a7a', letterSpacing: '1.5px', fontWeight: 700 }}>BANKROLL</div>
+              <div style={{
+                fontSize: '18px', fontWeight: 900,
+                color: lowBankroll ? '#ef4444' : '#ffd700',
+                textShadow: lowBankroll ? '0 0 12px rgba(239,68,68,0.5)' : '0 0 12px rgba(212,175,55,0.4)',
+                lineHeight: 1,
+              }}>${(bankroll/1000).toFixed(1)}K</div>
+            </div>
+          </div>
+          {/* Skill progress bar */}
+          <div style={{ marginTop: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <span style={{ fontSize: '9px', color: '#4a5a6a', letterSpacing: '1.5px', fontWeight: 700 }}>
+                {skillLevel.toUpperCase()} · {sessCount} SESSIONS
+              </span>
+              <span style={{ fontSize: '9px', fontWeight: 800, color: skillColors[skillLevel], letterSpacing: '1px' }}>{skillPct}%</span>
+            </div>
+            <div style={{ height: '4px', background: 'rgba(20,26,34,0.8)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', width: `${skillPct}%`,
+                background: `linear-gradient(90deg, ${skillColors[skillLevel]}88, ${skillColors[skillLevel]})`,
+                borderRadius: '2px', transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: `0 0 10px ${skillColors[skillLevel]}66`,
+              }}/>
             </div>
           </div>
           {lowBankroll && (
-            <div style={{ fontSize: '9px', color: '#ef4444', fontWeight: 700, padding: '4px 8px', borderRadius: '6px', background: '#2a0a0a', border: '1px solid #5a1a1a', whiteSpace: 'nowrap' }}>
-              LOW BR!
+            <div style={{
+              marginTop: '10px', fontSize: '10px', color: '#ef4444', fontWeight: 700,
+              padding: '6px 10px', borderRadius: '8px',
+              background: 'rgba(40,10,10,0.8)', border: '1px solid rgba(239,68,68,0.3)',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}>
+              <span>⚠</span> Low bankroll — rebuild at micro stakes
             </div>
           )}
         </div>
 
-        {/* ═══ MAIN BUTTONS ROW ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-          <button onClick={() => { setShowFormats(!showFormats); }} style={{
-            padding: '18px 14px', borderRadius: '14px', border: '1px solid #1a4a2a',
-            background: 'linear-gradient(160deg, #0a2a14, #1a5a30, #0a3018)',
-            color: '#fff', fontWeight: 800, fontSize: '13px', letterSpacing: '0.5px',
-            cursor: 'pointer', transition: 'transform 0.12s, filter 0.12s',
-            boxShadow: '0 4px 20px rgba(30,100,50,0.2)',
-          }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
-            <div style={{ fontSize: '12px', marginBottom: '2px' }}>♛</div>
-            START TOURNAMENT
-          </button>
-          <button onClick={onDrills} style={{
-            padding: '18px 14px', borderRadius: '14px', border: '1px solid #1a3060',
-            background: 'linear-gradient(160deg, #0a1a3a, #1a4080, #0a2050)',
-            color: '#fff', fontWeight: 800, fontSize: '13px', letterSpacing: '0.5px',
-            cursor: 'pointer', transition: 'transform 0.12s, filter 0.12s',
-            boxShadow: '0 4px 20px rgba(30,60,130,0.2)',
-          }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
-            <div style={{ fontSize: '12px', marginBottom: '2px' }}>◎</div>
-            TRAINING DRILLS
-          </button>
+        {/* ═══ PRIMARY CTA — PLAY TOURNAMENT ═══ */}
+        <div onClick={() => setShowFormats(!showFormats)} style={{
+          padding: '22px 20px', borderRadius: '20px', cursor: 'pointer', marginBottom: '10px',
+          background: showFormats
+            ? 'linear-gradient(135deg, #0a2a14, #1a5a30, #0a2a14)'
+            : 'linear-gradient(135deg, #0f2a18, #1a6a3a, #0f2a18)',
+          border: '1px solid rgba(34,197,94,0.3)',
+          boxShadow: '0 10px 40px rgba(34,197,94,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
+          position: 'relative', overflow: 'hidden',
+          transition: 'transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
+          <div style={{
+            position: 'absolute', top: '-50%', right: '-20%', width: '300px', height: '300px',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }}>
+            <div style={{
+              width: '56px', height: '56px', borderRadius: '16px',
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '28px', color: '#fff',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)',
+              flexShrink: 0,
+            }}>♛</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff', letterSpacing: '0.5px' }}>
+                PLAY TOURNAMENT
+              </div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginTop: '3px' }}>
+                {FORMATS[format]?.name || 'Pick format'} · ${FORMATS[format]?.buyIn?.toLocaleString()}
+              </div>
+            </div>
+            <div style={{
+              fontSize: '20px', color: 'rgba(255,255,255,0.8)',
+              transform: showFormats ? 'rotate(90deg)' : 'rotate(0)', transition: 'transform 0.25s',
+            }}>▸</div>
+          </div>
         </div>
 
-        {/* ═══ FORMAT SELECTOR (expandable) ═══ */}
+        {/* ═══ FORMAT SELECTOR (expandable panel) ═══ */}
         {showFormats && (
           <div style={{
-            padding: '12px', borderRadius: '14px', marginBottom: '10px',
-            background: 'rgba(10,14,20,0.95)', border: '1px solid #141e2a',
-            animation: 'floatUp 0.25s ease-out',
+            padding: '10px', borderRadius: '16px', marginBottom: '14px',
+            background: 'linear-gradient(180deg, rgba(12,16,24,0.98), rgba(8,11,18,0.98))',
+            border: '1px solid rgba(212,175,55,0.15)',
+            animation: 'floatUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            maxHeight: '55vh', overflowY: 'auto',
           }}>
             {Object.entries(FORMATS).map(([key, f]) => (
               <div key={key} onClick={() => setFormat(key)} style={{
-                padding: '10px 12px', borderRadius: '10px', marginBottom: '4px', cursor: 'pointer',
-                background: format === key ? 'rgba(212,175,55,0.08)' : 'transparent',
-                border: format === key ? '1px solid rgba(212,175,55,0.2)' : '1px solid transparent',
+                padding: '12px 14px', borderRadius: '12px', marginBottom: '4px', cursor: 'pointer',
+                background: format === key ? 'linear-gradient(135deg, rgba(212,175,55,0.12), rgba(212,175,55,0.04))' : 'transparent',
+                border: format === key ? '1px solid rgba(212,175,55,0.3)' : '1px solid transparent',
+                transition: 'all 0.15s',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <span style={{ fontWeight: 700, fontSize: '13px', color: format === key ? '#ffd700' : '#8a9aaa' }}>{f.name}</span>
-                    {f.speed && <span style={{ fontSize: '9px', marginLeft: '6px', color: '#5a6a7a' }}>{f.speed}</span>}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '14px', color: format === key ? '#ffd700' : '#c0d0e0' }}>{f.name}</span>
+                      {f.shotClock && (
+                        <span style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '4px', background: '#8b5cf6', color: '#fff', fontWeight: 700, letterSpacing: '0.5px' }}>
+                          SHOT CLOCK
+                        </span>
+                      )}
+                      {f.isHardcore && (
+                        <span style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '4px', background: '#c0392b', color: '#fff', fontWeight: 700, letterSpacing: '0.5px' }}>
+                          ☠ AI PRO
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#5a6a7a', marginTop: '3px' }}>
+                      {f.speed || 'Standard'} · {f.players}p · {f.startingChips.toLocaleString()} chips
+                    </div>
                   </div>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: format === key ? '#ffd700' : '#2a3a4a' }}>${f.buyIn.toLocaleString()}</span>
+                  <span style={{ fontSize: '14px', fontWeight: 800, color: format === key ? '#ffd700' : '#4a5a6a' }}>${f.buyIn.toLocaleString()}</span>
                 </div>
-                <div style={{ fontSize: '10px', color: '#3a4a5a', marginTop: '2px' }}>{f.players} players · {f.startingChips.toLocaleString()} chips</div>
               </div>
             ))}
             <button onClick={() => { onStart(format, name || 'Hero'); setShowFormats(false); }} style={{
-              width: '100%', padding: '14px', border: 'none', borderRadius: '10px', cursor: 'pointer', marginTop: '6px',
+              width: '100%', padding: '16px', border: 'none', borderRadius: '12px', cursor: 'pointer', marginTop: '8px',
               background: 'linear-gradient(135deg, #1a6a3a, #22a050)',
-              color: '#fff', fontWeight: 800, fontSize: '15px',
-              boxShadow: '0 4px 16px rgba(34,160,80,0.25)',
-            }} onMouseDown={btnPress} onMouseUp={btnRelease}>REGISTER — {FORMATS[format]?.name}</button>
+              color: '#fff', fontWeight: 900, fontSize: '14px', letterSpacing: '1px',
+              boxShadow: '0 6px 20px rgba(34,160,80,0.35)',
+            }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+              ♛ REGISTER NOW
+            </button>
           </div>
         )}
 
-        {/* ═══ HARDCORE ═══ */}
-        <div onClick={() => onStart('HARDCORE', name || 'Hero')} style={{
-          padding: '16px 18px', borderRadius: '14px', cursor: 'pointer', marginBottom: '14px',
-          background: 'linear-gradient(135deg, #1a0505, #3a0a0a, #2a0808)',
-          border: '1px solid rgba(200,30,30,0.25)', position: 'relative', overflow: 'hidden',
-          transition: 'transform 0.12s',
-        }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
-          <div style={{ position: 'absolute', top: 0, right: 0, width: '150px', height: '100%', background: 'radial-gradient(circle at 100% 50%, rgba(200,30,30,0.12), transparent)' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ fontSize: '24px' }}>☠</div>
-            <div>
-              <div style={{ fontSize: '15px', fontWeight: 900, color: '#ff4040', letterSpacing: '1px' }}>HARDCORE — 5 AI PRO vs YOU</div>
-              <div style={{ fontSize: '10px', color: '#5a2a2a', marginTop: '2px' }}>6-Max, no mercy, adaptive opponents</div>
-            </div>
+        {/* ═══ QUICK FORMATS — HARDCORE + CASH ═══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '8px', marginBottom: '16px' }}>
+          {/* HARDCORE */}
+          <div onClick={() => onStart('HARDCORE', name || 'Hero')} style={{
+            padding: '14px', borderRadius: '16px', cursor: 'pointer',
+            background: 'linear-gradient(135deg, #1a0606, #3a0a0a, #1a0606)',
+            border: '1px solid rgba(200,30,30,0.3)', position: 'relative', overflow: 'hidden',
+            transition: 'transform 0.12s',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
+            <div style={{ position: 'absolute', top: '-30%', right: '-20%', width: '140px', height: '140px', background: 'radial-gradient(circle, rgba(200,30,30,0.18), transparent)', pointerEvents: 'none' }} />
+            <div style={{ fontSize: '20px', marginBottom: '4px' }}>☠</div>
+            <div style={{ fontSize: '13px', fontWeight: 900, color: '#ff5050', letterSpacing: '0.5px' }}>HARDCORE</div>
+            <div style={{ fontSize: '9px', color: '#7a3a3a', marginTop: '2px' }}>5 AI PRO · no mercy</div>
           </div>
-        </div>
-
-        {/* ═══ CASH GAME ═══ */}
-        <div style={{ fontSize: '10px', color: '#3a4a5a', fontWeight: 700, letterSpacing: '2px', marginBottom: '8px' }}>CASH GAME</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
-          {Object.entries(CASH_FORMATS).map(([key, f]) => (
+          {/* CASH (first option) */}
+          {Object.entries(CASH_FORMATS).slice(0, 1).map(([key, f]) => (
             <div key={key} onClick={() => onStart(key, name || 'Hero')} style={{
-              padding: '14px', borderRadius: '12px', cursor: 'pointer',
-              background: 'linear-gradient(160deg, #081410, #0c2418)',
-              border: '1px solid #1a3020', transition: 'transform 0.12s',
+              padding: '14px', borderRadius: '16px', cursor: 'pointer',
+              background: 'linear-gradient(135deg, #081a12, #0d2a1c, #081a12)',
+              border: '1px solid rgba(39,174,96,0.25)', position: 'relative', overflow: 'hidden',
+              transition: 'transform 0.12s',
             }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: '#27ae60' }}>{f.name}</div>
-              <div style={{ fontSize: '10px', color: '#2a4a30', marginTop: '2px' }}>{f.playersPerTable}-max | {f.buyIn} chips</div>
+              <div style={{ fontSize: '20px', marginBottom: '4px' }}>💵</div>
+              <div style={{ fontSize: '13px', fontWeight: 900, color: '#27ae60' }}>CASH GAME</div>
+              <div style={{ fontSize: '9px', color: '#2a5a3a', marginTop: '2px' }}>{Object.keys(CASH_FORMATS).length} stakes available</div>
             </div>
           ))}
+        </div>
+
+        {/* ═══ CASH STAKES (inline grid) ═══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '20px' }}>
+          {Object.entries(CASH_FORMATS).map(([key, f]) => (
+            <div key={key} onClick={() => onStart(key, name || 'Hero')} style={{
+              padding: '10px 4px', borderRadius: '10px', cursor: 'pointer', textAlign: 'center',
+              background: 'rgba(10,20,14,0.7)', border: '1px solid rgba(39,174,96,0.15)',
+              transition: 'all 0.15s',
+            }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: '#4aaa60' }}>{f.name.replace('NL', '').replace(' Cash', '').split(' ')[0]}</div>
+              <div style={{ fontSize: '8px', color: '#2a5a3a', marginTop: '1px' }}>{f.playersPerTable}-max</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ═══ LEARN SECTION ═══ */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          <span style={{ fontSize: '10px', color: '#5a6a7a', fontWeight: 800, letterSpacing: '2.5px' }}>⚡ LEARN</span>
+          <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(90,106,122,0.3), transparent)' }} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '18px' }}>
+          <button onClick={onGTO} style={{
+            padding: '16px 8px', borderRadius: '14px', border: '1px solid rgba(34,197,94,0.3)', cursor: 'pointer',
+            background: 'linear-gradient(135deg, rgba(10,30,18,0.9), rgba(15,40,22,0.9))',
+            color: '#22c55e', fontWeight: 800, fontSize: '11px', letterSpacing: '0.5px',
+            transition: 'all 0.15s', boxShadow: '0 4px 16px rgba(34,197,94,0.15)',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+            <div style={{ fontSize: '20px', marginBottom: '4px' }}>◆</div>
+            GTO
+          </button>
+          <button onClick={onLeaks} style={{
+            padding: '16px 8px', borderRadius: '14px', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer',
+            background: 'linear-gradient(135deg, rgba(30,10,10,0.9), rgba(40,15,15,0.9))',
+            color: '#ef4444', fontWeight: 800, fontSize: '11px', letterSpacing: '0.5px',
+            transition: 'all 0.15s', boxShadow: '0 4px 16px rgba(239,68,68,0.15)',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+            <div style={{ fontSize: '20px', marginBottom: '4px' }}>🔍</div>
+            Leaks
+          </button>
+          <button onClick={onCoach} style={{
+            padding: '16px 8px', borderRadius: '14px', border: '1px solid rgba(212,175,55,0.3)', cursor: 'pointer',
+            background: 'linear-gradient(135deg, rgba(26,20,8,0.9), rgba(40,30,12,0.9))',
+            color: '#d4af37', fontWeight: 800, fontSize: '11px', letterSpacing: '0.5px',
+            transition: 'all 0.15s', boxShadow: '0 4px 16px rgba(212,175,55,0.15)',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+            <div style={{ fontSize: '20px', marginBottom: '4px' }}>🎓</div>
+            AI Coach
+          </button>
+        </div>
+
+        {/* ═══ PRACTICE SECTION ═══ */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          <span style={{ fontSize: '10px', color: '#5a6a7a', fontWeight: 800, letterSpacing: '2.5px' }}>🎯 PRACTICE</span>
+          <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(90,106,122,0.3), transparent)' }} />
+        </div>
+        <div onClick={onDrills} style={{
+          padding: '16px 18px', borderRadius: '16px', cursor: 'pointer', marginBottom: '10px',
+          background: 'linear-gradient(135deg, rgba(10,14,30,0.9), rgba(20,30,60,0.9))',
+          border: '1px solid rgba(59,130,246,0.3)', position: 'relative', overflow: 'hidden',
+          transition: 'transform 0.12s',
+          boxShadow: '0 6px 24px rgba(59,130,246,0.2)',
+        }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+          <div style={{ position: 'absolute', top: '-30%', right: '-20%', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(59,130,246,0.15), transparent)', pointerEvents: 'none' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', position: 'relative' }}>
+            <div style={{ fontSize: '28px' }}>◎</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '15px', fontWeight: 900, color: '#fff', letterSpacing: '0.5px' }}>ALL DRILLS</div>
+              <div style={{ fontSize: '10px', color: '#6a8aaa', marginTop: '2px' }}>RFI · 3-Bet · BB Defense · Push/Fold · Postflop · +4 more</div>
+            </div>
+            <div style={{ fontSize: '18px', color: '#6a8aaa' }}>▸</div>
+          </div>
+        </div>
+        {/* Quick drill shortcuts */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: '18px' }}>
+          {[
+            { id: 'rfi', label: 'RFI', icon: '♠', color: '#27ae60' },
+            { id: 'pushfold', label: 'Push', icon: '♦', color: '#e74c3c' },
+            { id: 'potodds', label: 'Odds', icon: '♣', color: '#3498db' },
+            { id: 'postflop', label: 'Flop', icon: '♥', color: '#9b59b6' },
+          ].map(d => (
+            <div key={d.id} onClick={() => { window.__quickDrill = d.id; onDrills(); }} style={{
+              padding: '10px 4px', borderRadius: '10px', cursor: 'pointer', textAlign: 'center',
+              background: 'rgba(10,14,20,0.8)', border: `1px solid ${d.color}22`,
+              transition: 'transform 0.12s',
+            }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+              <div style={{ fontSize: '14px', color: d.color, marginBottom: '2px' }}>{d.icon}</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: d.color }}>{d.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ═══ TRACK SECTION ═══ */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          <span style={{ fontSize: '10px', color: '#5a6a7a', fontWeight: 800, letterSpacing: '2.5px' }}>📊 TRACK</span>
+          <div style={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(90,106,122,0.3), transparent)' }} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+          <button onClick={onStats} style={{
+            padding: '14px 10px', borderRadius: '12px', border: '1px solid rgba(138,154,170,0.2)', cursor: 'pointer',
+            background: 'rgba(10,14,20,0.8)', color: '#c0d0e0', fontWeight: 700, fontSize: '12px',
+            transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: '8px',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+            <span style={{ fontSize: '16px' }}>📊</span>
+            Statistics
+          </button>
+          <button onClick={onHistory} style={{
+            padding: '14px 10px', borderRadius: '12px', border: '1px solid rgba(212,175,55,0.25)', cursor: 'pointer',
+            background: 'rgba(20,18,10,0.8)', color: '#d4af37', fontWeight: 700, fontSize: '12px',
+            transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: '8px',
+          }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+            <span style={{ fontSize: '16px' }}>📁</span>
+            History
+          </button>
         </div>
 
         {/* ═══ REAL MONEY ANALYSIS ═══ */}
         <button onClick={() => onStart('__realanalysis__')} style={{
-          width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #2a3a1a',
-          background: 'linear-gradient(135deg, #0a1a08, #1a3a18)', cursor: 'pointer',
-          color: '#4aaa30', fontWeight: 800, fontSize: '14px', marginBottom: '10px',
-          transition: 'transform 0.12s', letterSpacing: '0.5px',
+          width: '100%', padding: '14px 16px', borderRadius: '14px', border: '1px solid rgba(74,170,48,0.3)',
+          background: 'linear-gradient(135deg, rgba(10,26,8,0.9), rgba(26,58,24,0.9))',
+          cursor: 'pointer', color: '#4aaa30', fontWeight: 800, fontSize: '13px',
+          marginBottom: '40px', transition: 'all 0.15s', letterSpacing: '0.5px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
         }} onMouseDown={btnPress} onMouseUp={btnRelease}>
-          Upload Real Games — GGPoker / PokerStars
+          <span style={{ fontSize: '16px' }}>📤</span>
+          Upload Real Games (GG / PokerStars)
         </button>
-
-        {/* ═══ STATS, HISTORY & COACH ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginBottom: '8px' }}>
-          <button onClick={onGTO} style={{
-            padding: '14px 6px', borderRadius: '12px', border: '2px solid #22c55e', cursor: 'pointer',
-            background: 'linear-gradient(135deg, rgba(10,30,15,0.9), rgba(15,40,20,0.9))',
-            color: '#22c55e', fontWeight: 800, fontSize: '12px',
-            transition: 'transform 0.12s', boxShadow: '0 0 12px rgba(34,197,94,0.15)',
-          }} onMouseDown={btnPress} onMouseUp={btnRelease}>GTO</button>
-          <button onClick={onLeaks} style={{
-            padding: '14px 6px', borderRadius: '12px', border: '2px solid #ef4444', cursor: 'pointer',
-            background: 'linear-gradient(135deg, rgba(30,10,10,0.9), rgba(40,15,15,0.9))',
-            color: '#ef4444', fontWeight: 800, fontSize: '12px',
-            transition: 'transform 0.12s', boxShadow: '0 0 12px rgba(239,68,68,0.15)',
-          }} onMouseDown={btnPress} onMouseUp={btnRelease}>Leak Finder</button>
-          <button onClick={onStats} style={{
-            padding: '16px 8px', borderRadius: '12px', border: '1px solid #1a2230', cursor: 'pointer',
-            background: 'rgba(10,14,20,0.8)', color: '#8a9aaa', fontWeight: 700, fontSize: '14px',
-            transition: 'transform 0.12s',
-          }} onMouseDown={btnPress} onMouseUp={btnRelease}>Statistics</button>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
-          <button onClick={onHistory} style={{
-            padding: '14px 8px', borderRadius: '12px', border: '1px solid #1a2a30', cursor: 'pointer',
-            background: 'rgba(10,14,20,0.8)', color: '#d4af37', fontWeight: 700, fontSize: '13px',
-            transition: 'transform 0.12s',
-          }} onMouseDown={btnPress} onMouseUp={btnRelease}>Game History</button>
-          <button onClick={onCoach} style={{
-            padding: '14px 8px', borderRadius: '12px', border: '1px solid #1a2230', cursor: 'pointer',
-            background: 'rgba(10,14,20,0.8)', color: '#8a9aaa', fontWeight: 700, fontSize: '13px',
-            transition: 'transform 0.12s',
-          }} onMouseDown={btnPress} onMouseUp={btnRelease}>AI Coach</button>
-        </div>
-
-        {/* ═══ QUICK DRILLS ═══ */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', paddingBottom: '40px' }}>
-          {[
-            { id: 'rfi', label: 'RFI', color: '#27ae60' },
-            { id: 'pushfold', label: 'Push', color: '#e74c3c' },
-            { id: 'potodds', label: 'Odds', color: '#3498db' },
-            { id: 'postflop', label: 'Flop', color: '#9b59b6' },
-          ].map(d => (
-            <div key={d.id} onClick={() => { window.__quickDrill = d.id; onDrills(); }} style={{
-              padding: '12px 4px', borderRadius: '10px', cursor: 'pointer', textAlign: 'center',
-              background: 'rgba(10,14,20,0.8)', border: '1px solid #141a22',
-              transition: 'transform 0.12s',
-            }} onMouseDown={btnPress} onMouseUp={btnRelease} onTouchStart={btnPress} onTouchEnd={btnRelease}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: d.color }}>{d.label}</div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
