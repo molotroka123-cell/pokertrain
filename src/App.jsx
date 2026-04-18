@@ -198,6 +198,43 @@ function Lobby({ onStart, onDrills, onStats, onGTO, onLeaks, onHistory, onCoach,
           <div style={{ fontSize: '11px', color: '#4a7a9a', letterSpacing: '4px', fontWeight: 700, marginTop: '2px' }}>POKER CLUB</div>
         </div>
 
+        {/* ═══ DAILY REWARD + WIN STREAK ═══ */}
+        {(() => {
+          const lastVisit = localStorage.getItem('pokertrain_last_visit') || '';
+          const today = new Date().toDateString();
+          const canClaim = lastVisit !== today;
+          const streak = parseInt(localStorage.getItem('pokertrain_win_streak') || '0', 10);
+          const bestStreak = parseInt(localStorage.getItem('pokertrain_best_streak') || '0', 10);
+          const claimReward = () => { localStorage.setItem('pokertrain_last_visit', today); };
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '10px', marginBottom: '14px' }}>
+              <div onClick={canClaim ? claimReward : undefined} style={{
+                padding: '14px', borderRadius: '14px', cursor: canClaim ? 'pointer' : 'default',
+                background: canClaim ? 'linear-gradient(135deg, #0a2040, #1a3a60)' : 'rgba(8,16,28,0.6)',
+                border: `1px solid ${canClaim ? 'rgba(74,200,255,0.3)' : 'rgba(74,200,255,0.1)'}`,
+                animation: canClaim ? 'icePulse 2s infinite' : 'none',
+              }}>
+                <div style={{ fontSize: '20px', marginBottom: '4px' }}>🎁</div>
+                <div style={{ fontSize: '13px', fontWeight: 900, color: canClaim ? '#4ac8ff' : '#3a5a6a' }}>DAILY REWARD</div>
+                <div style={{ fontSize: '9px', color: '#4a7a9a', marginTop: '2px' }}>
+                  {canClaim ? 'Tap to claim!' : 'Come back tomorrow'}
+                </div>
+              </div>
+              <div style={{
+                padding: '14px', borderRadius: '14px', textAlign: 'center',
+                background: 'rgba(8,16,28,0.6)', border: '1px solid rgba(255,160,40,0.2)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#6a8a9a' }}>WIN STREAK</span>
+                  <span style={{ fontSize: '16px' }}>🔥</span>
+                </div>
+                <div style={{ fontSize: '32px', fontWeight: 900, color: '#ffa020', marginTop: '4px' }}>{streak}</div>
+                <div style={{ fontSize: '9px', color: '#5a6a7a' }}>BEST: {bestStreak}</div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ═══ SKILL PATH ═══ */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -382,6 +419,72 @@ function Lobby({ onStart, onDrills, onStats, onGTO, onLeaks, onHistory, onCoach,
           </div>
         </div>
       </div>
+
+        {/* ═══ DAILY MISSIONS + CLUB LEADERBOARD ═══ */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+          {/* Daily Missions */}
+          <div style={{
+            padding: '14px', borderRadius: '14px',
+            background: 'rgba(8,16,28,0.8)', border: '1px solid rgba(74,200,255,0.15)',
+          }}>
+            <div style={{ fontSize: '12px', fontWeight: 900, color: '#fff', marginBottom: '10px' }}>DAILY MISSIONS</div>
+            {[
+              { text: 'Play 5 hands in cash', done: Math.min(sessCount, 5), total: 5, xp: 100 },
+              { text: 'Win a tournament', done: sessCount > 0 ? 1 : 0, total: 1, xp: 200 },
+              { text: 'Analyze 10 hands', done: Math.min(sessCount * 3, 10), total: 10, xp: 150 },
+            ].map((m, i) => (
+              <div key={i} style={{ marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#6a8a9a', marginBottom: '3px' }}>
+                  <span>{m.text}</span>
+                  <span style={{ color: '#4ac8ff', fontWeight: 700 }}>{m.done}/{m.total}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ flex: 1, height: '3px', background: '#1a2a40', borderRadius: '2px', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min(m.done/m.total*100, 100)}%`, height: '100%', background: '#4ac8ff', borderRadius: '2px' }} />
+                  </div>
+                  <span style={{ fontSize: '9px', color: '#ffa020', fontWeight: 800 }}>XP {m.xp}</span>
+                </div>
+              </div>
+            ))}
+            <button onClick={onLeaks} style={{
+              width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid rgba(74,200,255,0.3)',
+              background: 'transparent', color: '#4ac8ff', fontSize: '10px', fontWeight: 700,
+              cursor: 'pointer', marginTop: '4px', letterSpacing: '1px',
+            }}>VIEW ALL MISSIONS</button>
+          </div>
+
+          {/* Club Leaderboard */}
+          <div style={{
+            padding: '14px', borderRadius: '14px',
+            background: 'rgba(8,16,28,0.8)', border: '1px solid rgba(74,200,255,0.15)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 900, color: '#fff' }}>CLUB LEADERBOARD</div>
+              <span style={{ fontSize: '12px' }}>⭐</span>
+            </div>
+            {[
+              { rank: 1, name: 'IceKing', score: 12540, flag: '🔥' },
+              { rank: 2, name: 'FrostAce', score: 10230, flag: '❄️' },
+              { rank: 3, name: 'BlueShark', score: 8910, flag: '🦈' },
+            ].map(p => (
+              <div key={p.rank} style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                marginBottom: '8px', padding: '6px 8px', borderRadius: '8px',
+                background: p.rank === 1 ? 'rgba(212,175,55,0.08)' : 'transparent',
+              }}>
+                <span style={{ fontSize: '12px', fontWeight: 900, color: p.rank === 1 ? '#ffd700' : p.rank === 2 ? '#c0c0c0' : '#cd7f32', width: '16px' }}>{p.rank}</span>
+                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(74,200,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px' }}>{p.flag}</div>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#c0d0e0', flex: 1 }}>{p.name}</span>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#4ac8ff' }}>{p.score.toLocaleString()}</span>
+              </div>
+            ))}
+            <button onClick={onLeaderboard} style={{
+              width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid rgba(74,200,255,0.3)',
+              background: 'transparent', color: '#4ac8ff', fontSize: '10px', fontWeight: 700,
+              cursor: 'pointer', marginTop: '4px', letterSpacing: '1px',
+            }}>VIEW FULL LEADERBOARD</button>
+          </div>
+        </div>
 
       {/* ═══ BOTTOM NAV — ICECROWN STYLE ═══ */}
       <div style={{
