@@ -9,6 +9,7 @@ import { evaluateHand, compareHands } from './engine/evaluator.js';
 import Card from './components/Card.jsx';
 import Controls from './tournament/Controls.jsx';
 import ShotClock from './tournament/ShotClock.jsx';
+import BottomNav from './components/BottomNav.jsx';
 import { haptics } from './lib/haptics.js';
 import RangeGrid from './components/RangeGrid.jsx';
 import TournamentDashboard from './tournament/TournamentDashboard.jsx';
@@ -29,6 +30,7 @@ import SolverPushFoldDrill from './drills/SolverPushFoldDrill.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
 import GTOAnalyzer from './stats/GTOAnalyzer.jsx';
 import LeakFinder from './stats/LeakFinder.jsx';
+import Leaderboard from './stats/Leaderboard.jsx';
 import CoachScreen from './coach/Coach.jsx';
 import RealAnalysis from './stats/RealAnalysis.jsx';
 import GameHistory from './stats/GameHistory.jsx';
@@ -663,15 +665,33 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
             borderRadius: '50%/42%',
             border: '1.5px solid ' + T.feltInner,
           }} />
-          {/* Tournament logo */}
-          <div style={{
-            position: 'absolute', top: '68%', left: '50%', transform: 'translate(-50%,-50%)',
-            fontSize: '26px', fontWeight: 900, letterSpacing: '5px',
-            fontFamily: T.logoFont || "'Georgia', serif",
-            color: T.logoColor || T.accent, opacity: 0.25,
-            textShadow: `0 0 30px ${T.accentGlow}, 0 2px 4px rgba(0,0,0,0.3)`,
-            userSelect: 'none', pointerEvents: 'none',
-          }}>{T.logo || ''}</div>
+          {/* Tournament logo / ICECROWN crown watermark */}
+          {T.isIcecrown ? (
+            <div style={{
+              position: 'absolute', top: '58%', left: '50%', transform: 'translate(-50%,-50%)',
+              textAlign: 'center', userSelect: 'none', pointerEvents: 'none',
+            }}>
+              <div style={{
+                fontSize: '48px', lineHeight: 1, opacity: 0.18,
+                filter: 'drop-shadow(0 0 20px rgba(74,200,255,0.4))',
+              }}>♛</div>
+              <div style={{
+                fontSize: '11px', fontWeight: 900, letterSpacing: '6px',
+                color: '#4ac8ff', opacity: 0.2,
+                textShadow: '0 0 25px rgba(74,200,255,0.5)',
+                marginTop: '-2px',
+              }}>ICECROWN</div>
+            </div>
+          ) : (
+            <div style={{
+              position: 'absolute', top: '68%', left: '50%', transform: 'translate(-50%,-50%)',
+              fontSize: '26px', fontWeight: 900, letterSpacing: '5px',
+              fontFamily: T.logoFont || "'Georgia', serif",
+              color: T.logoColor || T.accent, opacity: 0.25,
+              textShadow: `0 0 30px ${T.accentGlow}, 0 2px 4px rgba(0,0,0,0.3)`,
+              userSelect: 'none', pointerEvents: 'none',
+            }}>{T.logo || ''}</div>
+          )}
         </div>
 
         {/* ═══ Pot + To Call ═══ */}
@@ -743,24 +763,35 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
                   }}>ALL IN</div>
                 )}
 
-                {/* Avatar — style-colored circle (tappable for stats) */}
+                {/* Avatar — flag circles for ICECROWN, style-colored for others */}
+                {(() => {
+                  const FLAGS = ['🇩🇰','🇬🇧','🇨🇴','🇧🇷','🇺🇸','🇩🇪','🇫🇷','🇯🇵','🇰🇷','🇷🇺','🇨🇳','🇪🇸','🇮🇹','🇸🇪','🇳🇴','🇦🇺','🇨🇦','🇵🇱','🇳🇱','🇦🇹'];
+                  const useFlag = T.isIcecrown && !p._isEasterEgg;
+                  const flag = FLAGS[(p.id || i) % FLAGS.length];
+                  return null; // just define, render below
+                })()}
                 <div onClick={() => { if (typeof gs._onSelectOpponent === 'function') gs._onSelectOpponent(p); }} style={{
                   width: 'min(46px, 11vw)', height: 'min(46px, 11vw)', borderRadius: '50%', margin: '0 auto', cursor: 'pointer',
-                  background: p._isEasterEgg ? 'none' : isWinner ? T.avatarWin : (() => {
+                  background: p._isEasterEgg ? 'none'
+                    : T.isIcecrown ? 'linear-gradient(145deg, #0d1520, #1a2a40)'
+                    : isWinner ? T.avatarWin : (() => {
                     const sc = { TAG: '#0a2040', LAG: '#3a1800', Nit: '#1a1a1a', SemiLAG: '#1a1040', STATION: '#0a2a0a', LIMPER: '#1a2a10', Maniac: '#3a0a0a', SCARED_MONEY: '#2a2a1a', TILTER: '#3a1a00' };
                     const baseC = p._isBoss ? '#4a3510' : (sc[p.profile?.style] || '#1a2030');
                     const lightC = p._isBoss ? '#b8922a' : baseC.replace(/0/g, '4').replace(/1/g, '3');
                     return `linear-gradient(145deg, ${baseC}, ${lightC})`;
                   })(),
-                  border: `2.5px solid ${p._isEasterEgg ? '#ffd700' : isWinner ? T.accent : p._isBoss ? '#c8a230' : (() => {
+                  border: `2.5px solid ${p._isEasterEgg ? '#ffd700'
+                    : T.isIcecrown ? (isWinner ? '#4ac8ff' : 'rgba(74,200,255,0.35)')
+                    : isWinner ? T.accent : p._isBoss ? '#c8a230' : (() => {
                     const bc = { TAG: '#2a60a0', LAG: '#c06020', Nit: '#5a5a5a', SemiLAG: '#6a40a0', STATION: '#2a6a2a', Maniac: '#c02020' };
                     return (bc[p.profile?.style] || '#3a4a5a') + '88';
                   })()}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '17px', fontWeight: 800,
+                  fontSize: T.isIcecrown ? '22px' : '17px', fontWeight: 800,
                   color: isWinner ? '#fff' : p._isBoss ? '#1a0a00' : '#8a9aaa',
                   boxShadow: p._isEasterEgg
                     ? '0 0 16px rgba(255,215,0,0.4), 0 0 32px rgba(255,215,0,0.15)'
+                    : T.isIcecrown ? `0 0 14px rgba(74,200,255,${isWinner ? '0.5' : '0.2'}), 0 4px 14px rgba(0,0,0,0.5)`
                     : isWinner ? `0 0 24px ${T.accentGlow}, 0 0 48px ${T.ambientColor}`
                     : p._isBoss ? '0 0 18px rgba(212,175,55,0.5), inset 0 -4px 8px rgba(0,0,0,0.3)' : '0 4px 14px rgba(0,0,0,0.6), inset 0 -4px 8px rgba(0,0,0,0.2)',
                   willChange: 'transform',
@@ -768,6 +799,7 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
                 }}>
                   {p._isEasterEgg
                     ? <img src="https://i.postimg.cc/TPxfxLx5/IMG-7466.jpg" alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}/>
+                    : T.isIcecrown ? ['🇩🇰','🇬🇧','🇨🇴','🇧🇷','🇺🇸','🇩🇪','🇫🇷','🇯🇵','🇰🇷','🇷🇺','🇨🇳','🇪🇸','🇮🇹','🇸🇪','🇳🇴'][(p.id || i) % 15]
                     : (p.emoji || (p.name || 'P')[0].toUpperCase())}
                   {/* Glossy top highlight */}
                   {!p._isEasterEgg && <div style={{
@@ -1598,13 +1630,60 @@ function Game({ director, onExit }) {
         }
       `}</style>
 
+      {/* ICECROWN branding bar */}
+      {getTheme(tournState.formatKey).isIcecrown && (
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '8px 16px',
+          background: 'linear-gradient(180deg, rgba(8,14,25,0.98), rgba(5,10,18,0.95))',
+          borderBottom: '1px solid rgba(74,200,255,0.15)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, #0a1830, #1a3060)',
+              border: '1.5px solid rgba(74,200,255,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '18px', color: '#4ac8ff',
+              boxShadow: '0 0 12px rgba(74,200,255,0.2)',
+            }}>♛</div>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#4ac8ff', letterSpacing: '1px', opacity: 0.6 }}>POKER CLUB</div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: '18px', fontWeight: 900, letterSpacing: '3px',
+              background: 'linear-gradient(135deg, #80e0ff, #4ac8ff, #2090d0)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 0 8px rgba(74,200,255,0.4))',
+            }}>ICECROWN</div>
+          </div>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '12px',
+            background: 'rgba(10,18,30,0.8)', border: '1px solid rgba(74,200,255,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '16px', color: '#4a6a8a', position: 'relative',
+          }}>
+            🔔
+            <div style={{
+              position: 'absolute', top: '-3px', right: '-3px',
+              width: '16px', height: '16px', borderRadius: '50%',
+              background: '#ef4444', fontSize: '9px', fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff',
+            }}>{handCount || 1}</div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
         padding: '4px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         borderBottom: '1px solid #1a2230', background: 'rgba(5,7,9,0.9)',
       }}>
         <div>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#e8d48b' }}>{tournState.format.name}</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: getTheme(tournState.formatKey).isIcecrown ? '#4ac8ff' : '#e8d48b' }}>{tournState.format.name}</div>
           <div style={{ fontSize: '9px', color: '#3a4a5a' }}>Hand #{handCount + 1} | Level {bl.level + 1}</div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -1910,6 +1989,16 @@ function Game({ director, onExit }) {
 
       {/* Push/Fold Calculator FAB */}
       <PushFoldFAB />
+
+      {/* Bottom Navigation — ICECROWN only */}
+      <BottomNav
+        active="table"
+        isIcecrown={getTheme(tournState.formatKey).isIcecrown}
+        onTab={(tab) => {
+          if (tab === 'lobby') onExit({ position: tournState.heroRank, total: tournState.totalPlayers });
+          if (tab === 'stats') setView('dashboard');
+        }}
+      />
     </div>
   );
 }
@@ -1980,6 +2069,9 @@ function AppInner() {
   }
   if (screen === 'leaks') {
     return <div style={appBg}><LeakFinder onBack={() => setScreen('lobby')} /></div>;
+  }
+  if (screen === 'leaderboard') {
+    return <div style={appBg}><Leaderboard onBack={() => setScreen('lobby')} /></div>;
   }
   if (screen === 'history') {
     return <div style={appBg}><GameHistory onBack={() => setScreen('lobby')}

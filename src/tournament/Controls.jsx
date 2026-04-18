@@ -136,58 +136,69 @@ export default function Controls({ canCheck, canCall, toCall, pot, myChips, minR
         </div>
       )}
 
-      {/* Action buttons — pill style, mobile-optimized */}
+      {/* Action buttons */}
+      {(() => {
+        const ice = theme?.isIcecrown;
+        return (
       <div style={{
-        display: 'flex', padding: '6px 8px max(10px, env(safe-area-inset-bottom, 10px))', gap: '6px',
-        background: 'linear-gradient(180deg, #080c12, #040608)',
-        borderTop: '1px solid #141a22',
+        display: 'flex', padding: '8px 10px max(10px, env(safe-area-inset-bottom, 10px))', gap: '8px',
+        background: ice ? 'linear-gradient(180deg, #060a14, #030508)' : 'linear-gradient(180deg, #080c12, #040608)',
+        borderTop: ice ? '1px solid rgba(74,200,255,0.12)' : '1px solid #141a22',
       }}>
-        {/* Fold — muted, pill shape */}
+        {/* Fold */}
         <button className="btn-action" onClick={() => { onAction('fold'); setShowRaise(false); }}
           style={{
-            padding: '12px 0', borderRadius: '24px', border: '1px solid #2a2020',
-            fontWeight: 800, fontSize: '12px', letterSpacing: '0.5px',
-            textTransform: 'uppercase', flex: 0.8, minHeight: '48px',
-            color: '#8a6060', cursor: 'pointer',
-            background: 'linear-gradient(180deg, #1a1214, #120c0e)',
-          }}>FOLD</button>
+            padding: '12px 0', borderRadius: ice ? '14px' : '24px',
+            border: ice ? '2px solid rgba(239,68,68,0.6)' : '1px solid #2a2020',
+            fontWeight: 800, fontSize: '13px', letterSpacing: '0.5px',
+            textTransform: 'uppercase', flex: 1, minHeight: '54px',
+            color: '#ef4444', cursor: 'pointer',
+            background: ice ? 'rgba(239,68,68,0.06)' : 'linear-gradient(180deg, #1a1214, #120c0e)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          }}>{ice && <span style={{ fontSize: '16px' }}>✕</span>}FOLD</button>
 
-        {/* Check or Call — primary action, biggest */}
+        {/* Check or Call */}
         {canCheck ? (
           <button className="btn-action" onClick={() => { onAction('check'); setShowRaise(false); }}
             style={{
-              padding: '12px 0', borderRadius: '24px', border: '1px solid #1a3040',
+              padding: '12px 0', borderRadius: ice ? '14px' : '24px',
+              border: ice ? '2px solid rgba(74,200,255,0.6)' : '1px solid #1a3040',
               fontWeight: 800, fontSize: '13px', letterSpacing: '0.5px',
-              textTransform: 'uppercase', flex: 1.3, minHeight: '48px',
-              color: '#e0e0e0', cursor: 'pointer',
-              background: 'linear-gradient(180deg, #14283a, #0c1a28)',
-              boxShadow: '0 2px 12px rgba(20,80,130,0.2)',
-            }}>CHECK</button>
+              textTransform: 'uppercase', flex: 1.4, minHeight: '54px',
+              color: ice ? '#4ac8ff' : '#e0e0e0', cursor: 'pointer',
+              background: ice ? 'rgba(74,200,255,0.06)' : 'linear-gradient(180deg, #14283a, #0c1a28)',
+              boxShadow: ice ? '0 0 16px rgba(74,200,255,0.12)' : '0 2px 12px rgba(20,80,130,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            }}>{ice && <span style={{ fontSize: '16px' }}>✓</span>}CHECK</button>
         ) : canCall ? (
           <button className="btn-action" onClick={() => { onAction('call'); setShowRaise(false); }}
             style={{
-              padding: '10px 0', borderRadius: '24px', border: '1px solid #1a4030',
+              padding: '10px 0', borderRadius: ice ? '14px' : '24px',
+              border: ice ? '2px solid rgba(34,197,94,0.6)' : '1px solid #1a4030',
               fontWeight: 800, fontSize: '13px', letterSpacing: '0.5px',
-              textTransform: 'uppercase', flex: 1.3, minHeight: '48px',
-              color: '#fff', cursor: 'pointer',
-              background: callBg,
-              boxShadow: '0 2px 16px rgba(30,100,60,0.25)',
+              textTransform: 'uppercase', flex: 1.4, minHeight: '54px',
+              color: ice ? '#22c55e' : '#fff', cursor: 'pointer',
+              background: ice ? 'rgba(34,197,94,0.06)' : callBg,
+              boxShadow: ice ? '0 0 16px rgba(34,197,94,0.15)' : '0 2px 16px rgba(30,100,60,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              flexDirection: ice ? 'row' : 'column',
             }}>
+            {ice && <span style={{ fontSize: '16px' }}>✓</span>}
             <div style={{ fontSize: '14px' }}>CALL</div>
-            <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '1px', fontWeight: 600 }}>{fmt(toCall)}</div>
+            <div style={{ fontSize: '11px', opacity: 0.7, fontWeight: 600 }}>{fmt(toCall)}</div>
           </button>
         ) : null}
 
-        {/* Raise or All-In — accent colored */}
+        {/* Raise or All-In */}
         {isAllIn ? (
           <button className="btn-action" onClick={() => { onAction('raise', myChips); setShowRaise(false); }}
             style={{
-              padding: '10px 0', borderRadius: '24px',
-              border: '1.5px solid #c03030',
+              padding: '10px 0', borderRadius: ice ? '14px' : '24px',
+              border: ice ? '2px solid rgba(239,68,68,0.7)' : '1.5px solid #c03030',
               fontWeight: 800, fontSize: '13px', letterSpacing: '1px',
-              textTransform: 'uppercase', flex: 0.8, minHeight: '50px',
+              textTransform: 'uppercase', flex: 1, minHeight: '54px',
               color: '#ff4040', cursor: 'pointer',
-              background: 'linear-gradient(180deg, #1a0808, #0e0404)',
+              background: ice ? 'rgba(239,68,68,0.08)' : 'linear-gradient(180deg, #1a0808, #0e0404)',
               boxShadow: '0 0 16px rgba(200,40,40,0.2)',
               animation: 'pulse 1.5s infinite',
             }}>
@@ -197,19 +208,24 @@ export default function Controls({ canCheck, canCall, toCall, pot, myChips, minR
         ) : (
           <button className="btn-action" onClick={handleRaise}
             style={{
-              padding: '14px 0', borderRadius: '24px', border: '1px solid #4a3a10',
+              padding: '14px 0', borderRadius: ice ? '14px' : '24px',
+              border: ice ? `2px solid rgba(212,175,55,${showRaise ? '0.9' : '0.6'})` : '1px solid #4a3a10',
               fontWeight: 800, fontSize: '13px', letterSpacing: '1px',
-              textTransform: 'uppercase', flex: 0.8, minHeight: '50px',
-              color: showRaise ? '#0a0800' : '#d4af37', cursor: 'pointer',
+              textTransform: 'uppercase', flex: 1, minHeight: '54px',
+              color: showRaise ? (ice ? '#fff' : '#0a0800') : '#d4af37', cursor: 'pointer',
               background: showRaise
-                ? 'linear-gradient(180deg, #d4af37, #a08020)'
-                : 'linear-gradient(180deg, #1a1608, #100e04)',
+                ? (ice ? 'linear-gradient(180deg, rgba(212,175,55,0.9), rgba(160,128,32,0.9))' : 'linear-gradient(180deg, #d4af37, #a08020)')
+                : (ice ? 'rgba(212,175,55,0.06)' : 'linear-gradient(180deg, #1a1608, #100e04)'),
               boxShadow: showRaise ? '0 2px 16px rgba(212,175,55,0.3)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
             }}>
+            {ice && !showRaise && <span style={{ fontSize: '16px' }}>↑</span>}
             {showRaise ? 'CONFIRM' : 'RAISE'}
           </button>
         )}
       </div>
+        );
+      })()}
     </div>
   );
 }
