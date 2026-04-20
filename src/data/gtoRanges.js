@@ -151,6 +151,100 @@ export const BB_DEFENSE = {
   },
 };
 
+// ═══ CASH 6-MAX 3-BET RANGES (wider than MTT — no ICM) ═══
+export const CASH_THREEBET_RANGES = {
+  vs_UTG: {
+    threebet: "QQ+, AKs, AKo, AQs, A5s, A4s",
+    call: "22-JJ, AQo, AJs, AJo, ATs, ATo, KQs, KJs, QJs, JTs, T9s, 98s, 87s, 76s",
+  },
+  vs_HJ: {
+    threebet: "JJ+, AKs, AKo, AQs, AQo, A5s, A4s, A3s, KQs",
+    call: "22-TT, AJs, AJo, ATs, ATo, KJs, KJo, QJs, QTs, JTs, T9s, 98s, 87s, 76s, 65s",
+  },
+  vs_CO: {
+    threebet: "TT+, AKs, AKo, AQs, AQo, AJs, A5s, A4s, A3s, A2s, KQs, KJs, QJs",
+    call: "22-99, ATo, A9s, A8s, KTs, KJo, QTs, JTs, J9s, T9s, T8s, 98s, 87s, 76s, 65s, 54s",
+  },
+  vs_BTN: {
+    threebet: "99+, AKs, AKo, AQs, AQo, AJs, AJo, A5s, A4s, A3s, A2s, KQs, KJs, K9s, QJs, Q9s, JTs, J9s, T9s, 98s, 87s, 76s",
+    call: "22-88, ATs, A9s, A8s, A7s, ATo, KTs, K8s, KQo, KJo, QTs, Q8s, J8s, T8s, 97s, 86s, 75s, 65s, 54s",
+  },
+  sb_vs_btn: {
+    threebet: "88+, AKs, AKo, AQs, AQo, AJs, AJo, ATs, A5s, A4s, A3s, A2s, KQs, KJs, KTs, K9s, QJs, QTs, Q9s, JTs, J9s, T9s, T8s, 98s, 87s, 76s, 65s",
+    call: "",
+  },
+};
+
+// ═══ CASH 6-MAX BB DEFENSE (wider than MTT — deeper stacks, better implied odds) ═══
+export const CASH_BB_DEFENSE = {
+  vs_UTG: {
+    threebet: "JJ+, AKs, AKo, AQs, A5s, A4s",
+    call: "22-TT, AQo, AJs, ATs, A9s, A8s, A7s, A5s, KQs, KJs, KTs, K9s, QJs, QTs, Q9s, JTs, J9s, T9s, T8s, 98s, 97s, 87s, 76s, 65s, 54s",
+  },
+  vs_HJ: {
+    threebet: "TT+, AKs, AKo, AQs, AQo, A5s, A4s, A3s",
+    call: "22-99, AJs, ATs, A9s, A8s, A7s, A6s, A5s, AJo, ATo, KQs, KJs, KTs, K9s, K8s, KQo, KJo, QJs, QTs, Q9s, Q8s, JTs, J9s, J8s, T9s, T8s, T7s, 98s, 97s, 96s, 87s, 86s, 76s, 75s, 65s, 64s, 54s, 53s, 43s",
+  },
+  vs_CO: {
+    threebet: "99+, AKs, AKo, AQs, AQo, AJs, A5s, A4s, A3s, A2s, K9s, QJs",
+    call: "22-88, ATs, A9s, A8s, A7s, A6s, A5s, A4s, A3s, A2s, ATo, A9o, A8o, KQs, KJs, KTs, K9s, K8s, K7s, K6s, KJo, KTo, K9o, QTs, Q9s, Q8s, Q7s, QTo, Q9o, JTs, J9s, J8s, J7s, JTo, J9o, T9s, T8s, T7s, 98s, 97s, 96s, 87s, 86s, 85s, 76s, 75s, 74s, 65s, 64s, 63s, 54s, 53s, 43s",
+  },
+  vs_BTN: {
+    threebet: "88+, AKs, AKo, AQs, AQo, AJs, ATs, A9s, A5s, A4s, A3s, A2s, K8s, K7s, QJs, Q9s, JTs, J9s, T8s, 97s, 86s, 75s, 64s, 53s",
+    call: "22-77, A8s, A7s, A6s, A5s, A4s, A3s, A2s, ATo, A9o, A8o, A7o, A6o, A5o, A4o, A3o, A2o, KQs, KJs, KTs, K9s, K8s, K7s, K6s, K5s, K4s, KQo, KJo, KTo, K9o, K8o, K7o, QTs, Q9s, Q8s, Q7s, Q6s, QTo, Q9o, Q8o, JTs, J9s, J8s, J7s, J6s, JTo, J9o, J8o, T9s, T8s, T7s, T6s, T9o, T8o, 98s, 97s, 96s, 95s, 98o, 87s, 86s, 85s, 84s, 87o, 76s, 75s, 74s, 73s, 65s, 64s, 63s, 54s, 53s, 52s, 43s, 42s, 32s",
+  },
+  vs_SB: {
+    threebet: "88+, AKs, AKo, AQs, AQo, AJs, ATs, A9s, A5s, A4s, A3s, A2s, K7s, K6s, K5s, QTs, Q9s, J9s, T8s, 97s, 86s, 75s, 64s, 53s",
+    call: "22-77, A8s, A7s, A6s, A5s, A4s, A3s, A2s, ATo, A9o, A8o, A7o, A6o, A5o, KQs, KJs, KTs, K9s, K8s, K7s, K6s, K5s, K4s, KTo, K9o, K8o, K7o, QTs, Q9s, Q8s, Q7s, Q6s, Q5s, QJo, QTo, Q9o, Q8o, JTs, J9s, J8s, J7s, J6s, JTo, J9o, J8o, T9s, T8s, T7s, T6s, T9o, T8o, 98s, 97s, 96s, 95s, 98o, 97o, 87s, 86s, 85s, 84s, 87o, 76s, 75s, 74s, 73s, 76o, 65s, 64s, 63s, 54s, 53s, 52s, 43s, 42s, 32s",
+  },
+};
+
+// ═══ CASH POSTFLOP ADJUSTMENTS (key differences from MTT) ═══
+export const CASH_POSTFLOP = {
+  cbet: {
+    srp_ip: { freq: '55-65%', size: '33%', note: 'Cash SRP IP — slightly less than MTT (opponents defend wider)' },
+    srp_oop: { freq: '30-40%', size: '50-66%', note: 'Cash SRP OOP — less frequent, bigger when you do' },
+    threebp_ip: { freq: '45-55%', size: '25-33%', note: '3bp IP — small sizing, high frequency' },
+    threebp_oop: { freq: '25-35%', size: '33-50%', note: '3bp OOP — cautious, check more' },
+    multiway: { freq: '20-30%', size: '50-66%', note: 'Multiway — much tighter, need real equity' },
+  },
+  sizing: {
+    openRaise: '2.5x (3x from SB)',
+    threeBet_ip: '3x open',
+    threeBet_oop: '3.5-4x open',
+    fourBet: '2.2-2.5x 3bet',
+    squeeze: '4x open + 1x per caller',
+  },
+  stackoff: {
+    '100bb': 'TPTK+ in SRP, overpair+ in 3bp, set+ multiway',
+    '50bb': 'TPTK commit, overpair = go, set = always',
+    '200bb': 'Only set+, two pair on dry boards, nut draws',
+  },
+};
+
+// ═══ HELPER: Cash-specific 3-bet action ═══
+export function getCashThreeBetAction(card1, card2, heroPos, villainPos) {
+  const handKey = cardsToHandKey(card1, card2);
+  let key;
+  if (heroPos === 'SB' && villainPos === 'BTN') key = 'sb_vs_btn';
+  else key = 'vs_' + villainPos;
+  const ranges = CASH_THREEBET_RANGES[key];
+  if (!ranges) return 'fold';
+  if (isInRange(handKey, ranges.threebet)) return '3bet';
+  if (ranges.call && isInRange(handKey, ranges.call)) return 'call';
+  return 'fold';
+}
+
+// ═══ HELPER: Cash BB defense ═══
+export function getCashBBDefenseAction(card1, card2, openerPos) {
+  const handKey = cardsToHandKey(card1, card2);
+  const ranges = CASH_BB_DEFENSE['vs_' + openerPos];
+  if (!ranges) return 'fold';
+  if (isInRange(handKey, ranges.threebet)) return '3bet';
+  if (isInRange(handKey, ranges.call)) return 'call';
+  return 'fold';
+}
+
 // ═══ POSTFLOP REFERENCE ═══
 export const CBET_FREQUENCY = {
   dry:      { freq: '70-80%', size: '33%', desc: 'A72r, K83r — range bet small' },
