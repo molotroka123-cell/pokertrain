@@ -86,8 +86,8 @@ function ProfileSelect({ onSelect }) {
 
   return (
     <div style={{ minHeight: '100dvh', background: '#060810', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'Segoe UI', sans-serif" }}>
-      <div style={{ fontSize: '28px', color: '#ffd700', fontWeight: 900, marginBottom: '8px' }}>♠ POKERTRAIN</div>
-      <div style={{ fontSize: '13px', color: '#4a5a6a', marginBottom: '30px' }}>Select your profile</div>
+      <div style={{ fontSize: '28px', fontWeight: 900, marginBottom: '4px', background: 'linear-gradient(135deg, #80e0ff, #4ac8ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>♛ ICECROWN</div>
+      <div style={{ fontSize: '10px', color: '#4a7a9a', letterSpacing: '3px', marginBottom: '30px' }}>POKER CLUB</div>
 
       {profiles.map(p => (
         <button key={p.id} onClick={() => selectProfile(p)} style={{

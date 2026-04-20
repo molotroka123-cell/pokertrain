@@ -41,7 +41,7 @@ export default function Leaderboard({ onBack }) {
   const [apiRank, setApiRank] = useState(null);
   const [loading, setLoading] = useState(true);
   const hero = getHeroStats();
-  const playerName = localStorage.getItem('pokertrain_current_profile') || 'Hero';
+  const playerName = (() => { try { const p = JSON.parse(localStorage.getItem('pokertrain_current_profile')); return p?.name || 'Hero'; } catch { return 'Hero'; } })();
 
   useEffect(() => {
     setLoading(true);

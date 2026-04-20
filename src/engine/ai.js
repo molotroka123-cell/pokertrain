@@ -7,6 +7,7 @@ import { getHandValue, isInOpenRange, isIn3BetRange, handCategory } from './rang
 import { potOdds, mRatio as calcMRatio } from './equity.js';
 import { cryptoRandomFloat } from './deck.js';
 import { icmPressure } from './icm.js';
+import { isCashRfi, getCashThreeBetAction, getCashBBDefenseAction } from '../data/gtoRanges.js';
 
 const RV = { '2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'T':10,'J':11,'Q':12,'K':13,'A':14 };
 const IP_POSITIONS = new Set(['BTN', 'CO', 'HJ']);
@@ -237,9 +238,11 @@ export class BaseAI {
 
     // ═══ DEEP STACK — Open raise or fold (no limp for regs) ═══
     if (toCall <= bigBlind) {
-      // GTO position thresholds from ranges.js scaled by style
-      // Real MTT open ranges: UTG ~13%, MP ~18%, HJ ~24%, CO ~32%, BTN ~42%, SB ~36%
-      const gtoOpenThreshold = {
+      // Cash games use wider thresholds (no ICM, deeper stacks)
+      const isCashGame = gs.isCash || gs.tournamentFormat?.startsWith?.('NL');
+      const gtoOpenThreshold = isCashGame ? {
+        UTG: 0.18, HJ: 0.28, CO: 0.38, BTN: 0.55, SB: 0.50, BB: 0
+      } : {
         UTG: 0.15, 'UTG+1': 0.18, MP: 0.22, HJ: 0.30, CO: 0.42, BTN: 0.55, SB: 0.45
       };
       const baseThreshold = gtoOpenThreshold[position] || 0.30;
@@ -271,7 +274,8 @@ export class BaseAI {
       if (limpers > 0 && (p.style === 'TAG' || p.style === 'LAG' || p.style === 'SemiLAG')) {
         size = Math.floor(bigBlind * (4 + limpers)); // iso: 4x + 1x per limper
       } else {
-        size = Math.floor(bigBlind * (2.2 + cryptoRandomFloat() * 0.5));
+        const openSize = isCashGame ? (2.5 + cryptoRandomFloat() * 0.3) : (2.2 + cryptoRandomFloat() * 0.5);
+        size = Math.floor(bigBlind * openSize);
       }
       return { action: 'raise', amount: Math.min(size, myChips) };
     }

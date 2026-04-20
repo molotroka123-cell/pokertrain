@@ -65,6 +65,7 @@ export function generateDebrief(records) {
     return { totalMistakes: 0, criticalMistakes: 0, top5: [], estimatedEVLost: 0, summary: 'No data.' };
   }
 
+  const isCash = records[0]?.tournamentFormat?.startsWith?.('NL') || false;
   const mistakes = [];
 
   // INDEPENDENT mistake detection — recalculate from raw data
@@ -132,7 +133,8 @@ export function generateDebrief(records) {
         else if (barrels >= 2) adjEq *= 0.70;
         else if (barrels >= 1) adjEq *= 0.85;
         const adjEv = adjEq * (pot + toCall) - (1 - adjEq) * toCall;
-        if (adjEv > 0 && adjEq > odds + 0.08 && Math.abs(adjEv) > (d.blinds ? 200 : 50) * 2) {
+        const evFloor = isCash ? (d.blinds ? 400 : 100) * 2 : (d.blinds ? 200 : 50) * 2;
+        if (adjEv > 0 && adjEq > odds + 0.08 && Math.abs(adjEv) > evFloor) {
           if (!(commit > 0.35 && ['high_card', 'bottom_pair'].includes(mh))) {
             mistake = { type: 'bad_fold', severity: 'medium', evLost: Math.round(adjEv),
               reason: `Equity ${Math.round(eq*100)}% (adj ${Math.round(adjEq*100)}%) > odds ${Math.round(odds*100)}%.` };

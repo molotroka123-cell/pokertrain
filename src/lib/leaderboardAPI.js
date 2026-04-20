@@ -15,7 +15,7 @@ function getPlayerId() {
 export async function submitStats(stats) {
   try {
     const playerId = getPlayerId();
-    const name = localStorage.getItem('pokertrain_current_profile') || 'Hero';
+    let name = 'Hero'; try { const p = JSON.parse(localStorage.getItem('pokertrain_current_profile')); name = p?.name || 'Hero'; } catch {}
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

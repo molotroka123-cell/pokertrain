@@ -108,7 +108,7 @@ function getDailyMissions(ranked) {
   return data;
 }
 
-function completeMission(missionId) {
+export function completeMission(missionId) {
   const saved = JSON.parse(localStorage.getItem('pokertrain_daily_missions') || '{}');
   if (!saved.missions) return;
   const m = saved.missions.find(m => m.id === missionId);
