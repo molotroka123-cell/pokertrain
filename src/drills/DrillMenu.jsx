@@ -1,5 +1,7 @@
-// DrillMenu.jsx — Drill selection screen
+// DrillMenu.jsx — Drill selection with Daily Plan + NEW badges + progress
 import React from 'react';
+import NewBadge from '../components/NewBadge.jsx';
+import { generateDailyPlan, getDrillProgress } from './dailyPlanGenerator.js';
 
 const DRILLS = [
   { id: 'rfi', name: 'RFI Drill', desc: 'Open or fold from each position', icon: '🎯', color: '#27ae60' },
@@ -18,38 +20,94 @@ const DRILLS = [
 ];
 
 export default function DrillMenu({ onSelect, onBack }) {
+  const plan = generateDailyPlan();
+  const progress = getDrillProgress();
+
   return (
-    <div style={{ padding: '16px', maxWidth: '500px', margin: '0 auto' }}>
+    <div style={{ padding: '16px', maxWidth: '500px', margin: '0 auto', minHeight: '100vh', background: '#050b18' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ fontSize: '20px', fontWeight: 700, color: '#ffd700' }}>Training Drills</div>
+        <div style={{ fontSize: '20px', fontWeight: 900, color: '#4ac8ff', letterSpacing: '1px' }}>Training Drills</div>
         <button onClick={onBack} style={{
-          padding: '6px 14px', background: '#1a2840', border: '1px solid #2a3a4a',
-          borderRadius: '6px', color: '#8899aa', fontSize: '12px', cursor: 'pointer',
-        }}>Back</button>
+          padding: '8px 16px', background: 'rgba(10,20,40,0.8)', border: '1px solid rgba(74,200,255,0.25)',
+          borderRadius: '10px', color: '#4ac8ff', fontSize: '12px', cursor: 'pointer', fontWeight: 700,
+        }}>← Back</button>
       </div>
 
-      {DRILLS.map(d => (
-        <div key={d.id} onClick={() => onSelect(d.id)} style={{
-          display: 'flex', alignItems: 'center', gap: '14px',
-          padding: '14px', background: d.isNew ? '#1a0a10' : '#111820',
-          border: d.isNew ? '2px solid #ff4444' : '1px solid #1e2a3a',
-          borderRadius: '12px', marginBottom: '10px', cursor: 'pointer',
-          transition: 'border-color 0.2s', position: 'relative',
-          boxShadow: d.isNew ? '0 0 16px rgba(255,68,68,0.15)' : 'none',
+      {/* Daily Plan recommendation */}
+      {plan.drills.length > 0 && (
+        <div style={{
+          padding: '14px', borderRadius: '14px', marginBottom: '14px',
+          background: 'linear-gradient(135deg, rgba(22,160,133,0.12), rgba(22,160,133,0.04))',
+          border: '1px solid rgba(22,160,133,0.3)',
         }}>
-          {d.isNew && <div style={{
-            position: 'absolute', top: '-6px', right: '10px',
-            background: '#ff4444', color: '#fff', fontSize: '9px', fontWeight: 800,
-            padding: '2px 8px', borderRadius: '6px', letterSpacing: '1px',
-          }}>NEW</div>}
-          <div style={{ fontSize: '28px', width: '42px', textAlign: 'center' }}>{d.icon}</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: d.color }}>{d.name}</div>
-            <div style={{ fontSize: '12px', color: '#6b7b8d', marginTop: '2px' }}>{d.desc}</div>
+          <div style={{ fontSize: '11px', fontWeight: 800, color: '#16a085', letterSpacing: '1.5px', marginBottom: '8px' }}>
+            ⭐ RECOMMENDED FOR YOU TODAY
           </div>
-          <div style={{ color: d.isNew ? '#ff4444' : '#2a3a4a', fontSize: '18px' }}>›</div>
+          <div style={{ fontSize: '12px', color: '#8a9aaa', marginBottom: '8px' }}>{plan.recommendation}</div>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {plan.drills.map(d => (
+              <button key={d.id} onClick={() => onSelect(d.id)} style={{
+                padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(22,160,133,0.4)',
+                background: 'rgba(22,160,133,0.1)', color: '#16a085', fontSize: '11px', fontWeight: 700,
+                cursor: 'pointer',
+              }}>{d.name} ({d.duration}m)</button>
+            ))}
+          </div>
+          <div style={{ fontSize: '10px', color: '#5a6a7a', marginTop: '6px' }}>
+            ~{plan.duration} min total · Focus: {plan.focusAreas.slice(0, 3).join(', ')}
+          </div>
         </div>
-      ))}
+      )}
+
+      {/* Weekly progress */}
+      {(() => {
+        const totalXP = parseInt(localStorage.getItem('pokertrain_total_xp') || '0', 10);
+        const totalSessions = Object.values(progress).reduce((s, p) => s + (p.sessions || 0), 0);
+        return (
+          <div style={{
+            display: 'flex', gap: '1px', marginBottom: '14px', borderRadius: '12px', overflow: 'hidden', background: '#1a2230',
+          }}>
+            {[
+              { label: 'SESSIONS', val: totalSessions, color: '#4ac8ff' },
+              { label: 'TOTAL XP', val: totalXP, color: '#ffa020' },
+              { label: 'DRILLS', val: Object.keys(progress).length + '/' + DRILLS.length, color: '#22c55e' },
+            ].map(s => (
+              <div key={s.label} style={{ flex: 1, padding: '10px', textAlign: 'center', background: 'rgba(8,16,28,0.8)' }}>
+                <div style={{ fontSize: '8px', color: '#4a6a7a', letterSpacing: '1px', fontWeight: 700 }}>{s.label}</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: s.color, marginTop: '2px' }}>{s.val}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* Drill list */}
+      {DRILLS.map(d => {
+        const p = progress[d.id];
+        return (
+          <div key={d.id} onClick={() => onSelect(d.id)} style={{
+            display: 'flex', alignItems: 'center', gap: '14px',
+            padding: '14px', background: d.isNew ? 'rgba(22,160,133,0.06)' : 'rgba(8,16,28,0.8)',
+            border: d.isNew ? '1px solid rgba(22,160,133,0.3)' : '1px solid rgba(74,200,255,0.1)',
+            borderRadius: '14px', marginBottom: '8px', cursor: 'pointer',
+            transition: 'border-color 0.2s', position: 'relative',
+          }}>
+            {d.isNew && <NewBadge size="sm" variant="pulse" />}
+            <div style={{ fontSize: '28px', width: '42px', textAlign: 'center' }}>{d.icon}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '14px', fontWeight: 800, color: d.color }}>{d.name}</div>
+              <div style={{ fontSize: '11px', color: '#5a6a7a', marginTop: '2px' }}>{d.desc}</div>
+              {p && (
+                <div style={{ fontSize: '9px', color: '#4a6a7a', marginTop: '3px' }}>
+                  Best: <span style={{ color: p.bestPct >= 80 ? '#22c55e' : p.bestPct >= 60 ? '#ffa020' : '#e74c3c', fontWeight: 700 }}>{p.bestPct}%</span>
+                  {' · '}{p.sessions} plays{' · '}{p.xpEarned} XP
+                </div>
+              )}
+            </div>
+            <div style={{ color: '#3a5a6a', fontSize: '18px' }}>›</div>
+          </div>
+        );
+      })}
     </div>
   );
 }

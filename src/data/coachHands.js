@@ -283,6 +283,81 @@ export const COACH_HANDS = [
       'Ещё один BB overfold vs BTN 10bb jam. QTo ещё сильнее чем JTo: Q-blocker, T-blocker, пара Q+ с любой масти. Call = +1.05bb EV.',
     lesson: 'ПОВТОРЕНИЕ: BB vs BTN 10bb jam — QTo, JTo, KXo, AXo все call. Даже Q8o, J8s call.',
   },
+
+  // ═══ BATCH 3: Postflop + Preflop MTT spots (April 2026) ═══
+
+  {
+    id: 'bb_k2s_fold_flop_ajt_20bb',
+    title: 'BB K2s — fold on AJT flop vs BTN',
+    tags: ['postflop', 'flop', 'bb', 'fold_flop', 'srp'],
+    blinds: 'SRP 20bb',
+    level: 'MTT',
+    hero: { pos: 'BB', cards: 'K♠2♠', stackBB: 16.2 },
+    players: { BTN: 16.2, BB: 16.2 },
+    action: [
+      { street: 'preflop', actor: 'BTN', action: 'raise', size: 2.5 },
+      { street: 'preflop', actor: 'BB', action: 'call' },
+      { street: 'flop', board: 'A♠J♦T♠', pot: 9.1 },
+      { street: 'flop', actor: 'BB', action: 'fold', gto: 'fold' },
+    ],
+    verdict: 'Correct',
+    evLoss: 0,
+    explanation: 'K2s on AJT — no pair, no draw (backdoor flush only). Board smashes BTN opening range (AJ, AT, KQ, QJ). GTO = fold 100%.',
+    lesson: 'BB on A-high + broadway flop: fold weak hands even with backdoor flush draw. AJT is worst flop for BB range.',
+  },
+
+  {
+    id: 'btn_a3_turn_mistake_a84j',
+    title: 'BTN A3o — turn mistake on A84J',
+    tags: ['postflop', 'turn', 'btn', 'tp_weak_kicker'],
+    blinds: '250/500 (75)',
+    level: 'MTT',
+    hero: { pos: 'BTN', cards: 'A♣3♣', stackBB: 16.6 },
+    players: { HJ: 46.2, CO: 19.8, BTN: 16.6, SB: 46.7, BB: 1.6 },
+    action: [
+      { street: 'preflop', actor: 'BTN', action: 'raise', size: 2.5 },
+      { street: 'flop', board: 'A♠8♦4♦', pot: 'SRP' },
+      { street: 'turn', board: 'J♠', mistake: true, gto: 'check' },
+    ],
+    verdict: 'Mistake',
+    evLoss: 11.5,
+    explanation: 'A3 on A84J turn — top pair weak kicker. J turn brings broadway draws complete. Check to pot control. Betting commits too much with weak kicker.',
+    lesson: 'Top pair weak kicker on scary turn card = check. Especially short-stacked (16bb) where bet = committed.',
+  },
+
+  {
+    id: 'hj_qq_preflop_mistake_0bb',
+    title: 'HJ QQ — preflop mistake (flat vs should 4bet)',
+    tags: ['preflop', 'hj', 'premium', '4bet'],
+    blinds: '800/1600 (200)',
+    level: 'MTT',
+    hero: { pos: 'HJ', cards: 'Q♥Q♥', stackBB: 0 },
+    players: { SB: 16.3, BB: 21.5, BTN: 28.5, UTG1: 39.2, LJ: 41.8, CO: 64.5 },
+    action: [
+      { street: 'preflop', actor: 'HJ', action: 'flat', mistake: true, gto: 'raise' },
+    ],
+    verdict: 'Mistake',
+    evLoss: 0.7,
+    explanation: 'QQ from HJ — must raise/4bet, never flat. Flatting lets BTN squeeze and you play multiway OOP with a hand that needs protection.',
+    lesson: 'QQ+ from any position = always raise/3bet/4bet. Flatting loses value and invites multiway pots.',
+  },
+
+  {
+    id: 'bb_66_preflop_mistake_k88a5',
+    title: 'BB 66 — preflop mistake on K88A5',
+    tags: ['preflop', 'bb', 'small_pair', 'setmine'],
+    blinds: 'MTT',
+    level: 'MTT',
+    hero: { pos: 'BB', cards: '6♥6♠', stackBB: 20 },
+    players: {},
+    action: [
+      { street: 'preflop', actor: 'BB', action: 'call', mistake: true, gto: 'fold' },
+    ],
+    verdict: 'Mistake',
+    evLoss: 20.68,
+    explanation: 'BB 66 in specific spot — set mining too deep. With multiple opponents and poor implied odds, 66 should fold to large sizing or 3-bet jam.',
+    lesson: 'Small pairs BB: consider stack depth + implied odds. vs big raise = fold unless deep enough (20:1 rule).',
+  },
 ];
 
 // ═══ Bot training dataset: aggregated corrections for AI to learn from ═══
