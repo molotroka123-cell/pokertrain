@@ -17,6 +17,7 @@ const DRILLS = [
   { id: 'potodds', name: 'Pot Odds Quiz', desc: 'Calculate pot odds + outs', icon: '🧮', color: '#3498db' },
   { id: 'river', name: 'River Decisions', desc: 'Value bet, bluff, or check/call river', icon: '🌊', color: '#e67e22' },
   { id: 'personalized', name: 'Your Weak Spots', desc: 'Drills from your actual mistakes', icon: '🔍', color: '#e74c3c' },
+  { id: 'custom', name: 'Custom Drill', desc: 'Build your own: pick position, stack, street', icon: '🔧', color: '#6a8aaa' },
 ];
 
 export default function DrillMenu({ onSelect, onBack }) {

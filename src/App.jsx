@@ -31,6 +31,7 @@ import SolverPushFoldDrill from './drills/SolverPushFoldDrill.jsx';
 import MultiwayDrill from './drills/MultiwayDrill.jsx';
 import ThreeBetPotDrill from './drills/ThreeBetPotDrill.jsx';
 import AHighCbetDrill from './drills/AHighCbetDrill.jsx';
+import CustomDrillBuilder from './drills/CustomDrillBuilder.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
 import GTOAnalyzer from './stats/GTOAnalyzer.jsx';
 import LeakFinder from './stats/LeakFinder.jsx';
@@ -531,10 +532,10 @@ const SEATS_9 = [
   { x: 50, y: 90 },  // 0: Hero (bottom)
   { x: 10, y: 75 },  // 1
   { x: 2,  y: 48 },  // 2
-  { x: 10, y: 20 },  // 3
-  { x: 32, y: 5 },   // 4
-  { x: 68, y: 5 },   // 5
-  { x: 90, y: 20 },  // 6
+  { x: 10, y: 22 },  // 3
+  { x: 32, y: 10 },  // 4 (pushed down from 5%)
+  { x: 68, y: 10 },  // 5 (pushed down from 5%)
+  { x: 90, y: 22 },  // 6
   { x: 98, y: 48 },  // 7
   { x: 90, y: 75 },  // 8
 ];
@@ -606,8 +607,9 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
     <div style={{ position: 'relative', width: '100%', maxWidth: '100vw', margin: '0 auto' }}>
       {/* ═══ TABLE AREA ═══ */}
       <div style={{
-        position: 'relative', width: '100%', height: 'min(320px, 42dvh)',
+        position: 'relative', width: '100%', height: 'min(340px, 44dvh)',
         overflow: 'visible', contain: 'layout style',
+        marginTop: '4px',
       }}>
         {/* Bokeh background lights */}
         {[
@@ -918,14 +920,14 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
 
       {/* ═══ HERO AREA — below table ═══ */}
       <div style={{
-        textAlign: 'center', padding: '6px 0 2px', position: 'relative',
+        textAlign: 'center', padding: '8px 0 4px', position: 'relative',
       }}>
         {/* Hero bet chips */}
         {seated[0]?.bet > 0 && (
           <ChipStack amount={seated[0].bet} x="50%" y="-10px" animate />
         )}
         {/* Hero cards */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', minHeight: '54px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', minHeight: '60px' }}>
           {gs.heroCards?.length > 0 && gs.heroCards.map((c, ci) => (
             <Card key={c} card={c} hero glow delay={ci * 300} />
           ))}
@@ -2031,7 +2033,7 @@ function Game({ director, onExit }) {
 const DRILL_MAP = {
   rfi: RFIDrill, '3bet': ThreeBetDrill, bbdef: BBDefenseDrill,
   pushfold: PushFoldDrill, solverpf: SolverPushFoldDrill,
-  multiway: MultiwayDrill, threebetpot: ThreeBetPotDrill, ahighcbet: AHighCbetDrill,
+  multiway: MultiwayDrill, threebetpot: ThreeBetPotDrill, ahighcbet: AHighCbetDrill, custom: CustomDrillBuilder,
   postflop: PostflopDrill, sizing: SizingDrill, potodds: PotOddsDrill,
   personalized: PersonalizedDrill, river: RiverDrill,
 };
