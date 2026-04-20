@@ -16,6 +16,7 @@ import TournamentDashboard from './tournament/TournamentDashboard.jsx';
 import DebriefScreen from './stats/DebriefScreen.jsx';
 import { startSession, recordDecision, recordHandHistory, updateHandResult, saveSession, exportSession, getRecords } from './recorder/ActionRecorder.js';
 import { generateDebrief } from './recorder/autoDebrief.js';
+import { submitCurrentStats } from './lib/leaderboardAPI.js';
 import DrillMenu from './drills/DrillMenu.jsx';
 import RFIDrill from './drills/RFIDrill.jsx';
 import ThreeBetDrill from './drills/ThreeBetDrill.jsx';
@@ -32,6 +33,8 @@ import GTOAnalyzer from './stats/GTOAnalyzer.jsx';
 import LeakFinder from './stats/LeakFinder.jsx';
 import Leaderboard from './stats/Leaderboard.jsx';
 import CoachScreen from './coach/Coach.jsx';
+import PrivacyPolicy from './legal/PrivacyPolicy.jsx';
+import TermsOfService from './legal/TermsOfService.jsx';
 import RealAnalysis from './stats/RealAnalysis.jsx';
 import GameHistory from './stats/GameHistory.jsx';
 import { Sounds } from './lib/sounds.js';
@@ -2100,6 +2103,12 @@ function AppInner() {
   if (screen === 'coach') {
     return <div style={appBg}><CoachScreen onBack={() => setScreen('lobby')} /></div>;
   }
+  if (screen === 'privacy') {
+    return <PrivacyPolicy onBack={() => setScreen('lobby')} />;
+  }
+  if (screen === 'terms') {
+    return <TermsOfService onBack={() => setScreen('lobby')} />;
+  }
   if (screen === 'drill' && activeDrill) {
     const D = DRILL_MAP[activeDrill];
     if (D) return <div style={appBg}><D onBack={() => setScreen('drills')} /></div>;
@@ -2131,6 +2140,7 @@ function AppInner() {
       try {
         const records = getRecords();
         saveSession();
+        submitCurrentStats().catch(() => {});
         // Calculate prize and update bankroll
         const f = finish || {};
         const pos = f.position || 999;

@@ -1,5 +1,6 @@
-// Leaderboard.jsx — Community leaderboard with simulated + real player stats
+// Leaderboard.jsx — Community leaderboard with real API + simulated fallback
 import React, { useState, useEffect } from 'react';
+import { fetchLeaderboard, submitCurrentStats, computeHeroStats } from '../lib/leaderboardAPI.js';
 
 const SIMULATED_PLAYERS = [
   { name: 'IceKing', flag: '🇷🇺', gtoScore: 82, hands: 2450, bestFinish: 1, roi: 45, vip: true },
@@ -36,16 +37,35 @@ function getHeroStats() {
 
 export default function Leaderboard({ onBack }) {
   const [tab, setTab] = useState('global');
+  const [apiPlayers, setApiPlayers] = useState(null);
+  const [apiRank, setApiRank] = useState(null);
+  const [loading, setLoading] = useState(true);
   const hero = getHeroStats();
   const playerName = localStorage.getItem('pokertrain_current_profile') || 'Hero';
 
+  useEffect(() => {
+    setLoading(true);
+    submitCurrentStats().then(res => {
+      if (res) setApiRank(res.rank);
+    });
+    fetchLeaderboard(tab === 'weekly' ? 'weekly' : 'all', 50).then(data => {
+      if (data?.players?.length > 0) setApiPlayers(data.players);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [tab]);
+
   const weeklyVariance = (seed) => Math.abs(((seed * 9301 + 49297) % 233280) / 233280 * 20 - 10);
-  const players = tab === 'weekly'
+  const fallbackPlayers = tab === 'weekly'
     ? SIMULATED_PLAYERS.map((p, i) => ({ ...p, gtoScore: Math.min(99, Math.max(40, p.gtoScore + Math.round(weeklyVariance(i + 7) - 5))), hands: Math.round(p.hands * 0.08) }))
     : SIMULATED_PLAYERS;
+
+  const remotePlayers = apiPlayers
+    ? apiPlayers.filter(p => p.playerId !== localStorage.getItem('pokertrain_player_id')).map(p => ({ ...p, flag: '🌍' }))
+    : fallbackPlayers;
+
   const allPlayers = [
     { name: playerName, flag: '⭐', gtoScore: hero.gtoScore, hands: tab === 'weekly' ? Math.round(hero.hands * 0.08) : hero.hands, bestFinish: hero.bestFinish, roi: hero.roi, isHero: true },
-    ...players,
+    ...remotePlayers,
   ].sort((a, b) => b.gtoScore - a.gtoScore);
 
   const medals = ['🥇', '🥈', '🥉'];
