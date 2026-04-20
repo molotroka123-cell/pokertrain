@@ -32,6 +32,7 @@ import MultiwayDrill from './drills/MultiwayDrill.jsx';
 import ThreeBetPotDrill from './drills/ThreeBetPotDrill.jsx';
 import AHighCbetDrill from './drills/AHighCbetDrill.jsx';
 import CustomDrillBuilder from './drills/CustomDrillBuilder.jsx';
+import DrillHistory from './drills/DrillHistory.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
 import GTOAnalyzer from './stats/GTOAnalyzer.jsx';
 import LeakFinder from './stats/LeakFinder.jsx';
@@ -2121,8 +2122,11 @@ function AppInner() {
   }
   if (screen === 'drills') {
     return <div style={appBg}><DrillMenu
-      onSelect={(id) => { setActiveDrill(id); setScreen('drill'); }}
+      onSelect={(id) => { if (id === 'history') { setScreen('drillhistory'); return; } setActiveDrill(id); setScreen('drill'); }}
       onBack={() => setScreen('lobby')} /></div>;
+  }
+  if (screen === 'drillhistory') {
+    return <div style={appBg}><DrillHistory onBack={() => setScreen('drills')} /></div>;
   }
   if (screen === 'debrief' && debriefData) {
     return <div style={appBg}><DebriefScreen debrief={debriefData.debrief} finish={debriefData.finish}

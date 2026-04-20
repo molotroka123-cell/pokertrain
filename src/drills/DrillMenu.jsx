@@ -18,6 +18,7 @@ const DRILLS = [
   { id: 'river', name: 'River Decisions', desc: 'Value bet, bluff, or check/call river', icon: '🌊', color: '#e67e22' },
   { id: 'personalized', name: 'Your Weak Spots', desc: 'Drills from your actual mistakes', icon: '🔍', color: '#e74c3c' },
   { id: 'custom', name: 'Custom Drill', desc: 'Build your own: pick position, stack, street', icon: '🔧', color: '#6a8aaa' },
+  { id: 'history', name: 'Progress History', desc: 'Weekly heatmap, EV trends, per-drill stats', icon: '📈', color: '#8b5cf6' },
 ];
 
 export default function DrillMenu({ onSelect, onBack }) {
