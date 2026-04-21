@@ -62,4 +62,38 @@ export const CASH_FORMATS = {
     fieldLevel: 'low',
     isCash: true,
   },
+  GG_CLUB_NL10: {
+    name: 'GG Club NL10',
+    speed: 'Cash',
+    smallBlind: 5,
+    bigBlind: 10,
+    buyIn: 1000,
+    minBuyIn: 400,
+    maxBuyIn: 2000,
+    rebuyThreshold: 500,
+    rake: 0.05,
+    rakeCap: 30,         // GGPoker rake cap is higher
+    playersPerTable: 6,
+    fieldLevel: 'low',
+    isCash: true,
+    skin: 'GG_CLUB',     // UI-only: swap theme + table layout to GG style
+    club: 'Rush & Cash', // cosmetic label
+  },
+  GG_CLUB_NL25: {
+    name: 'GG Club NL25',
+    speed: 'Cash',
+    smallBlind: 10,
+    bigBlind: 25,
+    buyIn: 2500,
+    minBuyIn: 1000,
+    maxBuyIn: 5000,
+    rebuyThreshold: 1250,
+    rake: 0.05,
+    rakeCap: 75,
+    playersPerTable: 6,
+    fieldLevel: 'low',
+    isCash: true,
+    skin: 'GG_CLUB',
+    club: 'Rush & Cash',
+  },
 };

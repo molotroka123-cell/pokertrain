@@ -164,6 +164,30 @@ export const THEMES = {
     ambientColor: 'rgba(74,200,255,0.05)', logoColor: '#4ac8ff',
   },
 
+  // ═══ GG_CLUB — Green felt, red/white chips, GGPoker-style ═══
+  GG_CLUB: {
+    id: 'ggclub', name: 'GG Club', logo: 'GG',
+    logoFont: "'Arial Black', 'Impact', sans-serif",
+    isGGClub: true,
+    bg: 'radial-gradient(ellipse at 50% 20%, #0a1a0f 0%, #060d08 60%, #030504 100%)',
+    rimBg: 'linear-gradient(180deg, #1a1208 0%, #0e0804 50%, #060402 100%)',
+    rimBorder: 'rgba(212,175,55,0.28)', rimEdge: 'rgba(212,175,55,0.16)',
+    rimGlow: '0 0 28px rgba(0,0,0,0.6), inset 0 0 20px rgba(212,175,55,0.08), 0 8px 40px rgba(0,0,0,0.8)',
+    feltBg: 'radial-gradient(ellipse at 50% 42%, #1f7a3a 0%, #1a6630 25%, #155028 50%, #0f3e20 75%, #082815 100%)',
+    feltInner: 'rgba(255,255,255,0.04)', feltLight: 'rgba(255,255,255,0.02)',
+    accent: '#e53935', accentGlow: 'rgba(229,57,53,0.35)',
+    potColor: '#ffffff', potShadow: '0 0 14px rgba(0,0,0,0.5)',
+    chipColor: '#e53935', heroGlow: '0 0 18px rgba(229,57,53,0.3), 0 0 40px rgba(0,0,0,0.4)',
+    avatarHero: 'linear-gradient(135deg, #5a0c0a, #e53935)', avatarBot: 'linear-gradient(135deg, #1a1812, #2a241a)',
+    avatarWin: 'linear-gradient(135deg, #ffd700, #fff089)',
+    allInBg: 'linear-gradient(90deg, #e53935, #ff5a4a)', allInColor: '#1a0404',
+    callBtnBg: 'linear-gradient(160deg, #8a1510, #c0392b, #8a1510)',
+    winBg: 'rgba(6,12,8,0.92)', winBorder: 'rgba(212,175,55,0.3)',
+    winGlow: '0 4px 24px rgba(212,175,55,0.2), 0 0 60px rgba(0,0,0,0.6)',
+    headerBg: 'rgba(6,10,8,0.95)', headerColor: '#e53935',
+    ambientColor: 'rgba(255,255,255,0.02)', logoColor: '#e53935',
+  },
+
   // ═══ GTD 100K — Warm Amber/Bronze ═══
   GTD_100K: {
     id: 'gtd100k', name: '$100K Guaranteed', logo: '$100K',
@@ -189,5 +213,9 @@ export const THEMES = {
 };
 
 export function getTheme(formatKey) {
-  return THEMES[formatKey] || THEMES.WSOP_Main;
+  if (!formatKey) return THEMES.WSOP_Main;
+  if (THEMES[formatKey]) return THEMES[formatKey];
+  // Cash-format skins: "GG_CLUB_NL10" → GG_CLUB theme
+  if (formatKey.startsWith('GG_CLUB')) return THEMES.GG_CLUB;
+  return THEMES.WSOP_Main;
 }
