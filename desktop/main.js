@@ -6,16 +6,21 @@ const fs = require('fs');
 let mainWindow;
 let overlayWindow;
 
-// Read API endpoint from desktop/config.json (falls back to env var or prod URL)
+// Read API endpoint from config.local.json (personal override) → config.json → env → default
 function getApiBase() {
-  try {
-    const cfgPath = path.join(__dirname, 'config.json');
-    if (fs.existsSync(cfgPath)) {
-      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-      if (cfg.apiBase) return cfg.apiBase;
-    }
-  } catch (e) {}
-  return process.env.ICECROWN_API_BASE || 'https://icecrown-poker.vercel.app';
+  const candidates = [
+    path.join(__dirname, 'config.local.json'),
+    path.join(__dirname, 'config.json'),
+  ];
+  for (const cfgPath of candidates) {
+    try {
+      if (fs.existsSync(cfgPath)) {
+        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+        if (cfg.apiBase) return cfg.apiBase;
+      }
+    } catch (e) {}
+  }
+  return process.env.ICECROWN_API_BASE || 'https://pokertrain.vercel.app';
 }
 
 function createMainWindow() {
