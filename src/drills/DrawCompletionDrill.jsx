@@ -83,10 +83,10 @@ function genDrawCompletionSpot() {
           freq = { fold: 60, call: 35, raise: 5 };
           tip = 'Two pair на 4-flush борде: часто фолд 3-way. Если у кого-то флэш — ты мёртв.';
         } else if (heroRank >= 2) {
-          freq = { fold: 80, call: 18, raise: 2 };
-          tip = 'Одна пара на 4-flush борде 3-way с бетом — чистый фолд. Даже top pair не тянет.';
+          freq = { fold: 78, call: 20, raise: 2 };
+          tip = 'Одна пара на 4-flush борде 3-way с бетом — почти всегда фолд. Только TP с блокером к натсу call.';
         } else {
-          freq = { fold: 95, call: 3, raise: 2 };
+          freq = { fold: 93, call: 5, raise: 2 };
           tip = 'Воздух на 4-flush борде 3-way: фолд. Bluff-catch невозможен без showdown value.';
         }
       } else {
@@ -110,10 +110,10 @@ function genDrawCompletionSpot() {
           freq = { fold: 55, call: 40, raise: 5 };
           tip = 'Two pair когда флэш доехал — сложный спот. 3-way с бетом: склоняйся к фолду.';
         } else if (heroRank >= 2) {
-          freq = { fold: 75, call: 22, raise: 3 };
-          tip = 'Пара на 3-flush борде 3-way: фолд. Оппонент бетит — он чаще имеет флэш.';
+          freq = { fold: 62, call: 34, raise: 4 };
+          tip = 'Пара на 3-flush борде 3-way: часто фолд, но top pair с блокером к флэшу можно call.';
         } else {
-          freq = { fold: 92, call: 5, raise: 3 };
+          freq = { fold: 88, call: 8, raise: 4 };
           tip = 'Air vs bet на flush-complete борде 3-way: snap fold.';
         }
       } else {

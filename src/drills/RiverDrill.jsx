@@ -36,19 +36,17 @@ function genRiverSpot() {
   let freq;
   const rank = heroHand?.rank || 1;
   if (facingBet) {
-    // Facing bet: raise nuts, call strong, fold weak
-    if (rank >= 7) freq = { raise: 85, call: 12, fold: 3 };       // full house+ → raise for value
-    else if (rank >= 5) freq = { raise: 55, call: 40, fold: 5 };  // straight/flush → mostly raise
-    else if (rank >= 3) freq = { call: 75, raise: 10, fold: 15 }; // two pair → mostly call
-    else if (rank >= 2) freq = { call: 45, fold: 50, raise: 5 };  // one pair → close call/fold
-    else freq = { fold: 85, call: 10, raise: 5 };                  // high card → mostly fold
+    if (rank >= 7) freq = { raise: 95, call: 4, fold: 1 };       // full house+ → always raise
+    else if (rank >= 5) freq = { raise: 75, call: 22, fold: 3 };  // straight/flush → raise for value
+    else if (rank >= 3) freq = { call: 55, raise: 10, fold: 35 }; // two pair → call but fold some
+    else if (rank >= 2) freq = { fold: 65, call: 30, raise: 5 };  // one pair → mostly fold
+    else freq = { fold: 88, call: 8, raise: 4 };                   // high card → fold
   } else {
-    // Checked to us: bet value, check medium, bluff some air
     if (rank >= 7) freq = { raise: 95, check: 5 };                // nuts → always bet
-    else if (rank >= 5) freq = { raise: 85, check: 15 };          // strong → bet big
-    else if (rank >= 3) freq = { raise: 65, check: 35 };          // two pair → bet often
-    else if (rank >= 2) freq = { raise: 35, check: 65 };          // pair → block bet sometimes
-    else freq = { raise: 15, check: 85 };                          // air → occasional bluff
+    else if (rank >= 5) freq = { raise: 80, check: 20 };          // strong → bet big
+    else if (rank >= 3) freq = { raise: 60, check: 40 };          // two pair → bet often
+    else if (rank >= 2) freq = { raise: 30, check: 70 };          // pair → block bet sometimes
+    else freq = { raise: 12, check: 88 };                          // air → rare bluff
   }
 
   return { hero, board, opp, pos, pot, betSize, facingBet, heroHand, oppHand, wouldWin, freq, isIP, rank };
