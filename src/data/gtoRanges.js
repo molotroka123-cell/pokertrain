@@ -379,7 +379,7 @@ export function getBBDefenseAction(card1, card2, openerPos) {
 // When facing raise + 1+ caller, fold almost all trash
 // Based on GTO Wizard: 94o multiway = fold (EV loss 0.15bb to call)
 const MULTIWAY_BB_DEFEND = parseRange(
-  "22+, A2s+, K7s+, Q8s+, J8s+, T8s+, 97s+, 87s, 76s, 65s, 54s, A9o+, KTo+, QTo+, JTo"
+  "22+, A2s+, K9s+, QTs+, JTs, T9s, 98s, 87s, 76s, 65s, ATo+, KJo+, QJo"
 );
 export function getBBDefenseMultiway(card1, card2) {
   const handKey = cardsToHandKey(card1, card2);
