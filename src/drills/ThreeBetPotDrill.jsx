@@ -4,17 +4,29 @@ import DrillShell, { drillStyles as ds } from './DrillShell.jsx';
 import Card from '../components/Card.jsx';
 import { cryptoRandomFloat } from '../engine/deck.js';
 
+// 50BB cash context (100bb→50bb postflop after 3-bet). SB vs BTN scenarios are user's main leak (−1.81 bb/hand).
 const SCENARIOS = [
-  { hero: ['Ah','Kd'], board: ['Qh','7s','3d'], pos: 'BTN (IP)', villain: 'BB', pot: 5400, toCall: 0, correct: 'bet', reason: '3-bet pot AK on Q73 — range advantage as 3-bettor. Cbet 33% often. AK has overcards + BDFD.', freq: 'Bet 33% 72%, Check 28%' },
-  { hero: ['Jh','Jd'], board: ['Kc','9s','4d'], pos: 'BTN (IP)', villain: 'SB', pot: 5400, toCall: 0, correct: 'check', reason: '3-bet pot JJ on K94 — K hits caller range (KQ, KJ, AK). JJ is bluff-catcher. Check back.', freq: 'Check 68%, Bet 33% 32%' },
-  { hero: ['Qs','Qd'], board: ['Ah','8c','3s'], pos: 'SB (OOP)', villain: 'BTN', pot: 5400, toCall: 0, correct: 'check', reason: '3-bet pot QQ on A83 OOP — A smashes BTN flat range. QQ is showdown value. Check-call.', freq: 'Check 85%, Bet 50% 15%' },
-  { hero: ['Ac','Kc'], board: ['Jh','Td','5c'], pos: 'BTN (IP)', villain: 'BB', pot: 5400, toCall: 0, correct: 'bet', reason: 'AK in 3-bet pot on JT5 — gutshot + 2 overcards. Great semi-bluff + range advantage.', freq: 'Bet 50% 65%, Check 35%' },
-  { hero: ['Ah','Ad'], board: ['Kh','7d','2s'], pos: 'SB (OOP)', villain: 'BTN', pot: 5400, toCall: 0, correct: 'bet', reason: 'AA on K72 in 3-bet pot OOP — you dominate. Small cbet (33%) but mix in checks to trap.', freq: 'Bet 33% 60%, Check 40%' },
-  { hero: ['Ts','Td'], board: ['Ah','Kd','6c'], pos: 'BTN (IP)', villain: 'BB', pot: 5400, toCall: 0, correct: 'check', reason: 'TT on AK6 — both overcards hit ranges. TT has no value to bet. Check back for showdown.', freq: 'Check 82%, Bet 33% 18%' },
-  { hero: ['Kh','Qh'], board: ['9h','6h','2d'], pos: 'SB (OOP)', villain: 'BTN', pot: 5400, toCall: 0, correct: 'bet', reason: 'KQhh on 9h6h2d — nut flush draw + 2 overs. Great semi-bluff. Lead for 50% pot.', freq: 'Bet 50% 63%, Check 37%' },
-  { hero: ['8h','8d'], board: ['Jh','Jd','6c'], pos: 'BTN (IP)', villain: 'SB', pot: 5400, toCall: 1800, correct: 'call', reason: '88 on JJ6 facing lead in 3-bet pot — SB could have many bluffs (AK, AQ). 88 = bluff-catcher. Call.', freq: 'Call 62%, Fold 38%' },
-  { hero: ['As','Qs'], board: ['Ks','4d','2h'], pos: 'SB (OOP)', villain: 'BTN', pot: 5400, toCall: 0, correct: 'check', reason: 'AQs on K42 OOP — K hits BTN range hard. AQ is too weak to cbet here. Check-call or check-fold.', freq: 'Check 75%, Bet 33% 25%' },
-  { hero: ['Kd','Kh'], board: ['Ac','Jh','3d'], pos: 'BTN (IP)', villain: 'BB', pot: 5400, toCall: 2000, correct: 'call', reason: 'KK facing donk bet on AJ3 — villain leading into 3-bettor is suspicious. KK still beats Jx, bluffs. Call.', freq: 'Call 70%, Raise 15%, Fold 15%' },
+  // --- BTN vs BB (IP, as 3-bettor) ---
+  { hero: ['Ah','Kd'], board: ['Qh','7s','3d'], pos: 'BTN (IP)', villain: 'BB', pot: 22, toCall: 0, correct: 'bet', reason: '3BP AK on Q73 rainbow — range advantage as 3-bettor. Cbet 33% works against BB peel range.', freq: 'Bet 33% 72%, Check 28%', stack: 39 },
+  { hero: ['Jh','Jd'], board: ['Kc','9s','4d'], pos: 'BTN (IP)', villain: 'BB', pot: 22, toCall: 0, correct: 'check', reason: '3BP JJ on K94 — K hits BB defend range (KQ, KJs, AK-suited). JJ = bluff-catcher, check back.', freq: 'Check 68%, Bet 33% 32%', stack: 39 },
+  { hero: ['Ac','Kc'], board: ['Jh','Td','5c'], pos: 'BTN (IP)', villain: 'BB', pot: 22, toCall: 0, correct: 'bet', reason: 'AK on JT5 — gutshot + 2 overs + BDFD. Mandatory semi-bluff in 3BP.', freq: 'Bet 50% 65%, Check 35%', stack: 39 },
+  { hero: ['Ts','Td'], board: ['Ah','Kd','6c'], pos: 'BTN (IP)', villain: 'BB', pot: 22, toCall: 0, correct: 'check', reason: 'TT on AK6 — both overcards hit ranges. No value to bet. Check back for SD.', freq: 'Check 82%, Bet 33% 18%', stack: 39 },
+  { hero: ['Kd','Kh'], board: ['Ac','Jh','3d'], pos: 'BTN (IP)', villain: 'BB', pot: 22, toCall: 8, correct: 'call', reason: 'KK facing donk on AJ3 — BB leading into 3-bettor is polarised. KK still beats Jx + bluffs.', freq: 'Call 70%, Raise 15%, Fold 15%', stack: 35 },
+
+  // --- BTN vs SB (IP, SB 4-bet cold → BTN call; OR BTN 3-bet SB open → SB flat OOP) ---
+  { hero: ['8h','8d'], board: ['Jh','Jd','6c'], pos: 'BTN (IP)', villain: 'SB', pot: 22, toCall: 7, correct: 'call', reason: '88 on JJ6 facing lead — SB 3BP range has AK/AQ bluffs + Jx. 88 = bluff-catcher, call small.', freq: 'Call 62%, Fold 38%', stack: 36 },
+
+  // --- SB vs BTN (OOP, SB 3-bets BTN open). USER'S MAIN LEAK: −1.81 bb/hand structural weakness. ---
+  { hero: ['Qs','Qd'], board: ['Ah','8c','3s'], pos: 'SB (OOP)', villain: 'BTN', pot: 22, toCall: 0, correct: 'check', reason: 'SB vs BTN 3BP: QQ on A83 OOP. A smashes BTN peel range (AQ, AJs, ATs). QQ = bluff-catcher. Check-call small, check-fold big.', freq: 'Check 85%, Bet 50% 15%', stack: 39 },
+  { hero: ['Ah','Ad'], board: ['Kh','7d','2s'], pos: 'SB (OOP)', villain: 'BTN', pot: 22, toCall: 0, correct: 'bet', reason: 'SB vs BTN 3BP: AA on K72 OOP. Small cbet 33% on dry K — protect + mix checks to trap.', freq: 'Bet 33% 60%, Check 40%', stack: 39 },
+  { hero: ['Kh','Qh'], board: ['9h','6h','2d'], pos: 'SB (OOP)', villain: 'BTN', pot: 22, toCall: 0, correct: 'bet', reason: 'SB vs BTN 3BP: KQhh on 9h6h2d — nut flush draw + 2 overs. Lead 50% OOP, great equity + fold equity.', freq: 'Bet 50% 63%, Check 37%', stack: 39 },
+  { hero: ['As','Qs'], board: ['Ks','4d','2h'], pos: 'SB (OOP)', villain: 'BTN', pot: 22, toCall: 0, correct: 'check', reason: 'SB vs BTN 3BP: AQs on K42 OOP. K hits BTN flat range (KQs, KJs, AK). AQ too weak to cbet OOP — check-call.', freq: 'Check 75%, Bet 33% 25%', stack: 39 },
+  { hero: ['Ad','Kd'], board: ['Js','8h','4c'], pos: 'SB (OOP)', villain: 'BTN', pot: 22, toCall: 0, correct: 'bet', reason: 'SB vs BTN 3BP: AK on J84 rainbow OOP. Range advantage + 2 overs + backdoor equity. Small cbet 33%.', freq: 'Bet 33% 68%, Check 32%', stack: 39 },
+  { hero: ['Qc','Qd'], board: ['7h','5h','2c'], pos: 'SB (OOP)', villain: 'BTN', pot: 22, toCall: 0, correct: 'bet', reason: 'SB vs BTN 3BP: QQ on 752 two-tone OOP. Protect against hearts + overcards. Bet 50-66%.', freq: 'Bet 50% 78%, Check 22%', stack: 39 },
+  { hero: ['9h','9d'], board: ['Kc','Jh','6s'], pos: 'SB (OOP)', villain: 'BTN', pot: 22, toCall: 0, correct: 'check', reason: 'SB vs BTN 3BP: 99 on KJ6 OOP. Both overs connect with BTN range. 99 = bluff-catcher, check.', freq: 'Check 88%, Bet 33% 12%', stack: 39 },
+  { hero: ['Ah','5h'], board: ['6h','4d','2c'], pos: 'SB (OOP)', villain: 'BTN', pot: 22, toCall: 0, correct: 'bet', reason: 'SB vs BTN 3BP: A5hh on 642 — wheel draw + BDFD + overcard. Premium bluffing combo, bet 33%.', freq: 'Bet 33% 72%, Check 28%', stack: 39 },
+
+  // --- BB vs CO (SRP, not 3BP — but included for defence range spot) — REMOVED: belongs in different drill ---
 ];
 
 export default function ThreeBetPotDrill({ onBack }) {
@@ -47,7 +59,7 @@ export default function ThreeBetPotDrill({ onBack }) {
           <span style={{ color: '#f39c12', fontWeight: 700 }}>3-BET POT</span>{' | '}
           <span style={{ color: '#4ac8ff', fontWeight: 700 }}>{spot.pos}</span> vs{' '}
           <span style={{ color: '#e74c3c' }}>{spot.villain}</span>
-          {' | '}Pot: {spot.pot}{spot.toCall > 0 ? ` | Facing: ${spot.toCall}` : ' | Your action'}
+          {' | '}Pot: {spot.pot}bb{spot.stack ? ` | Stack: ${spot.stack}bb` : ''}{spot.toCall > 0 ? ` | Facing: ${spot.toCall}bb` : ' | Your action'}
         </div>
         <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', marginBottom: '10px' }}>
           {spot.hero.map((c, i) => <Card key={i} card={c} hero delay={i * 200} />)}
