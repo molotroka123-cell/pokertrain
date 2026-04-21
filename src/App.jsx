@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { TournamentDirector } from './tournament/TournamentDirector.js';
 import { FORMATS } from './data/tournamentFormats.js';
 import { CASH_FORMATS } from './data/cashFormats.js';
-import { GameEngine, PHASE } from './engine/GameEngine.js';
+import { GameEngine } from './engine/GameEngine.js';
 import { AdaptiveAI } from './engine/adaptiveAI.js';
 import { mRatio } from './engine/equity.js';
 import { evaluateHand, compareHands } from './engine/evaluator.js';
@@ -14,7 +14,7 @@ import { haptics } from './lib/haptics.js';
 import RangeGrid from './components/RangeGrid.jsx';
 import TournamentDashboard from './tournament/TournamentDashboard.jsx';
 import DebriefScreen from './stats/DebriefScreen.jsx';
-import { startSession, recordDecision, recordHandHistory, updateHandResult, saveSession, exportSession, getRecords } from './recorder/ActionRecorder.js';
+import { startSession, recordDecision, recordHandHistory, saveSession, exportSession, getRecords } from './recorder/ActionRecorder.js';
 import { generateDebrief } from './recorder/autoDebrief.js';
 import { submitCurrentStats } from './lib/leaderboardAPI.js';
 import DrillMenu from './drills/DrillMenu.jsx';
@@ -339,20 +339,24 @@ function Lobby({ onStart, onDrills, onStats, onGTO, onLeaks, onHistory, onCoach,
           <span style={{ fontSize: '11px', color: '#6a8a9a', fontWeight: 800, letterSpacing: '2px' }}>CASH GAME</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '18px' }}>
-          {Object.entries(CASH_FORMATS).map(([key, f]) => (
-            <div key={key} onClick={() => onStart(key, name || 'Hero')} style={{
-              padding: '14px', borderRadius: '14px', cursor: 'pointer',
-              background: 'rgba(8,16,28,0.8)', border: '1px solid rgba(74,200,255,0.15)',
-              transition: 'transform 0.12s', display: 'flex', alignItems: 'center', gap: '12px',
-            }} onMouseDown={btnPress} onMouseUp={btnRelease}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(74,200,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: '#4ac8ff' }}>🎯</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '13px', fontWeight: 800, color: '#c0d0e0' }}>{f.name}</div>
-                <div style={{ fontSize: '10px', color: '#3a5a6a', marginTop: '2px' }}>{f.playersPerTable}-max | {f.startingChips} chips</div>
+          {Object.entries(CASH_FORMATS).map(([key, f]) => {
+            const isGG = !!f.skin;
+            return (
+              <div key={key} onClick={() => onStart(key, name || 'Hero')} style={{
+                padding: '14px', borderRadius: '14px', cursor: 'pointer',
+                background: isGG ? 'rgba(30,12,8,0.85)' : 'rgba(8,16,28,0.8)',
+                border: isGG ? '1px solid rgba(229,57,53,0.25)' : '1px solid rgba(74,200,255,0.15)',
+                transition: 'transform 0.12s', display: 'flex', alignItems: 'center', gap: '12px',
+              }} onMouseDown={btnPress} onMouseUp={btnRelease}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isGG ? 'rgba(229,57,53,0.12)' : 'rgba(74,200,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', color: isGG ? '#e53935' : '#4ac8ff' }}>{isGG ? '🃏' : '🎯'}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: isGG ? '#e0a0a0' : '#c0d0e0' }}>{f.name}</div>
+                  <div style={{ fontSize: '10px', color: '#3a5a6a', marginTop: '2px' }}>{f.playersPerTable}-max | {f.buyIn} chips</div>
+                </div>
+                <span style={{ fontSize: '14px', color: '#3a5a6a' }}>›</span>
               </div>
-              <span style={{ fontSize: '14px', color: '#3a5a6a' }}>›</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* ═══ UPLOAD REAL GAMES ═══ */}
@@ -1637,8 +1641,8 @@ function Game({ director, onExit }) {
     );
   }
 
-  const bl = tournState.blinds;
-  const m = mRatio(tournState.heroChips, bl.sb, bl.bb, bl.ante || 0, 9);
+  const bl = tournState.blinds || { sb: 1, bb: 2, ante: 0, level: 0 };
+  const m = mRatio(tournState.heroChips || 0, bl.sb, bl.bb, bl.ante || 0, 9);
 
   return (
     <div style={{
@@ -1728,7 +1732,7 @@ function Game({ director, onExit }) {
         borderBottom: '1px solid #1a2230', background: 'rgba(5,7,9,0.9)',
       }}>
         <div>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: getTheme(tournState.formatKey).isIcecrown ? '#4ac8ff' : '#e8d48b' }}>{tournState.format.name}</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: getTheme(tournState.formatKey).headerColor || '#e8d48b' }}>{tournState.format.name}</div>
           <div style={{ fontSize: '9px', color: '#3a4a5a' }}>Hand #{handCount + 1} | Level {bl.level + 1}</div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -1762,7 +1766,7 @@ function Game({ director, onExit }) {
         }}>
           <div style={{ color: '#e74c3c', fontSize: '14px' }}>BUBBLE — Survival {'>'} Chips</div>
           <div style={{ color: '#a08060', fontSize: '11px', marginTop: '2px' }}>
-            {tournState.playersRemaining - tournState.payout.paidPlaces} to cash | Chips worth ~1.5x | Min cash: ${fmt(tournState.payout?.payouts?.[tournState.payout.paidPlaces - 1] || 0)}
+            {tournState.playersRemaining - (tournState.payout?.paidPlaces || 0)} to cash | Chips worth ~1.5x | Min cash: ${fmt(tournState.payout?.payouts?.[tournState.payout.paidPlaces - 1] || 0)}
           </div>
         </div>
       )}
