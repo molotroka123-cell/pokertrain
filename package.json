@@ -1,7 +1,7 @@
 {
   "name": "icecrown-poker-club",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "type": "module",
   "description": "Premium poker training — tournaments, GTO drills, AI coaching",
   "main": "desktop/main.js",
