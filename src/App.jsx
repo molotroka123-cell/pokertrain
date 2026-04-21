@@ -29,6 +29,7 @@ import PersonalizedDrill from './drills/PersonalizedDrill.jsx';
 import RiverDrill from './drills/RiverDrill.jsx';
 import SolverPushFoldDrill from './drills/SolverPushFoldDrill.jsx';
 import MultiwayDrill from './drills/MultiwayDrill.jsx';
+import DrawCompletionDrill from './drills/DrawCompletionDrill.jsx';
 import ThreeBetPotDrill from './drills/ThreeBetPotDrill.jsx';
 import AHighCbetDrill from './drills/AHighCbetDrill.jsx';
 import CustomDrillBuilder from './drills/CustomDrillBuilder.jsx';
@@ -2058,7 +2059,7 @@ function Game({ director, onExit }) {
 const DRILL_MAP = {
   rfi: RFIDrill, '3bet': ThreeBetDrill, bbdef: BBDefenseDrill,
   pushfold: PushFoldDrill, solverpf: SolverPushFoldDrill,
-  multiway: MultiwayDrill, threebetpot: ThreeBetPotDrill, ahighcbet: AHighCbetDrill, custom: CustomDrillBuilder,
+  multiway: MultiwayDrill, drawcomplete: DrawCompletionDrill, threebetpot: ThreeBetPotDrill, ahighcbet: AHighCbetDrill, custom: CustomDrillBuilder,
   postflop: PostflopDrill, sizing: SizingDrill, potodds: PotOddsDrill,
   personalized: PersonalizedDrill, river: RiverDrill,
 };

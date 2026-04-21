@@ -10,6 +10,7 @@ const DRILLS = [
   { id: 'pushfold', name: 'Push/Fold', desc: 'Nash charts for short stacks', icon: '💣', color: '#e74c3c' },
   { id: 'solverpf', name: 'Solver Push/Fold', desc: 'Nash ICM — 7 stacks, push + call, weak spots', icon: '♠', color: '#ff4444' },
   { id: 'multiway', name: 'Multiway Postflop', desc: '3-way flop decisions — check or bet?', icon: '👥', color: '#16a085', isNew: true },
+  { id: 'drawcomplete', name: '3-Way River: Draws', desc: 'Фолд когда доехало, вэлью на scary борде', icon: '🌊', color: '#e53935', isNew: true },
   { id: 'threebetpot', name: '3-Bet Pot Lines', desc: 'IP/OOP play in 3-bet pots', icon: '⚡', color: '#8e44ad', isNew: true },
   { id: 'ahighcbet', name: 'A-high Cbet', desc: 'Automate cbet on A-high flops', icon: '🅰', color: '#1a5490', isNew: true },
   { id: 'postflop', name: 'Postflop Spots', desc: '25+ real postflop scenarios', icon: '🃏', color: '#9b59b6' },
