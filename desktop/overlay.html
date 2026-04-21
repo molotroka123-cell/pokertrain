@@ -6,13 +6,14 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: rgba(5,11,24,0.92);
+    background: rgba(5,11,24,0.93);
     color: #e0e0e0;
     font-family: -apple-system, 'Segoe UI', sans-serif;
     border-radius: 14px;
     border: 1.5px solid rgba(74,200,255,0.3);
     overflow: hidden;
     -webkit-app-region: drag;
+    user-select: none;
   }
   .header {
     padding: 8px 12px;
@@ -25,21 +26,35 @@
   .status { font-size: 9px; color: #22c55e; }
   .content { padding: 10px 12px; }
   .advice {
-    font-size: 18px; font-weight: 900; color: #fff;
-    margin-bottom: 4px;
+    font-size: 19px; font-weight: 900; color: #fff;
+    margin-bottom: 4px; letter-spacing: 0.5px;
   }
-  .detail { font-size: 11px; color: #8a9aaa; line-height: 1.5; }
-  .ev { font-size: 12px; color: #22c55e; font-weight: 700; margin-top: 6px; }
+  .advice.fold { color: #ef4444; }
+  .advice.call, .advice.check { color: #4ac8ff; }
+  .advice.raise, .advice.bet { color: #22c55e; }
+  .advice.allin { color: #ffa020; }
+  .detail { font-size: 11px; color: #8a9aaa; line-height: 1.45; min-height: 30px; }
+  .ev { font-size: 11px; color: #22c55e; font-weight: 700; margin-top: 6px; }
+  .meta { font-size: 9px; color: #3a5a6a; margin-top: 6px; display: flex; justify-content: space-between; }
   .error { color: #ef4444; }
-  .scanning { color: #ffa020; animation: pulse 1.5s infinite; }
+  .scanning { color: #ffa020; animation: pulse 1.2s infinite; }
   @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
-  .btn {
+  .controls {
+    display: flex; gap: 6px; margin-top: 8px;
     -webkit-app-region: no-drag;
-    padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(74,200,255,0.3);
-    background: rgba(74,200,255,0.1); color: #4ac8ff; font-size: 10px;
-    font-weight: 700; cursor: pointer; margin-top: 8px;
   }
-  .keys { font-size: 9px; color: #3a5a6a; padding: 6px 12px; text-align: center; }
+  .btn {
+    flex: 1;
+    padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(74,200,255,0.3);
+    background: rgba(74,200,255,0.1); color: #4ac8ff; font-size: 10px;
+    font-weight: 700; cursor: pointer; letter-spacing: 0.5px;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: rgba(74,200,255,0.22); }
+  .btn.live { background: rgba(34,197,94,0.18); color: #22c55e; border-color: rgba(34,197,94,0.4); }
+  .btn.live.on { background: #22c55e; color: #0a0a0a; }
+  .keys { font-size: 9px; color: #3a5a6a; padding: 5px 12px 8px; text-align: center; }
+  .cached { color: #a0a0a0; font-size: 9px; margin-left: 4px; }
 </style>
 </head>
 <body>
@@ -48,94 +63,209 @@
     <span class="status" id="status">● Ready</span>
   </div>
   <div class="content">
-    <div class="advice" id="advice">Press Scan to analyze</div>
-    <div class="detail" id="detail">Capture your poker table screen and get instant GTO feedback on every decision.</div>
+    <div class="advice" id="advice">Press Scan</div>
+    <div class="detail" id="detail">Capture your poker table and get GTO feedback instantly. Enable Live mode to auto-scan every 3s.</div>
     <div class="ev" id="ev"></div>
-    <button class="btn" id="scanBtn" onclick="startScan()">📸 Scan Table</button>
+    <div class="meta">
+      <span id="stats">Scans: 0 · Cached: 0</span>
+      <span id="tableId"></span>
+    </div>
+    <div class="controls">
+      <button class="btn" id="scanBtn" onclick="startScan(false)">Scan</button>
+      <button class="btn live" id="liveBtn" onclick="toggleLive()">Live OFF</button>
+    </div>
   </div>
-  <div class="keys">Ctrl+Shift+P to toggle · Drag to move</div>
+  <div class="keys">Ctrl+Shift+P toggle · drag to move</div>
 
   <script>
-    let scanning = false;
-    const ANTHROPIC_ENDPOINT = '/api/claude';
+    const LIVE_INTERVAL_MS = 3000;
+    const CACHE_MAX = 50;
 
-    async function startScan() {
+    let scanning = false;
+    let liveMode = false;
+    let liveTimer = null;
+    let scanCount = 0;
+    let cacheHits = 0;
+    const cache = new Map();
+
+    // Hash a base64 image (fast, non-crypto) → stable key
+    function hashImage(b64) {
+      let h = 0;
+      const step = Math.max(1, Math.floor(b64.length / 2000));
+      for (let i = 0; i < b64.length; i += step) {
+        h = ((h << 5) - h + b64.charCodeAt(i)) | 0;
+      }
+      return 'h' + (h >>> 0).toString(36);
+    }
+
+    function setStatus(text, cls) {
+      const s = document.getElementById('status');
+      s.textContent = text;
+      s.className = 'status ' + (cls || '');
+    }
+
+    function setAdvice(text, action) {
+      const el = document.getElementById('advice');
+      el.textContent = text;
+      el.className = 'advice ' + (action || '');
+    }
+
+    function updateStatsBar() {
+      document.getElementById('stats').textContent =
+        `Scans: ${scanCount} · Cached: ${cacheHits}`;
+    }
+
+    function classifyAction(actionText) {
+      const a = (actionText || '').toLowerCase();
+      if (a.includes('fold')) return 'fold';
+      if (a.includes('check')) return 'check';
+      if (a.includes('call')) return 'call';
+      if (a.includes('all') && a.includes('in')) return 'allin';
+      if (a.includes('raise') || a.includes('bet') || a.includes('3bet') || a.includes('4bet')) return 'raise';
+      return '';
+    }
+
+    async function startScan(fromLive) {
       if (scanning) return;
       scanning = true;
-      document.getElementById('status').textContent = '● Scanning...';
-      document.getElementById('status').className = 'status scanning';
-      document.getElementById('advice').textContent = 'Analyzing...';
-      document.getElementById('detail').textContent = 'Capturing screen and sending to AI...';
-      document.getElementById('ev').textContent = '';
+      scanCount++;
+      setStatus('● Scanning...', 'scanning');
+      if (!fromLive) {
+        setAdvice('Analyzing...');
+        document.getElementById('detail').textContent = 'Capturing screen...';
+        document.getElementById('ev').textContent = '';
+      }
 
       try {
         const screenshot = await window.electronAPI.captureScreen();
         if (!screenshot) {
-          showError('Could not capture screen');
+          if (!fromLive) showError('Could not capture screen');
+          scanning = false;
+          setStatus('● Ready', '');
           return;
         }
 
-        const response = await fetch(ANTHROPIC_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 500,
-            messages: [{
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: { type: 'base64', media_type: 'image/png', data: screenshot.replace('data:image/png;base64,', '') }
-                },
-                {
-                  type: 'text',
-                  text: `You are a GTO poker advisor. Analyze this poker table screenshot.
-Identify: 1) Hero's cards, 2) Board cards, 3) Pot size, 4) Hero's position, 5) Current action facing hero.
-Then give the GTO-correct action (fold/check/call/raise) with sizing if applicable.
-Format your response as:
-ACTION: [fold/check/call/raise X]
-REASON: [1-2 sentence explanation]
-EV: [estimated EV of correct play vs hero's likely action]
-Keep it extremely concise. If you can't identify the table, say "NO TABLE DETECTED".`
-                }
-              ]
-            }]
-          })
-        });
+        const raw = screenshot.replace('data:image/png;base64,', '');
+        const key = hashImage(raw);
 
-        const data = await response.json();
-        const text = data.content?.[0]?.text || 'No response';
-
-        if (text.includes('NO TABLE DETECTED')) {
-          showError('No poker table detected on screen');
+        // Cache hit — avoid re-asking Claude for identical frames
+        if (cache.has(key)) {
+          const cached = cache.get(key);
+          cacheHits++;
+          applyResult(cached, true);
+          scanning = false;
           return;
         }
 
-        const actionMatch = text.match(/ACTION:\s*(.+)/i);
-        const reasonMatch = text.match(/REASON:\s*(.+)/i);
-        const evMatch = text.match(/EV:\s*(.+)/i);
+        const payload = {
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 400,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: 'image/png', data: raw } },
+              {
+                type: 'text',
+                text: `You are a GTO poker advisor. Analyze this screenshot for a poker table.
+If no poker table is visible, respond EXACTLY with: NO_TABLE
+Otherwise identify hero's cards, board, pot, hero position, current action facing hero, and give the GTO-correct play.
 
-        document.getElementById('advice').textContent = actionMatch ? actionMatch[1].trim() : text.slice(0, 50);
-        document.getElementById('detail').textContent = reasonMatch ? reasonMatch[1].trim() : '';
-        document.getElementById('ev').textContent = evMatch ? 'EV: ' + evMatch[1].trim() : '';
-        document.getElementById('status').textContent = '● Live';
-        document.getElementById('status').className = 'status';
+Respond in this exact format (no other text):
+ACTION: <fold | check | call <amount> | raise to <amount> | all-in>
+HAND: <hero cards like "AhKs">
+BOARD: <board or "preflop">
+POT: <size>
+POS: <UTG/MP/CO/BTN/SB/BB>
+REASON: <one short sentence, max 12 words>
+EV: <estimated EV in BB, e.g. +1.8bb>`
+              }
+            ]
+          }]
+        };
+
+        const data = await window.electronAPI.callClaude(payload);
+        if (data?.error) {
+          if (!fromLive) showError('API: ' + data.error);
+          setStatus('● Error', 'error');
+          scanning = false;
+          return;
+        }
+        const text = data.content?.[0]?.text || '';
+
+        if (text.includes('NO_TABLE')) {
+          if (!fromLive) showError('No poker table detected');
+          setStatus('● Idle', '');
+          scanning = false;
+          return;
+        }
+
+        const parsed = {
+          action: (text.match(/ACTION:\s*(.+)/i) || [])[1]?.trim() || 'unknown',
+          hand: (text.match(/HAND:\s*(.+)/i) || [])[1]?.trim() || '',
+          board: (text.match(/BOARD:\s*(.+)/i) || [])[1]?.trim() || '',
+          pot: (text.match(/POT:\s*(.+)/i) || [])[1]?.trim() || '',
+          pos: (text.match(/POS:\s*(.+)/i) || [])[1]?.trim() || '',
+          reason: (text.match(/REASON:\s*(.+)/i) || [])[1]?.trim() || '',
+          ev: (text.match(/EV:\s*(.+)/i) || [])[1]?.trim() || '',
+          ts: Date.now(),
+        };
+
+        // Store in cache (LRU eviction)
+        if (cache.size >= CACHE_MAX) {
+          const firstKey = cache.keys().next().value;
+          cache.delete(firstKey);
+        }
+        cache.set(key, parsed);
+
+        applyResult(parsed, false);
       } catch (err) {
-        showError('API error: ' + err.message);
+        if (!fromLive) showError('API error: ' + (err.message || 'unknown'));
+        setStatus('● Error', 'error');
       } finally {
         scanning = false;
       }
     }
 
+    function applyResult(r, wasCached) {
+      const cls = classifyAction(r.action);
+      setAdvice(r.action.toUpperCase(), cls);
+      const ctx = [r.pos, r.hand, r.board, r.pot ? `pot ${r.pot}` : ''].filter(Boolean).join(' · ');
+      document.getElementById('detail').textContent = (r.reason || '—') + (ctx ? '  ' + ctx : '');
+      document.getElementById('ev').textContent = r.ev ? 'EV: ' + r.ev : '';
+      document.getElementById('tableId').innerHTML = wasCached ? '<span class="cached">cached</span>' : '';
+      setStatus('● Live', '');
+      updateStatsBar();
+    }
+
     function showError(msg) {
-      document.getElementById('advice').textContent = 'Error';
-      document.getElementById('detail').textContent = msg;
-      document.getElementById('detail').className = 'detail error';
-      document.getElementById('status').textContent = '● Error';
-      document.getElementById('status').className = 'status error';
+      setAdvice('Error');
+      const d = document.getElementById('detail');
+      d.textContent = msg;
+      d.className = 'detail error';
+      setStatus('● Error', 'error');
       scanning = false;
     }
+
+    function toggleLive() {
+      liveMode = !liveMode;
+      const btn = document.getElementById('liveBtn');
+      if (liveMode) {
+        btn.textContent = 'Live ON';
+        btn.classList.add('on');
+        startScan(false);
+        liveTimer = setInterval(() => startScan(true), LIVE_INTERVAL_MS);
+      } else {
+        btn.textContent = 'Live OFF';
+        btn.classList.remove('on');
+        if (liveTimer) clearInterval(liveTimer);
+        liveTimer = null;
+        setStatus('● Ready', '');
+      }
+    }
+
+    window.addEventListener('beforeunload', () => {
+      if (liveTimer) clearInterval(liveTimer);
+    });
   </script>
 </body>
 </html>

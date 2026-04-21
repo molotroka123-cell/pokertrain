@@ -691,7 +691,7 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
             borderRadius: '50%/42%',
             border: '1.5px solid ' + T.feltInner,
           }} />
-          {/* Tournament logo / ICECROWN crown watermark */}
+          {/* Tournament logo / ICECROWN crown / GG Club watermark */}
           {T.isIcecrown ? (
             <div style={{
               position: 'absolute', top: '58%', left: '50%', transform: 'translate(-50%,-50%)',
@@ -707,6 +707,25 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
                 textShadow: '0 0 25px rgba(74,200,255,0.5)',
                 marginTop: '-2px',
               }}>ICECROWN</div>
+            </div>
+          ) : T.isGGClub ? (
+            <div style={{
+              position: 'absolute', top: '62%', left: '50%', transform: 'translate(-50%,-50%)',
+              textAlign: 'center', userSelect: 'none', pointerEvents: 'none',
+            }}>
+              <div style={{
+                fontSize: '52px', fontWeight: 900, lineHeight: 1,
+                fontFamily: "'Arial Black', sans-serif",
+                letterSpacing: '-2px',
+                background: 'linear-gradient(180deg, #ffd700 0%, #e53935 100%)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                opacity: 0.22,
+                filter: 'drop-shadow(0 0 15px rgba(229,57,53,0.3))',
+              }}>GG</div>
+              <div style={{
+                fontSize: '9px', fontWeight: 800, letterSpacing: '4px',
+                color: '#ffffff', opacity: 0.25, marginTop: '2px',
+              }}>POKER</div>
             </div>
           ) : (
             <div style={{

@@ -1,9 +1,22 @@
 // Electron main process — IceCrown Desktop with Screen Parser
 const { app, BrowserWindow, ipcMain, desktopCapturer, screen, globalShortcut } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 let mainWindow;
 let overlayWindow;
+
+// Read API endpoint from desktop/config.json (falls back to env var or prod URL)
+function getApiBase() {
+  try {
+    const cfgPath = path.join(__dirname, 'config.json');
+    if (fs.existsSync(cfgPath)) {
+      const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+      if (cfg.apiBase) return cfg.apiBase;
+    }
+  } catch (e) {}
+  return process.env.ICECROWN_API_BASE || 'https://icecrown-poker.vercel.app';
+}
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -22,7 +35,6 @@ function createMainWindow() {
     icon: path.join(__dirname, '..', 'public', 'icon.svg'),
   });
 
-  // Load the built web app or dev server
   const isDev = process.argv.includes('--dev');
   if (isDev) {
     mainWindow.loadURL('http://localhost:3000');
@@ -33,11 +45,11 @@ function createMainWindow() {
 }
 
 function createOverlayWindow() {
-  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  const { width } = screen.getPrimaryDisplay().workAreaSize;
   overlayWindow = new BrowserWindow({
-    width: 320,
-    height: 200,
-    x: width - 340,
+    width: 340,
+    height: 240,
+    x: width - 360,
     y: 20,
     alwaysOnTop: true,
     transparent: true,
@@ -51,6 +63,7 @@ function createOverlayWindow() {
   });
   overlayWindow.loadFile(path.join(__dirname, 'overlay.html'));
   overlayWindow.setIgnoreMouseEvents(false);
+  overlayWindow.on('closed', () => { overlayWindow = null; });
 }
 
 app.whenReady().then(() => {
@@ -81,6 +94,27 @@ ipcMain.handle('capture-screen', async () => {
   }
   return null;
 });
+
+// Proxy Claude API call through main process (avoids CORS/file:// issues in overlay)
+ipcMain.handle('claude-proxy', async (_event, payload) => {
+  const base = getApiBase();
+  try {
+    const res = await fetch(`${base}/api/claude`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      return { error: `HTTP ${res.status}`, status: res.status };
+    }
+    return await res.json();
+  } catch (err) {
+    return { error: err.message || 'network error' };
+  }
+});
+
+// Expose endpoint to renderer for settings UI
+ipcMain.handle('get-api-base', () => getApiBase());
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('will-quit', () => { globalShortcut.unregisterAll(); });

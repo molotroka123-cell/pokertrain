@@ -1,0 +1,4 @@
+{
+  "_comment": "Copy this to config.json and set apiBase to your deployed Vercel URL.",
+  "apiBase": "https://your-icecrown-deployment.vercel.app"
+}
