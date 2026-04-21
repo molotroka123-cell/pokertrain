@@ -40,6 +40,7 @@ import Leaderboard from './stats/Leaderboard.jsx';
 import CoachScreen from './coach/Coach.jsx';
 import PrivacyPolicy from './legal/PrivacyPolicy.jsx';
 import TermsOfService from './legal/TermsOfService.jsx';
+import Settings from './components/Settings.jsx';
 import RealAnalysis from './stats/RealAnalysis.jsx';
 import GameHistory from './stats/GameHistory.jsx';
 import { Sounds } from './lib/sounds.js';
@@ -2114,7 +2115,10 @@ function AppInner() {
     return <PrivacyPolicy onBack={() => setScreen('lobby')} />;
   }
   if (screen === 'terms') {
-    return <TermsOfService onBack={() => setScreen('lobby')} />;
+    return <TermsOfService onBack={() => setScreen('settings')} />;
+  }
+  if (screen === 'settings') {
+    return <Settings onBack={() => setScreen('lobby')} onPrivacy={() => setScreen('privacy')} onTerms={() => setScreen('terms')} playerName={currentProfile?.name} />;
   }
   if (screen === 'drill' && activeDrill) {
     const D = DRILL_MAP[activeDrill];

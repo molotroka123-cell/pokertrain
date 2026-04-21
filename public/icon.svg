@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a1525"/>
+      <stop offset="100%" style="stop-color:#050b18"/>
+    </linearGradient>
+    <linearGradient id="ice" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#80e0ff"/>
+      <stop offset="50%" style="stop-color:#4ac8ff"/>
+      <stop offset="100%" style="stop-color:#2090d0"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#4ac8ff;stop-opacity:0.3"/>
+      <stop offset="100%" style="stop-color:#4ac8ff;stop-opacity:0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="102" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="200" fill="none" stroke="url(#ice)" stroke-width="2" opacity="0.15"/>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#ice)" stroke-width="1" opacity="0.1"/>
+  <!-- Crown -->
+  <g transform="translate(256,200)" fill="url(#ice)">
+    <polygon points="0,-80 -70,20 -50,-10 -30,30 0,-20 30,30 50,-10 70,20" opacity="0.9"/>
+    <rect x="-75" y="20" width="150" height="20" rx="4" opacity="0.8"/>
+    <!-- Crown jewels -->
+    <circle cx="-50" cy="-10" r="6" fill="#80e0ff" opacity="0.8"/>
+    <circle cx="0" cy="-40" r="8" fill="#a0f0ff" opacity="0.9"/>
+    <circle cx="50" cy="-10" r="6" fill="#80e0ff" opacity="0.8"/>
+  </g>
+  <!-- Glow behind crown -->
+  <ellipse cx="256" cy="200" rx="120" ry="80" fill="url(#glow)"/>
+  <!-- Text: ICECROWN -->
+  <text x="256" y="330" font-family="Impact, Arial Black, sans-serif" font-size="52" font-weight="900" fill="url(#ice)" text-anchor="middle" letter-spacing="6">ICECROWN</text>
+  <!-- Text: POKER CLUB -->
+  <text x="256" y="365" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#4a7a9a" text-anchor="middle" letter-spacing="4">POKER CLUB</text>
+  <!-- Suit symbols -->
+  <text x="140" y="420" font-size="28" fill="#4ac8ff" opacity="0.3">♠</text>
+  <text x="220" y="420" font-size="28" fill="#4ac8ff" opacity="0.3">♥</text>
+  <text x="300" y="420" font-size="28" fill="#4ac8ff" opacity="0.3">♦</text>
+  <text x="380" y="420" font-size="28" fill="#4ac8ff" opacity="0.3">♣</text>
+</svg>

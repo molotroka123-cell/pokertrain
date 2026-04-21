@@ -1,19 +1,52 @@
 {
-  "name": "wsop-poker-trainer",
+  "name": "icecrown-poker-club",
   "private": true,
-  "version": "0.1.0",
+  "version": "2.1.0",
   "type": "module",
+  "description": "Premium poker training — tournaments, GTO drills, AI coaching",
+  "main": "desktop/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "desktop": "electron desktop/main.js --dev",
+    "desktop:build": "vite build && electron-builder",
+    "cap:sync": "npx cap sync"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "vite": "^6.0.0"
+  },
+  "optionalDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.icecrown.pokerclub",
+    "productName": "IceCrown Poker Club",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "desktop/**/*",
+      "public/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.games",
+      "target": ["dmg"]
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "linux": {
+      "target": ["AppImage"]
+    }
   }
 }
