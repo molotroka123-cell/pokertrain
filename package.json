@@ -21,6 +21,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^41.2.2",
+    "electron-builder": "^26.8.1",
     "vite": "^6.0.0"
   },
   "optionalDependencies": {
@@ -40,13 +42,19 @@
     ],
     "mac": {
       "category": "public.app-category.games",
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "linux": {
-      "target": ["AppImage"]
+      "target": [
+        "AppImage"
+      ]
     }
   }
 }
