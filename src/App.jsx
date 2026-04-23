@@ -34,6 +34,8 @@ import ThreeBetPotDrill from './drills/ThreeBetPotDrill.jsx';
 import AHighCbetDrill from './drills/AHighCbetDrill.jsx';
 import CustomDrillBuilder from './drills/CustomDrillBuilder.jsx';
 import DrillHistory from './drills/DrillHistory.jsx';
+import LeakDrill from './drills/leak/LeakDrill.jsx';
+import LeakDrillHome from './drills/leak/LeakDrillHome.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
 import GTOAnalyzer from './stats/GTOAnalyzer.jsx';
 import LeakFinder from './stats/LeakFinder.jsx';
@@ -2148,9 +2150,21 @@ function AppInner() {
     const D = DRILL_MAP[activeDrill];
     if (D) return <div style={appBg}><D onBack={() => setScreen('drills')} /></div>;
   }
+  if (screen === 'leakdrill' && activeDrill) {
+    return <div style={appBg}><LeakDrill leakId={activeDrill} onBack={() => setScreen('leakhome')} /></div>;
+  }
+  if (screen === 'leakhome') {
+    return <div style={appBg}><LeakDrillHome
+      onSelect={(id) => { setActiveDrill(id); setScreen('leakdrill'); }}
+      onBack={() => setScreen('drills')} /></div>;
+  }
   if (screen === 'drills') {
     return <div style={appBg}><DrillMenu
-      onSelect={(id) => { if (id === 'history') { setScreen('drillhistory'); return; } setActiveDrill(id); setScreen('drill'); }}
+      onSelect={(id) => {
+        if (id === 'history') { setScreen('drillhistory'); return; }
+        if (id === 'leaktrainer') { setScreen('leakhome'); return; }
+        setActiveDrill(id); setScreen('drill');
+      }}
       onBack={() => setScreen('lobby')} /></div>;
   }
   if (screen === 'drillhistory') {

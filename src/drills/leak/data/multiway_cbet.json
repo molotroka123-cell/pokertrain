@@ -1,0 +1,338 @@
+{
+  "leak": "multiway_cbet",
+  "title": "Multi-way cbet discipline",
+  "description": "Learn when to cbet vs check in 3+ way pots",
+  "scenarios": [
+    {
+      "id": "mw_01",
+      "title": "AJo 4-way — low dry board",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "HJ", "cards": "AsJc", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100, "note": "Limper" },
+        { "position": "CO", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "limp", "amount_bb": 1 }],
+      "board": { "flop": ["3d", "6c", "8h"] },
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 2.5,
+          "toCall_bb": 1,
+          "description": "UTG limps. Hero HJ A♠J♣.",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 4,
+          "explanation": { "raise": "Iso AJo vs limper 4x.", "default": "Iso-raise." }
+        },
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 17,
+          "toCall_bb": 0,
+          "description": "4 called. Flop 3-6-8 rainbow. AJ high, no pair, no draw. All check to Hero.",
+          "gto": { "check": 0.9, "bet": 0.1 },
+          "gtoPrimary": "check",
+          "explanation": {
+            "check": "✓ 4-way pot, A-high no pair/draw = CHECK. Fold equity low, equity ~25%.",
+            "bet": "MISTAKE. Cbet called by pairs (22-66). Pure bleed.",
+            "default": "Rule #34: multi-way 3+ = cbet only TP+."
+          },
+          "leakTag": "MULTIWAY_CBET"
+        }
+      ]
+    },
+    {
+      "id": "mw_02",
+      "title": "AJs 3-way — TP value",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "HJ", "cards": "AhJh", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [],
+      "board": { "flop": ["Js", "7c", "3d"] },
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 13,
+          "toCall_bb": 0,
+          "description": "3-way. Flop J-7-3 rainbow. Hero TP top kicker + backdoor FD.",
+          "gto": { "bet": 0.85, "check": 0.15 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 4.5,
+          "explanation": {
+            "bet": "✓ TPTK in 3-way = value bet. Sizing 33%.",
+            "check": "Rare slowplay — misses value from worse Jx.",
+            "default": "TPTK multi-way = cbet small. Exception that proves the rule."
+          }
+        }
+      ]
+    },
+    {
+      "id": "mw_03",
+      "title": "KQs 3-way — missed low board",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "CO", "cards": "KsQs", "stack_bb": 100 },
+      "villains": [
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [],
+      "board": { "flop": ["5d", "7c", "2h"] },
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 15,
+          "toCall_bb": 0,
+          "description": "3-way pot. Flop 5-7-2 rainbow. Hero KQs = no pair, no draw.",
+          "gto": { "check": 0.8, "bet": 0.2 },
+          "gtoPrimary": "check",
+          "explanation": {
+            "check": "✓ KQ-high 3-way on low = check. No equity, no fold equity.",
+            "bet": "Mixed — some bluff freq if villain ranges very weak.",
+            "default": "Check-fold turn or check-call if backdoor improves."
+          }
+        }
+      ]
+    },
+    {
+      "id": "mw_04",
+      "title": "88 5-way on Q-high",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "8d8s", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "MP", "stack_bb": 100 },
+        { "position": "CO", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [],
+      "board": { "flop": ["Qc", "4h", "2d"] },
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 20,
+          "toCall_bb": 0,
+          "description": "5-way pot. Flop Q-4-2. Hero 88 on BTN. All check.",
+          "gto": { "check": 0.95, "bet": 0.05 },
+          "gtoPrimary": "check",
+          "explanation": {
+            "check": "✓ 5-way with 88 on Q-high = check. Someone has Q ~80%.",
+            "bet": "ERROR. You bet into 4 villains. Easy bleed.",
+            "default": "Pocket pairs below top card in multi-way = check. Pot control."
+          }
+        }
+      ]
+    },
+    {
+      "id": "mw_05",
+      "title": "AK 3-way BB defend — whiff",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "AsKh", "stack_bb": 100 },
+      "villains": [
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "SB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [
+        { "position": "BTN", "action": "raise", "amount_bb": 3 },
+        { "position": "SB", "action": "call", "amount_bb": 3 }
+      ],
+      "board": { "flop": ["6s", "4d", "2c"] },
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 9,
+          "toCall_bb": 0,
+          "description": "3-way pot. Flop 6-4-2 rainbow. AK high OOP. Action?",
+          "gto": { "check": 1.0 },
+          "gtoPrimary": "check",
+          "explanation": {
+            "check": "✓ Always check AK no pair 3BP OOP multi-way.",
+            "default": "BB defend OOP, AK miss — check all."
+          }
+        },
+        {
+          "id": "flop2",
+          "street": "flop",
+          "pot_bb": 9,
+          "toCall_bb": 3,
+          "description": "BTN cbets 33% (3bb). SB folds. Hero AK high facing single bet.",
+          "gto": { "fold": 0.7, "call": 0.3 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ AK high on 6-4-2 = fold small bet. No equity except overcards.",
+            "call": "Close float with overcard/backdoor potential.",
+            "default": "Overcards + no pair + low board vs cbet = FOLD."
+          }
+        }
+      ]
+    },
+    {
+      "id": "mw_06",
+      "title": "TT 4-way on all-low",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "CO", "cards": "TdTc", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [],
+      "board": { "flop": ["5h", "3c", "2d"] },
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 16,
+          "toCall_bb": 0,
+          "description": "4-way pot. Flop 5-3-2 rainbow. Hero TT overpair. All check.",
+          "gto": { "bet": 0.8, "check": 0.2 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 5,
+          "explanation": {
+            "bet": "✓ TT overpair in 4-way = VALUE 33%. Sets rare, straights need 4x.",
+            "check": "Slowplay risky — 4-way hits overcards freq.",
+            "default": "Overpair is rare multi-way value bet."
+          }
+        }
+      ]
+    },
+    {
+      "id": "mw_07",
+      "title": "QJs 4-way — OESD + backdoor",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "QhJh", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "CO", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [],
+      "board": { "flop": ["Th", "9c", "2h"] },
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 13,
+          "toCall_bb": 0,
+          "description": "4-way. Flop T-9-2 w/ 2h. Hero QJs = OESD + backdoor FD.",
+          "gto": { "bet": 0.7, "check": 0.3 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 4,
+          "explanation": {
+            "bet": "✓ Strong draw (OESD 8 outs + backdoor FD) = bet semi-bluff.",
+            "check": "OK slowplay for free turn.",
+            "default": "Rule: multi-way cbet = TP+ OR nuts drawing. QJ qualifies."
+          }
+        }
+      ]
+    },
+    {
+      "id": "mw_08",
+      "title": "AKo 4-way — TPTK value",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "HJ", "cards": "AcKd", "stack_bb": 100 },
+      "villains": [
+        { "position": "CO", "stack_bb": 100 },
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [],
+      "board": { "flop": ["As", "7d", "3c"] },
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 17,
+          "toCall_bb": 0,
+          "description": "4-way pot. Flop A-7-3 rainbow. Hero TPTK.",
+          "gto": { "bet": 0.9, "check": 0.1 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 6,
+          "explanation": {
+            "bet": "✓ TPTK 4-way = VALUE. 33-40% sizing from Ax worse kicker.",
+            "check": "Rare slowplay.",
+            "default": "TPTK = definitive multi-way cbet."
+          }
+        }
+      ]
+    },
+    {
+      "id": "mw_09",
+      "title": "KK 5-way — danger board",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "KdKs", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "MP", "stack_bb": 100 },
+        { "position": "CO", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [],
+      "board": { "flop": ["Jh", "Th", "9s"] },
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 20,
+          "toCall_bb": 0,
+          "description": "5-way. Flop J-T-9. KK overpair but dangerous board.",
+          "gto": { "bet": 0.4, "check": 0.6 },
+          "gtoPrimary": "check",
+          "explanation": {
+            "check": "✓ Straight already possible (Qx), flush draws live, 5-way = KK bluff-catcher.",
+            "bet": "Some small cbet protection/info — but check default.",
+            "default": "KK multi-way on J-T-9 = check."
+          }
+        }
+      ]
+    },
+    {
+      "id": "mw_10",
+      "title": "A2s 3-way — nut flush draw",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "CO", "cards": "As2s", "stack_bb": 100 },
+      "villains": [
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [],
+      "board": { "flop": ["Js", "7s", "4d"] },
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 12,
+          "toCall_bb": 0,
+          "description": "3-way. Flop J-7-4 w/ 2 spades. Hero A2s = nut FD.",
+          "gto": { "bet": 0.7, "check": 0.3 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 4,
+          "explanation": {
+            "bet": "✓ Nut FD 3-way = bet semi-bluff. Equity ~35%, fold eq + value when hit.",
+            "check": "Free card line — OK to see turn cheap.",
+            "default": "Strong draw (nut FD) = cbet exception to multi-way rule."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import NewBadge from '../components/NewBadge.jsx';
 import { generateDailyPlan, getDrillProgress } from './dailyPlanGenerator.js';
 
 const DRILLS = [
+  { id: 'leaktrainer', name: 'Leak Trainer', desc: 'Targeted scenarios for your top 3 leaks', icon: '♠', color: '#d4af37', isNew: true },
   { id: 'rfi', name: 'RFI Drill', desc: 'Open or fold from each position', icon: '🎯', color: '#27ae60' },
   { id: '3bet', name: '3-Bet Drill', desc: '3-bet, call, or fold vs opens', icon: '🔥', color: '#f39c12' },
   { id: 'bbdef', name: 'BB Defense', desc: 'Defend your big blind correctly', icon: '🛡', color: '#2980b9' },

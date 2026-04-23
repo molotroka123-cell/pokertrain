@@ -1,0 +1,458 @@
+{
+  "leak": "broadway_chase",
+  "title": "Broadway Chase",
+  "description": "Learn to fold marginal broadway vs serious aggression",
+  "scenarios": [
+    {
+      "id": "bc_01",
+      "title": "ATo BTN vs UTG 4-bet",
+      "stack_bb": 50,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "AcTd", "stack_bb": 50 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 50 },
+        { "position": "SB", "stack_bb": 50 },
+        { "position": "BB", "stack_bb": 50 }
+      ],
+      "actions_before_hero": [
+        { "position": "UTG", "action": "raise", "amount_bb": 3 }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4.5,
+          "toCall_bb": 3,
+          "description": "UTG (tight range) opens 3x. Hero BTN with A♣T♦. Stacks 50 BB eff. Action?",
+          "gto": { "fold": 0.55, "call": 0.4, "3bet": 0.05 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "fold": "Защитная игра. ATo vs UTG — marginal, GTO mix fold/call.",
+            "call": "Mixed strategy choice. Call in position with ATo vs UTG 3x = defensible.",
+            "3bet": "MISTAKE. 3-bet BTN vs UTG = JJ+, AK, AQs. ATo — domination risk.",
+            "default": "ATo BTN vs UTG — mixed spot в GTO. Call или fold оба OK."
+          }
+        },
+        {
+          "id": "pf2",
+          "street": "preflop",
+          "pot_bb": 19,
+          "toCall_bb": 14,
+          "description": "You called. SB folded. BB folded. UTG 4-bets to 17bb (need to call 14 more, stack 35 behind).",
+          "gto": { "fold": 0.92, "call": 0.08 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ ПРАВИЛЬНО. UTG 4-bet range = JJ+, AK only. ATo has ~25% equity. Need 38%+.",
+            "call": "✗ MISTAKE. Это твой #1 leak costing $58/session. UTG 4-bet = value-heavy.",
+            "default": "Equity ~25% vs JJ+/AK. Pot odds need 38%. Fold is clear."
+          },
+          "leakTag": "BROADWAY_CHASE"
+        }
+      ]
+    },
+    {
+      "id": "bc_02",
+      "title": "KJo SB vs short-stack limp-raise all-in",
+      "stack_bb": 30,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "KcJh", "stack_bb": 30 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 25, "note": "Short stack" },
+        { "position": "BTN", "stack_bb": 40 },
+        { "position": "BB", "stack_bb": 36 }
+      ],
+      "actions_before_hero": [
+        { "position": "UTG", "action": "limp", "amount_bb": 1 },
+        { "position": "BTN", "action": "limp", "amount_bb": 1 }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 3.5,
+          "toCall_bb": 0.5,
+          "description": "UTG (short ~25BB) limped, BTN limped. Hero SB K♣J♥. Complete, fold, or iso-raise?",
+          "gto": { "fold": 0.3, "raise": 0.7 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 5,
+          "explanation": {
+            "raise": "✓ Isolate to 5x. 2 limpers = нужно 5x+ чтобы выбить их.",
+            "fold": "Защитная, но SB vs 2 limpers with KJo — iso +EV.",
+            "default": "Iso-raise правильно. Sizing critical."
+          }
+        },
+        {
+          "id": "pf2",
+          "street": "preflop",
+          "pot_bb": 65,
+          "toCall_bb": 29,
+          "description": "You raised 5x. BB called. UTG limper SHOVES all-in (~25bb total). You need to call 20 more with KJo.",
+          "gto": { "fold": 0.95, "call": 0.05 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ FOLD. Limp-raise shove from short = JJ+, AK, AQ. KJo ~25% equity. Need 40%.",
+            "call": "✗ Это твой real 22/04 hand. Cost −$66.",
+            "default": "Rule #35: Limp-raise all-in from short stack = ALWAYS fold marginal broadway."
+          },
+          "leakTag": "BROADWAY_CHASE"
+        }
+      ]
+    },
+    {
+      "id": "bc_03",
+      "title": "AKo CO multi-way paired board",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "CO", "cards": "AsKh", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 80 }
+      ],
+      "actions_before_hero": [
+        { "position": "UTG", "action": "limp", "amount_bb": 1 }
+      ],
+      "board": { "flop": ["Js", "9h", "9c"], "turn": "Jh", "river": "Ts" },
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 2.5,
+          "toCall_bb": 1,
+          "description": "UTG limp. Hero CO A♠K♥. Action?",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 4,
+          "explanation": {
+            "raise": "✓ Iso-raise 4x standard with AKo vs limp.",
+            "default": "Always iso-raise AK vs limp."
+          }
+        },
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 12,
+          "toCall_bb": 4,
+          "description": "Flop J-9-9. BB donks 33% pot (4bb). UTG folds. Hero AK-high no pair.",
+          "gto": { "fold": 0.85, "call": 0.15 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ BB donk on paired = value-heavy. A-high marginal bluff-catch multi-way.",
+            "call": "MISTAKE. Multi-street chase begins here.",
+            "default": "Paired board + donk + A-high no pair = fold."
+          },
+          "leakTag": "BROADWAY_CHASE"
+        },
+        {
+          "id": "turn",
+          "street": "turn",
+          "pot_bb": 20,
+          "toCall_bb": 7,
+          "description": "You called flop. Turn Jh = double-paired. BB continues 7bb (22% pot).",
+          "gto": { "fold": 0.95, "call": 0.05 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ J-J-9-9 double-paired. BB range: boats, trips, few bluffs.",
+            "call": "✗ Pure bleed. A-high cannot improve.",
+            "default": "Never call A-high on double-paired multi-street."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bc_04",
+      "title": "AJo HJ call 3-bet OOP deep",
+      "stack_bb": 200,
+      "format": "cash",
+      "hero": { "position": "HJ", "cards": "AdJs", "stack_bb": 200 },
+      "villains": [{ "position": "CO", "stack_bb": 200 }],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 1.5,
+          "toCall_bb": 0,
+          "description": "Hero HJ opens AJo. Deep 200 BB. Action?",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 3,
+          "explanation": {
+            "raise": "Standard open 3x with AJo HJ.",
+            "default": "Open."
+          }
+        },
+        {
+          "id": "pf2",
+          "street": "preflop",
+          "pot_bb": 14,
+          "toCall_bb": 8,
+          "description": "CO 3-bets to 11bb. Hero deep 200BB, AJo OOP. Call, 4-bet, or fold?",
+          "gto": { "fold": 0.55, "call": 0.35, "4bet": 0.1 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ Deep 200BB AJo OOP vs 3-bet = fold-heavy. Save for IP.",
+            "call": "Mixed strategy viable. Risky at 200BB OOP.",
+            "4bet": "10% bluff line — high variance deep.",
+            "default": "AJo deep OOP vs 3-bet = tight fold."
+          },
+          "leakTag": "BROADWAY_CHASE"
+        }
+      ]
+    },
+    {
+      "id": "bc_05",
+      "title": "QJo BTN vs CO 4-bet",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "QdJh", "stack_bb": 100 },
+      "villains": [{ "position": "CO", "stack_bb": 100 }],
+      "actions_before_hero": [{ "position": "CO", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 2.5,
+          "description": "CO opens 2.5x. Hero BTN QJo.",
+          "gto": { "fold": 0.2, "call": 0.6, "3bet": 0.2 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "QJo IP vs CO open — flat OK.",
+            "default": "Call or 3-bet bluff."
+          }
+        },
+        {
+          "id": "pf2",
+          "street": "preflop",
+          "pot_bb": 27,
+          "toCall_bb": 19,
+          "description": "CO 4-bets to 22bb. Pot 27, call 19 more. Hero QJo.",
+          "gto": { "fold": 0.98, "call": 0.02 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ 4-bet range CO = TT+, AQ+, KQs. QJo dominated. 18% equity.",
+            "call": "✗ Terrible. QJo blockers weak vs 4-bet range.",
+            "default": "Always fold QJo to 4-bet."
+          },
+          "leakTag": "BROADWAY_CHASE"
+        }
+      ]
+    },
+    {
+      "id": "bc_06",
+      "title": "KQo BTN vs CO 4-bet 60BB",
+      "stack_bb": 60,
+      "format": "MTT",
+      "hero": { "position": "BTN", "cards": "KsQh", "stack_bb": 60 },
+      "villains": [{ "position": "CO", "stack_bb": 60 }],
+      "actions_before_hero": [{ "position": "CO", "action": "raise", "amount_bb": 2.2 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 3.7,
+          "toCall_bb": 2.2,
+          "description": "CO opens 2.2x. Hero BTN KQo, 60 BB.",
+          "gto": { "fold": 0.1, "call": 0.4, "3bet": 0.5 },
+          "gtoPrimary": "3bet",
+          "gtoSizing": 6,
+          "explanation": {
+            "3bet": "KQo BTN vs CO is primary 3-bet bluff.",
+            "default": "3-bet or call."
+          }
+        },
+        {
+          "id": "pf2",
+          "street": "preflop",
+          "pot_bb": 20,
+          "toCall_bb": 8,
+          "description": "You 3-bet to 6bb. CO 4-bets to 14bb. Call 8 more with KQo, 54BB behind?",
+          "gto": { "fold": 0.9, "call": 0.05, "5bet": 0.05 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ CO 4-bet at 60BB = TT+, AK. KQo dominated.",
+            "default": "Your 3-bet bluffs fold to 4-bets. That's the plan."
+          },
+          "leakTag": "BROADWAY_CHASE"
+        }
+      ]
+    },
+    {
+      "id": "bc_07",
+      "title": "KTs BTN call SB 3-bet deep",
+      "stack_bb": 150,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "KcTc", "stack_bb": 150 },
+      "villains": [{ "position": "SB", "stack_bb": 150 }],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 11,
+          "toCall_bb": 8.5,
+          "description": "Hero BTN opened 2.5x with KTs. SB 3-bets to 11bb. Call, fold, or 4-bet?",
+          "gto": { "fold": 0.2, "call": 0.75, "4bet": 0.05 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ KTs suited broadway with blockers, IP deep, implied odds OK.",
+            "fold": "Over-tight. KTs one of best calling hands BTN IP.",
+            "default": "Call with position. Don't fold profitable continues."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bc_08",
+      "title": "ATs SB vs CO open multi-way",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "AhTh", "stack_bb": 100 },
+      "villains": [
+        { "position": "CO", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [{ "position": "CO", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 2,
+          "description": "CO opens 2.5x. Hero SB ATs. BB behind. 3-bet, call, or fold?",
+          "gto": { "fold": 0.1, "call": 0.5, "3bet": 0.4 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "3bet": "Good 3-bet value — squeezes BB, isolates CO.",
+            "call": "Mixed strategy OK. SB OOP reduces realization.",
+            "default": "3-bet or call, NEVER fold ATs SB vs CO."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bc_09",
+      "title": "AQo CO call limp-4bet shove",
+      "stack_bb": 80,
+      "format": "cash",
+      "hero": { "position": "CO", "cards": "AdQc", "stack_bb": 80 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 75, "note": "Loose limper" },
+        { "position": "BTN", "stack_bb": 80 },
+        { "position": "BB", "stack_bb": 80 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "limp", "amount_bb": 1 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 2.5,
+          "toCall_bb": 1,
+          "description": "UTG limp. Hero CO AQo.",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 4.5,
+          "explanation": {
+            "raise": "Iso-raise AQ vs limp always.",
+            "default": "Raise 4-5x."
+          }
+        },
+        {
+          "id": "pf2",
+          "street": "preflop",
+          "pot_bb": 82,
+          "toCall_bb": 70,
+          "description": "You iso 4.5x. Folds. UTG limper RAISES all-in for 75bb total. Call 70 more. AQo?",
+          "gto": { "fold": 0.4, "call": 0.6 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ AQo slight favorite vs limp-shove range (many AJ, KQ, weaker).",
+            "fold": "Defensive OK vs tight limper.",
+            "default": "Unlike KJ/AT, AQo beats limp-shove range on average."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bc_10",
+      "title": "AKo 3-bet pot OOP turn decision",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "AsKd", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "board": { "flop": ["7c", "4d", "2s"], "turn": "9h" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "turn",
+          "street": "turn",
+          "pot_bb": 24,
+          "toCall_bb": 16,
+          "description": "3BP OOP. You 3-bet SB, BTN called. Flop 7-4-2, you cbet 33%, called. Turn 9. You check. BTN bets 2/3 pot (16bb). AK no pair.",
+          "gto": { "fold": 0.75, "call": 0.25 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ BTN called flop + bet turn on overcard = value-heavy.",
+            "call": "Still have 2 overs + backdoor. Close but fold default.",
+            "default": "A-high OOP on bricked turn = fold to aggression."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bc_11",
+      "title": "ATo HJ 3-way iso decision",
+      "stack_bb": 120,
+      "format": "cash",
+      "hero": { "position": "HJ", "cards": "AsTh", "stack_bb": 120 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 60 },
+        { "position": "BB", "stack_bb": 120 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 2.5,
+          "description": "UTG opens 2.5x (60BB stack). Hero HJ ATo.",
+          "gto": { "fold": 0.85, "call": 0.15 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ ATo HJ vs UTG open = mostly fold. Position disadvantage + domination risk.",
+            "call": "Mixed OK if UTG opens wide.",
+            "default": "Defense vs UTG needs strong broadway, ATo marginal."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bc_12",
+      "title": "KJs 3BP river overbet",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "KcJc", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "board": { "flop": ["Ad", "7c", "3s"], "turn": "2d", "river": "Qh" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "river",
+          "street": "river",
+          "pot_bb": 35,
+          "toCall_bb": 45,
+          "description": "3BP BB vs BTN. Flop A-7-3, you cbet 33%, called. Turn 2, check-check. River Q. You check. BTN OVERBETS 45bb into 35. You have KJ-high.",
+          "gto": { "fold": 0.98, "call": 0.02 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ KJ high. Overbet on river after check-check means monster.",
+            "call": "✗ 37% equity needed; KJ high ~10%.",
+            "default": "River overbet + KJ high = autofold."
+          },
+          "leakTag": "BROADWAY_CHASE"
+        }
+      ]
+    }
+  ]
+}

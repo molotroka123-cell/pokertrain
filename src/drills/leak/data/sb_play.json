@@ -1,0 +1,433 @@
+{
+  "leak": "sb_play",
+  "title": "SB Play — open, iso, 3-bet, defend",
+  "description": "Close the SB positional leak (-1.81 bb/hand)",
+  "scenarios": [
+    {
+      "id": "sb_01",
+      "title": "SB open 100BB vs BB",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "KhJd", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 1.5,
+          "toCall_bb": 0,
+          "description": "Folded to SB. Hero K♥J♦, 100BB. Action?",
+          "gto": { "fold": 0.0, "limp": 0.05, "raise": 0.95 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 3,
+          "explanation": {
+            "raise": "✓ SB 3x open. KJo is within SB opening range (~35%).",
+            "limp": "Very rare — only in specific range construction.",
+            "fold": "WRONG. KJo SB vs BB is easy open.",
+            "default": "SB = 3-bet or fold doctrine. Never limp KJo."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_02",
+      "title": "SB open 20BB — shove zone",
+      "stack_bb": 20,
+      "format": "MTT",
+      "hero": { "position": "SB", "cards": "AhTc", "stack_bb": 20 },
+      "villains": [{ "position": "BB", "stack_bb": 20 }],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 1.5,
+          "toCall_bb": 0,
+          "description": "20BB eff. Hero SB ATo. Action?",
+          "gto": { "shove": 0.9, "raise": 0.1 },
+          "gtoPrimary": "shove",
+          "explanation": {
+            "shove": "✓ At 20BB, ATo clear shove SB vs BB.",
+            "raise": "Non-allin raise exploitable — BB shoves wide.",
+            "default": "<25BB SB = push or fold. No min-raises."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_03",
+      "title": "SB 3-bet vs BTN — KK",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "KdKs", "stack_bb": 100 },
+      "villains": [
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [{ "position": "BTN", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 2,
+          "description": "BTN opens 2.5x. Hero SB K♦K♠. Sizing?",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 11,
+          "explanation": {
+            "raise": "✓ 3-bet KK to 4-4.5x ~11bb total (larger OOP).",
+            "default": "3-bet KK always vs BTN open."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_04",
+      "title": "SB 3-bet bluff vs CO — A5s",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "Ah5h", "stack_bb": 100 },
+      "villains": [
+        { "position": "CO", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [{ "position": "CO", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 2,
+          "description": "CO opens 2.5x. Hero SB A♥5♥. Action?",
+          "gto": { "fold": 0.2, "call": 0.1, "3bet": 0.7 },
+          "gtoPrimary": "3bet",
+          "gtoSizing": 11,
+          "explanation": {
+            "3bet": "✓ A5s is primary 3-bet bluff — blocker + wheel draws.",
+            "call": "SB OOP call rare — equity realization suffers.",
+            "fold": "Too tight. A5s has significant 3-bet value.",
+            "default": "SB vs CO 3-bet bluffs include Axs, some SC."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_05",
+      "title": "SB vs BTN open — KTs",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "KcTc", "stack_bb": 100 },
+      "villains": [
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [{ "position": "BTN", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 2,
+          "description": "BTN opens 2.5x. Hero SB K♣T♣. Action?",
+          "gto": { "fold": 0.3, "call": 0.3, "3bet": 0.4 },
+          "gtoPrimary": "3bet",
+          "gtoSizing": 11,
+          "explanation": {
+            "3bet": "✓ KTs good 3-bet bluff — blockers to AK/KK/AT.",
+            "call": "OOP — reduces call frequency.",
+            "fold": "Possible exploit vs tight villain.",
+            "default": "Mixed strategy. Don't flat KTs without plan."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_06",
+      "title": "SB iso vs 1 limper — AQo",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "AsQc", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100, "note": "Loose limper" },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "limp", "amount_bb": 1 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 2.5,
+          "toCall_bb": 0.5,
+          "description": "UTG limps. Hero SB A♠Q♣. Action?",
+          "gto": { "raise": 0.95, "call": 0.05 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 4.5,
+          "explanation": {
+            "raise": "✓ Iso 4-5x. AQo dominates limper range. Rule #19: 1 limper = 4x.",
+            "call": "Never complete — miss value, OOP postflop.",
+            "default": "Rule #19: 1 limper = 4x iso. AQo easy iso."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_07",
+      "title": "SB iso vs 2 limpers — KJo",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "KhJc", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [
+        { "position": "UTG", "action": "limp", "amount_bb": 1 },
+        { "position": "BTN", "action": "limp", "amount_bb": 1 }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 3.5,
+          "toCall_bb": 0.5,
+          "description": "UTG limp, BTN limp. Hero SB K♥J♣. Sizing?",
+          "gto": { "fold": 0.2, "raise": 0.8 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 5.5,
+          "explanation": {
+            "raise": "✓ Iso 5-6x with 2 limpers. KJo marginal but playable.",
+            "fold": "Defensive OK — KJo 4-way OOP struggles.",
+            "default": "REAL HAND 22/04 — iso'd 4x вместо 5-6x = −$66."
+          }
+        }
+      ],
+      "note": "REAL HAND from 22/04 where 4x iso led to −$66."
+    },
+    {
+      "id": "sb_08",
+      "title": "SB defend vs BB 3-bet — AJs",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "AhJs", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 14,
+          "toCall_bb": 8,
+          "description": "Hero SB opens 3x with AJs. BB 3-bets to 11bb. Action?",
+          "gto": { "fold": 0.3, "call": 0.5, "4bet": 0.2 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ AJs closes action + good price. Defend.",
+            "4bet": "Mixed — AJs bluff-resistant semi-bluff.",
+            "fold": "Too tight vs BB 3-bet range (wide).",
+            "default": "AJs SB vs BB 3-bet — call or 4-bet, rare fold."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_09",
+      "title": "SB 15BB — shove range",
+      "stack_bb": 15,
+      "format": "MTT",
+      "hero": { "position": "SB", "cards": "Kd9d", "stack_bb": 15 },
+      "villains": [{ "position": "BB", "stack_bb": 15 }],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 1.5,
+          "toCall_bb": 0,
+          "description": "15BB eff. Hero SB K♦9♦. Action?",
+          "gto": { "shove": 0.95, "fold": 0.05 },
+          "gtoPrimary": "shove",
+          "explanation": {
+            "shove": "✓ K9s standard shove at 15BB SB vs BB (Nash ~35-40%).",
+            "fold": "Too tight by Nash.",
+            "default": "15BB SB vs BB — shove wide."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_10",
+      "title": "SB 3-bet vs BTN 40BB — JJ",
+      "stack_bb": 40,
+      "format": "MTT",
+      "hero": { "position": "SB", "cards": "JcJd", "stack_bb": 40 },
+      "villains": [
+        { "position": "BTN", "stack_bb": 40 },
+        { "position": "BB", "stack_bb": 40 }
+      ],
+      "actions_before_hero": [{ "position": "BTN", "action": "raise", "amount_bb": 2.2 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 3.7,
+          "toCall_bb": 1.7,
+          "description": "BTN opens 2.2x. Hero SB J♣J♦, 40BB. Sizing?",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 8,
+          "explanation": {
+            "raise": "✓ 3-bet JJ large (4x = 8bb). Commit plan = call 4-bet shove.",
+            "default": "JJ is top of range SB vs BTN."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_11",
+      "title": "SB 3BP OOP flop — AK low board",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "AhKs", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "board": { "flop": ["5c", "3d", "2h"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 25,
+          "toCall_bb": 0,
+          "description": "3BP OOP. Flop 5-3-2 rainbow. AK high. Action?",
+          "gto": { "bet": 0.95, "check": 0.05 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 8,
+          "explanation": {
+            "bet": "✓ 3BP OOP range cbet low board 33% (SB range advantage).",
+            "check": "Rare small % frequency.",
+            "default": "Rule #29: 3BP OOP low dry = 33% range cbet."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_12",
+      "title": "SB 3BP — QQ on paired",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "QcQd", "stack_bb": 100 },
+      "villains": [{ "position": "CO", "stack_bb": 100 }],
+      "board": { "flop": ["8h", "8c", "3d"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 25,
+          "toCall_bb": 0,
+          "description": "3BP OOP. Flop 8-8-3. Hero Q♣Q♦. Action?",
+          "gto": { "bet": 0.7, "check": 0.3 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 8,
+          "explanation": {
+            "bet": "✓ QQ best overpair on 8-8-3. Small cbet value/protection.",
+            "check": "Mixed OK slowplay.",
+            "default": "QQ 3BP paired low — cbet most of the time."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_13",
+      "title": "SB fold vs BTN 4-bet — TT",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "ThTc", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "actions_before_hero": [{ "position": "BTN", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf2",
+          "street": "preflop",
+          "pot_bb": 37,
+          "toCall_bb": 15,
+          "description": "Hero 3-bet to 11bb. BTN 4-bets to 26bb. Call 15 more with TT?",
+          "gto": { "fold": 0.65, "call": 0.3, "5bet": 0.05 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ BTN 4-bet range = JJ+, AK. TT ~30% equity. Need 40%.",
+            "call": "Set-mining with 75BB behind OK if 4-bet wide.",
+            "default": "TT vs 4-bet = mostly fold OOP."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_14",
+      "title": "SB vs BTN deep — 98s",
+      "stack_bb": 200,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "9h8h", "stack_bb": 200 },
+      "villains": [
+        { "position": "BTN", "stack_bb": 200 },
+        { "position": "BB", "stack_bb": 200 }
+      ],
+      "actions_before_hero": [{ "position": "BTN", "action": "raise", "amount_bb": 3 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4.5,
+          "toCall_bb": 2.5,
+          "description": "BTN opens 3x. Hero SB 9♥8♥, deep 200BB.",
+          "gto": { "fold": 0.6, "call": 0.35, "3bet": 0.05 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ 98s deep SB OOP vs BTN = mostly fold. Realization suffers OOP.",
+            "call": "Mixed — implied odds deep.",
+            "default": "SB vs BTN deep — tight defense."
+          }
+        }
+      ]
+    },
+    {
+      "id": "sb_15",
+      "title": "SB iso vs 3 limpers — 66 (set mine)",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "6d6s", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "MP", "stack_bb": 100 },
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [
+        { "position": "UTG", "action": "limp", "amount_bb": 1 },
+        { "position": "MP", "action": "limp", "amount_bb": 1 },
+        { "position": "BTN", "action": "limp", "amount_bb": 1 }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4.5,
+          "toCall_bb": 0.5,
+          "description": "3 limpers. Hero SB 6♦6♠. Raise or complete?",
+          "gto": { "limp": 0.7, "raise": 0.2, "fold": 0.1 },
+          "gtoPrimary": "limp",
+          "gtoSizing": 7,
+          "explanation": {
+            "limp": "✓ Set mining with 66 in 5-way. Great implied odds.",
+            "raise": "Hard to isolate 3 limpers. 66 prefers multi-way.",
+            "fold": "Implied odds for set mining strong.",
+            "default": "Exception to SB-no-limp rule: set-mining in multi-way."
+          }
+        }
+      ],
+      "note": "Exception to SB-no-limp: set-mining deep multi-way."
+    }
+  ]
+}
