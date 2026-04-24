@@ -1,0 +1,263 @@
+{
+  "leak": "iso_sizing",
+  "title": "Iso Sizing vs Limpers",
+  "description": "Rule #19: 1 limper = 4x, 2 limpers = 5x, 3 limpers = 6x",
+  "coreRule": "Under-sizing iso-raises = не выбиваешь limpers = multi-way OOP = leak. +1 limper = +1bb sizing.",
+  "scenarios": [
+    {
+      "id": "iso_01",
+      "title": "CO iso vs 1 limper — AJs",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "CO", "cards": "AsJs", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100, "note": "Loose limper" },
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "SB", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "limp", "amount_bb": 1 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 2.5,
+          "toCall_bb": 1,
+          "description": "UTG limps. Hero CO A♠J♠. Sizing?",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 4,
+          "explanation": {
+            "raise": "✓ 1 limper = 4x. AJs doubles kicker on aces, flushes. Easy iso.",
+            "default": "Rule #19: 1 limper = 4x, not 3x."
+          }
+        }
+      ]
+    },
+    {
+      "id": "iso_02",
+      "title": "BTN iso vs 2 limpers — KQo",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "KcQh", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "MP", "stack_bb": 100 },
+        { "position": "SB", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [
+        { "position": "UTG", "action": "limp", "amount_bb": 1 },
+        { "position": "MP", "action": "limp", "amount_bb": 1 }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 3.5,
+          "toCall_bb": 1,
+          "description": "UTG + MP limp. Hero BTN K♣Q♥. Sizing?",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 5,
+          "explanation": {
+            "raise": "✓ 2 limpers = 5x. KQo IP playable, нужно выбить limpers.",
+            "default": "Rule #19: 2 limpers = 5x. Под-размер = каждый дешёво поедет."
+          }
+        }
+      ]
+    },
+    {
+      "id": "iso_03",
+      "title": "HJ iso vs 1 limper — 99",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "HJ", "cards": "9h9s", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "CO", "stack_bb": 100 },
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "SB", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "limp", "amount_bb": 1 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 2.5,
+          "toCall_bb": 1,
+          "description": "UTG limps. Hero HJ 9♥9♠. CO/BTN/SB/BB behind. Sizing?",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 4.5,
+          "explanation": {
+            "raise": "✓ 1 limper + 4 players behind = 4.5x. Выбиваем speculative hands behind.",
+            "default": "99 vs 1 limper — iso 4-5x. Нельзя multi-way OOP с under-sized."
+          }
+        }
+      ]
+    },
+    {
+      "id": "iso_04",
+      "title": "SB iso vs 3 limpers — AKo",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "AcKh", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "MP", "stack_bb": 100 },
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [
+        { "position": "UTG", "action": "limp", "amount_bb": 1 },
+        { "position": "MP", "action": "limp", "amount_bb": 1 },
+        { "position": "BTN", "action": "limp", "amount_bb": 1 }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4.5,
+          "toCall_bb": 0.5,
+          "description": "3 limpers. Hero SB A♣K♥. Sizing?",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 6,
+          "explanation": {
+            "raise": "✓ 3 limpers = 6x+. AKo heads-up EV огромный — обязательно выбить.",
+            "default": "Rule #19: 3 limpers = 6x. SB OOP multi-way — catastrophic."
+          }
+        }
+      ]
+    },
+    {
+      "id": "iso_05",
+      "title": "CO iso vs 1 limper — QQ",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "CO", "cards": "QdQc", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100, "note": "Fish limper" },
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "SB", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "limp", "amount_bb": 1 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 2.5,
+          "toCall_bb": 1,
+          "description": "UTG fish limps. Hero CO Q♦Q♣. Sizing?",
+          "gto": { "raise": 1.0 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 5,
+          "explanation": {
+            "raise": "✓ QQ vs fish limper → size UP (5x) for value. Нельзя слабо, fish call 4x easy.",
+            "default": "Strong value vs fish = oversize. 1 limper + fish = 5x not 4x."
+          }
+        }
+      ]
+    },
+    {
+      "id": "iso_06",
+      "title": "BTN iso vs 1 limper — weak hand",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "Jh9c", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "SB", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "limp", "amount_bb": 1 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 2.5,
+          "toCall_bb": 1,
+          "description": "UTG limps. Hero BTN J♥9♣. Action?",
+          "gto": { "fold": 0.6, "raise": 0.35, "call": 0.05 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ J9o vs UTG limp = mostly fold. Not strong enough to iso for value, not suited for bluff.",
+            "raise": "Valid iso-bluff 4x, но marginal.",
+            "call": "Never overcall J9o — worst of both worlds.",
+            "default": "Weak broadway vs limpers = fold, not limp."
+          }
+        }
+      ]
+    },
+    {
+      "id": "iso_07",
+      "title": "HJ iso vs 2 limpers + 3-bet fear",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "HJ", "cards": "AhTh", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "MP", "stack_bb": 100 },
+        { "position": "CO", "stack_bb": 100, "note": "Aggressive squeezer" },
+        { "position": "BTN", "stack_bb": 100 },
+        { "position": "SB", "stack_bb": 100 },
+        { "position": "BB", "stack_bb": 100 }
+      ],
+      "actions_before_hero": [
+        { "position": "UTG", "action": "limp", "amount_bb": 1 },
+        { "position": "MP", "action": "limp", "amount_bb": 1 }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 3.5,
+          "toCall_bb": 1,
+          "description": "UTG + MP limp. Aggressive CO behind. Hero HJ A♥T♥. Sizing?",
+          "gto": { "raise": 0.7, "fold": 0.3 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 5.5,
+          "explanation": {
+            "raise": "✓ 2 limpers = 5.5x. ATs playable, но готовься fold vs squeeze.",
+            "fold": "Exploitative OK vs aggressive squeezer behind — save chips.",
+            "default": "2 limpers + squeezer behind = 5-6x or fold. Никогда не 3x."
+          }
+        }
+      ]
+    },
+    {
+      "id": "iso_08",
+      "title": "CO short stack 30BB iso",
+      "stack_bb": 30,
+      "format": "MTT",
+      "hero": { "position": "CO", "cards": "AhKc", "stack_bb": 30 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 30, "note": "Limper" },
+        { "position": "BTN", "stack_bb": 30 },
+        { "position": "SB", "stack_bb": 30 },
+        { "position": "BB", "stack_bb": 30 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "limp", "amount_bb": 1 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 2.5,
+          "toCall_bb": 1,
+          "description": "30BB MTT. UTG limps. Hero CO A♥K♣. Action?",
+          "gto": { "raise": 0.6, "shove": 0.4 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 4,
+          "explanation": {
+            "raise": "✓ 4x iso at 30BB, готов call shove.",
+            "shove": "Also GTO — max FE, avoid postflop OOP decisions.",
+            "default": "AKo 30BB vs limper = iso 4x or shove. Никогда не under-size."
+          }
+        }
+      ]
+    }
+  ]
+}

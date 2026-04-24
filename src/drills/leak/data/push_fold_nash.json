@@ -1,0 +1,233 @@
+{
+  "leak": "push_fold_nash",
+  "title": "Short Stack Push/Fold (Nash)",
+  "description": "Nash equilibrium shoving ranges at 10-15BB",
+  "coreRule": "<15BB = push or fold. Никаких min-raises. Ranges математически точны — используй Nash charts.",
+  "scenarios": [
+    {
+      "id": "pf_01",
+      "title": "BTN 12BB — A9o shove",
+      "stack_bb": 12,
+      "format": "MTT",
+      "hero": { "position": "BTN", "cards": "Ad9s", "stack_bb": 12 },
+      "villains": [
+        { "position": "SB", "stack_bb": 12 },
+        { "position": "BB", "stack_bb": 12 }
+      ],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 1.5,
+          "toCall_bb": 0,
+          "description": "12BB MTT BTN. Folded to hero. A♦9♠. Action?",
+          "gto": { "shove": 0.95, "fold": 0.05 },
+          "gtoPrimary": "shove",
+          "explanation": {
+            "shove": "✓ Nash chart: A9o BTN 12BB = shove. ATC shoves ~55% on BTN.",
+            "fold": "Way too tight. A9o is in top 30%.",
+            "default": "Nash: BTN 12BB shove range ~55%. A9o is comfortable shove."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pf_02",
+      "title": "SB 10BB — K7o Nash",
+      "stack_bb": 10,
+      "format": "MTT",
+      "hero": { "position": "SB", "cards": "Kd7h", "stack_bb": 10 },
+      "villains": [{ "position": "BB", "stack_bb": 10 }],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 1.5,
+          "toCall_bb": 0,
+          "description": "10BB. Hero SB K♦7♥. Action?",
+          "gto": { "shove": 0.9, "fold": 0.1 },
+          "gtoPrimary": "shove",
+          "explanation": {
+            "shove": "✓ Nash SB 10BB = shove ~60% including K7o. Fold equity + equity when called.",
+            "fold": "Too tight by Nash.",
+            "default": "SB 10BB vs BB — shove wide по Nash. K7o окей."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pf_03",
+      "title": "BB call vs SB 10BB shove — Q8o",
+      "stack_bb": 10,
+      "format": "MTT",
+      "hero": { "position": "BB", "cards": "Qc8s", "stack_bb": 10 },
+      "villains": [{ "position": "SB", "stack_bb": 10 }],
+      "actions_before_hero": [{ "position": "SB", "action": "shove", "amount_bb": 10 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 11.5,
+          "toCall_bb": 9,
+          "description": "SB shoves 10BB. Hero BB Q♣8♠. Call?",
+          "gto": { "call": 0.65, "fold": 0.35 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ Nash call range vs SB 10BB shove ~45%. Q8o close but call.",
+            "fold": "Mixed OK exploit vs tight SB.",
+            "default": "BB getting 2.3-1, call Nash range wide (any Q, any A, 44+)."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pf_04",
+      "title": "CO 15BB — JTs shove",
+      "stack_bb": 15,
+      "format": "MTT",
+      "hero": { "position": "CO", "cards": "JhTh", "stack_bb": 15 },
+      "villains": [
+        { "position": "BTN", "stack_bb": 15 },
+        { "position": "SB", "stack_bb": 15 },
+        { "position": "BB", "stack_bb": 15 }
+      ],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 1.5,
+          "toCall_bb": 0,
+          "description": "15BB MTT CO. Hero J♥T♥. Action?",
+          "gto": { "shove": 0.85, "raise": 0.1, "fold": 0.05 },
+          "gtoPrimary": "shove",
+          "explanation": {
+            "shove": "✓ JTs CO 15BB = Nash shove. Raise-fold не GTO с этим стеком.",
+            "raise": "Some open-fold line ok at 15BB, но shove preferred.",
+            "default": "15BB — верхняя граница push/fold zone. Suited broadway = shove."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pf_05",
+      "title": "UTG 12BB 9-max — 77",
+      "stack_bb": 12,
+      "format": "MTT",
+      "hero": { "position": "UTG", "cards": "7d7c", "stack_bb": 12 },
+      "villains": [
+        { "position": "MP", "stack_bb": 12 },
+        { "position": "CO", "stack_bb": 12 },
+        { "position": "BTN", "stack_bb": 12 },
+        { "position": "SB", "stack_bb": 12 },
+        { "position": "BB", "stack_bb": 12 }
+      ],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 1.5,
+          "toCall_bb": 0,
+          "description": "12BB 6-max UTG. Hero 7♦7♣. Action?",
+          "gto": { "shove": 1.0 },
+          "gtoPrimary": "shove",
+          "explanation": {
+            "shove": "✓ 77 UTG 12BB = Nash shove. Any pocket pair shoves at this depth.",
+            "default": "Pocket pairs at 12BB = always shove UTG+."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pf_06",
+      "title": "BTN 8BB — Q4o",
+      "stack_bb": 8,
+      "format": "MTT",
+      "hero": { "position": "BTN", "cards": "Qh4s", "stack_bb": 8 },
+      "villains": [
+        { "position": "SB", "stack_bb": 8 },
+        { "position": "BB", "stack_bb": 8 }
+      ],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 1.5,
+          "toCall_bb": 0,
+          "description": "8BB MTT BTN. Hero Q♥4♠. Action?",
+          "gto": { "shove": 0.95, "fold": 0.05 },
+          "gtoPrimary": "shove",
+          "explanation": {
+            "shove": "✓ 8BB BTN: Nash shoves ~70%. Q4o in range.",
+            "fold": "Too tight — folding EV.",
+            "default": "Below 10BB BTN ATC shoves extremely wide — almost any Q."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pf_07",
+      "title": "BB call vs BTN 10BB shove — A3o",
+      "stack_bb": 10,
+      "format": "MTT",
+      "hero": { "position": "BB", "cards": "As3d", "stack_bb": 10 },
+      "villains": [
+        { "position": "BTN", "stack_bb": 10 },
+        { "position": "SB", "stack_bb": 10 }
+      ],
+      "actions_before_hero": [
+        { "position": "BTN", "action": "shove", "amount_bb": 10 },
+        { "position": "SB", "action": "fold" }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 11.5,
+          "toCall_bb": 9,
+          "description": "BTN shoves 10BB, SB folds. Hero BB A♠3♦. Call?",
+          "gto": { "call": 0.95, "fold": 0.05 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ Any ace calls BTN 10BB shove по Nash. A3o crushes shove range (~55% any 2).",
+            "fold": "Folding Ax = -EV huge.",
+            "default": "Nash BB call vs BTN 10BB = ATC 35%. Any ace = insta-call."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pf_08",
+      "title": "CO 14BB vs UTG 14BB shove — 99",
+      "stack_bb": 14,
+      "format": "MTT",
+      "hero": { "position": "CO", "cards": "9h9d", "stack_bb": 14 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 14 },
+        { "position": "BTN", "stack_bb": 14 },
+        { "position": "SB", "stack_bb": 14 },
+        { "position": "BB", "stack_bb": 14 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "shove", "amount_bb": 14 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 15.5,
+          "toCall_bb": 14,
+          "description": "UTG shoves 14BB. Hero CO 9♥9♦. Call?",
+          "gto": { "call": 1.0 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ 99 vs UTG 14BB shove range (~15%, TT+, AJ+) = ~45% equity, need 47% — close but +EV call because UTG range wider на MTT.",
+            "default": "99 vs 14BB UTG shove = call. Нельзя фолдить 99 в push/fold zone."
+          }
+        }
+      ]
+    }
+  ]
+}

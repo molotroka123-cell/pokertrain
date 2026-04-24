@@ -30,6 +30,33 @@ const LEAKS = [
     color: '#27ae60',
     icon: '♣',
   },
+  {
+    id: 'iso_sizing',
+    name: 'Iso Sizing',
+    desc: 'Rule #19: 1 limper = 4x, 2 = 5x, 3 = 6x',
+    priority: '#4',
+    scenarios: 8,
+    color: '#3498db',
+    icon: '↑',
+  },
+  {
+    id: 'push_fold_nash',
+    name: 'Push/Fold Nash',
+    desc: 'Short stack 10-15BB mathematical Nash ranges',
+    priority: '#5',
+    scenarios: 8,
+    color: '#9b59b6',
+    icon: '💣',
+  },
+  {
+    id: 'bb_defend',
+    name: 'BB Defend',
+    desc: 'Close action with pot odds — defend wide',
+    priority: '#6',
+    scenarios: 8,
+    color: '#1abc9c',
+    icon: '🛡',
+  },
 ];
 
 export default function LeakDrillHome({ onSelect, onBack }) {

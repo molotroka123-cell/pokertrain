@@ -1,7 +1,8 @@
 {
   "leak": "sb_play",
-  "title": "SB Play — open, iso, 3-bet, defend",
+  "title": "SB Play",
   "description": "Close the SB positional leak (-1.81 bb/hand)",
+  "coreRule": "SB = worst position. 3-bet or fold doctrine (не limp). Iso sizing по rule #19. Defend tighter чем BB.",
   "scenarios": [
     {
       "id": "sb_01",

@@ -1,5 +1,6 @@
 // FeedbackPanel.jsx — Shows correct answer + explanation + GTO frequencies
 import React from 'react';
+import RangeGrid, { cardsToHand } from './RangeGrid.jsx';
 
 const RATING_META = {
   perfect:    { label: '✓ Perfect',    color: '#27ae60', bg: 'rgba(39,174,96,0.10)' },
@@ -32,12 +33,18 @@ function FreqBar({ action, pct, isHero }) {
   );
 }
 
-export default function FeedbackPanel({ evaluation, userAction, onNext, isLast }) {
+export default function FeedbackPanel({ evaluation, userAction, onNext, isLast, scenario, decision }) {
   const meta = RATING_META[evaluation.rating] || RATING_META.mistake;
   const gtoAll = evaluation.gtoAll || {};
   const sorted = Object.entries(gtoAll)
     .filter(([, f]) => f > 0)
     .sort((a, b) => b[1] - a[1]);
+
+  // Build a minimal RangeGrid that highlights the hero's hand position
+  // with the GTO primary action color for this decision
+  const heroHand = scenario?.hero?.cards ? cardsToHand(scenario.hero.cards) : null;
+  const showGrid = decision?.street === 'preflop' && heroHand && gtoAll && Object.keys(gtoAll).length > 0;
+  const heroRangeEntry = showGrid ? { [heroHand]: { ...gtoAll } } : null;
 
   return (
     <div style={{
@@ -84,6 +91,23 @@ export default function FeedbackPanel({ evaluation, userAction, onNext, isLast }
           {sorted.map(([action, freq]) => (
             <FreqBar key={action} action={action} pct={Math.round(freq * 100)} isHero={action === userAction.type} />
           ))}
+        </div>
+      )}
+
+      {/* Range grid: highlight hero hand with GTO action mix */}
+      {showGrid && (
+        <div style={{
+          padding: 10, borderRadius: 8, background: 'rgba(8,14,22,0.4)',
+          marginBottom: 10,
+          display: 'flex', justifyContent: 'center',
+        }}>
+          <RangeGrid
+            range={heroRangeEntry}
+            selected={heroHand}
+            size="small"
+            title={`YOUR HAND: ${heroHand}`}
+            showLegend={true}
+          />
         </div>
       )}
 

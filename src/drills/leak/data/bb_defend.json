@@ -1,0 +1,231 @@
+{
+  "leak": "bb_defend",
+  "title": "BB Defend",
+  "description": "Closing action with pot odds — defend wide, не folding EV",
+  "coreRule": "BB closes action with huge discount. Defend ~40-50% vs BTN/CO opens. Too-tight fold = folding +EV.",
+  "scenarios": [
+    {
+      "id": "bbd_01",
+      "title": "BB vs BTN 2.5x — 73o",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "7d3c", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "actions_before_hero": [{ "position": "BTN", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 1.5,
+          "description": "BTN opens 2.5x. Hero BB 7♦3♣. Action?",
+          "gto": { "fold": 0.7, "call": 0.3 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ 73o = bottom of defend range vs BTN 2.5x. Close to mix но fold default.",
+            "call": "Mixed call OK if BTN opens crazy wide (>60%).",
+            "default": "Even BB defend has floor. 73o ниже threshold."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bbd_02",
+      "title": "BB vs CO 2.5x — 54s",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "5h4h", "stack_bb": 100 },
+      "villains": [{ "position": "CO", "stack_bb": 100 }],
+      "actions_before_hero": [{ "position": "CO", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 1.5,
+          "description": "CO opens 2.5x. Hero BB 5♥4♥. Action?",
+          "gto": { "call": 0.95, "3bet": 0.05 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ 54s defend против CO open easy. Suited connector realizes equity.",
+            "3bet": "Некоторая bluff freq OK.",
+            "default": "Suited connectors почти всегда defend vs CO/BTN opens."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bbd_03",
+      "title": "BB vs UTG 3x — KQo",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "KhQc", "stack_bb": 100 },
+      "villains": [{ "position": "UTG", "stack_bb": 100 }],
+      "actions_before_hero": [{ "position": "UTG", "action": "raise", "amount_bb": 3 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4.5,
+          "toCall_bb": 2,
+          "description": "UTG opens 3x. Hero BB K♥Q♣. Action?",
+          "gto": { "call": 0.6, "3bet": 0.25, "fold": 0.15 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ KQo defend vs UTG — dominated by AK/AQ/KK+ but playable.",
+            "3bet": "Mixed 3-bet OK — полублеф с blockers.",
+            "fold": "Tight fold OK exploitative vs nit UTG.",
+            "default": "KQo vs UTG 3x — mostly call, mix 3-bet."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bbd_04",
+      "title": "BB vs SB 3x — A5o 3-bet",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "As5h", "stack_bb": 100 },
+      "villains": [{ "position": "SB", "stack_bb": 100 }],
+      "actions_before_hero": [{ "position": "SB", "action": "raise", "amount_bb": 3 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 2,
+          "description": "SB opens 3x. Hero BB A♠5♥. Action?",
+          "gto": { "call": 0.2, "3bet": 0.7, "fold": 0.1 },
+          "gtoPrimary": "3bet",
+          "gtoSizing": 10,
+          "explanation": {
+            "3bet": "✓ A5o vs SB 3-bet bluff — blocker + IP postflop. 3-bet to ~10bb.",
+            "call": "Mixed OK но 3-bet preferred IP.",
+            "default": "BB vs SB = position advantage. A5o primary 3-bet bluff."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bbd_05",
+      "title": "BB vs BTN 2x min-raise — Q6s",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "Qh6h", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "actions_before_hero": [{ "position": "BTN", "action": "raise", "amount_bb": 2 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 3.5,
+          "toCall_bb": 1,
+          "description": "BTN min-raises 2x. Hero BB Q♥6♥. Action?",
+          "gto": { "call": 0.95, "3bet": 0.05 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ Q6s getting 3.5-1 defend обязателен. Suited + kicker = easy call.",
+            "default": "vs 2x open BB defends ~70%+ range. Almost everything suited."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bbd_06",
+      "title": "BB vs HJ 2.5x — 33",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "3h3d", "stack_bb": 100 },
+      "villains": [{ "position": "HJ", "stack_bb": 100 }],
+      "actions_before_hero": [{ "position": "HJ", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 1.5,
+          "description": "HJ opens 2.5x. Hero BB 3♥3♦. Action?",
+          "gto": { "call": 0.95, "3bet": 0.05 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ Small pair — set mine deep. 7.5-1 implied odds.",
+            "3bet": "Rare bluff — small pair не 3-bet freq.",
+            "default": "22-55 всегда call BB getting deep implied odds."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bbd_07",
+      "title": "BB vs UTG 3x multi-way — J8o",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "Jd8c", "stack_bb": 100 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 100 },
+        { "position": "CO", "stack_bb": 100, "note": "Cold caller" }
+      ],
+      "actions_before_hero": [
+        { "position": "UTG", "action": "raise", "amount_bb": 3 },
+        { "position": "CO", "action": "call", "amount_bb": 3 }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 7.5,
+          "toCall_bb": 2,
+          "description": "UTG 3x, CO cold-calls. Hero BB J♦8♣. Action?",
+          "gto": { "fold": 0.6, "call": 0.4 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ J8o multi-way OOP vs UTG+CO — dominated + OOP. Even с price.",
+            "call": "Mixed OK deep — implied odds.",
+            "default": "Multi-way BB defense tighter. J8o = fold default."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bbd_08",
+      "title": "BB vs BTN 3bp cbet flop — KJs",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "KsJs", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "board": { "flop": ["8d", "5c", "2h"] },
+      "actions_before_hero": [{ "position": "BTN", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 1.5,
+          "description": "BTN opens 2.5x. Hero BB K♠J♠. Action?",
+          "gto": { "call": 0.65, "3bet": 0.35 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ KJs profitable call vs BTN. IP realization issue но equity strong.",
+            "3bet": "Also valid — mix 3-bet.",
+            "default": "Suited broadway BB vs BTN — call or 3-bet, never fold."
+          }
+        },
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 5.5,
+          "toCall_bb": 3,
+          "description": "You called. Flop 8-5-2 rainbow. BTN cbets 3bb (55%). KJ-high + backdoor. Action?",
+          "gto": { "fold": 0.3, "call": 0.6, "raise": 0.1 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ KJs float — 2 overs + backdoor FD. Position hand holds on dry board.",
+            "fold": "Too tight — equity + fold equity on turn/river cards.",
+            "raise": "Very rare bluff.",
+            "default": "KJ high + backdoor на dry board OOP — call flop, re-evaluate turn."
+          }
+        }
+      ]
+    }
+  ]
+}

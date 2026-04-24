@@ -1,7 +1,8 @@
 {
   "leak": "multiway_cbet",
-  "title": "Multi-way cbet discipline",
+  "title": "Multi-way Cbet",
   "description": "Learn when to cbet vs check in 3+ way pots",
+  "coreRule": "Rule #34: multi-way 3+ players = cbet ТОЛЬКО с TP+ value или nuts drawing hand (OESD+FD combo). 33% sizing max.",
   "scenarios": [
     {
       "id": "mw_01",

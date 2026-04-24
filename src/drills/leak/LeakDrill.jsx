@@ -10,11 +10,17 @@ import DrillResults from './components/DrillResults.jsx';
 import broadwayChase from './data/broadway_chase.json';
 import sbPlay from './data/sb_play.json';
 import multiwayCbet from './data/multiway_cbet.json';
+import isoSizing from './data/iso_sizing.json';
+import pushFoldNash from './data/push_fold_nash.json';
+import bbDefend from './data/bb_defend.json';
 
 const DRILL_DATA = {
   broadway_chase: broadwayChase,
   sb_play: sbPlay,
   multiway_cbet: multiwayCbet,
+  iso_sizing: isoSizing,
+  push_fold_nash: pushFoldNash,
+  bb_defend: bbDefend,
 };
 
 export default function LeakDrill({ leakId, onBack }) {
@@ -86,6 +92,15 @@ export default function LeakDrill({ leakId, onBack }) {
     engine.currentIdx === engine.scenarios.length - 1 &&
     engine.currentDecisionIdx === totalDecisions - 1;
 
+  // Count mistakes so far to trigger rule reminder
+  let mistakes = 0;
+  engine.userAnswers.forEach(scen => {
+    Object.values(scen || {}).forEach(a => {
+      if (a.evaluation.rating === 'mistake') mistakes++;
+    });
+  });
+  const showRule = mistakes > 0 && drillData.coreRule;
+
   return (
     <div style={{ padding: 12, maxWidth: 500, margin: '0 auto', minHeight: '100vh' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -95,6 +110,22 @@ export default function LeakDrill({ leakId, onBack }) {
         </div>
         <button onClick={onBack} style={backBtn}>← Back</button>
       </div>
+
+      {showRule && (
+        <div style={{
+          padding: 10, marginBottom: 10, borderRadius: 10,
+          background: 'rgba(243,156,18,0.10)', border: '1px solid rgba(243,156,18,0.35)',
+        }}>
+          <div style={{
+            fontSize: 9, color: '#f39c12', letterSpacing: 1.5, fontWeight: 800, marginBottom: 4,
+          }}>
+            ⚠ CORE RULE REMINDER
+          </div>
+          <div style={{ fontSize: 12, color: '#d4b06e', lineHeight: 1.45 }}>
+            {drillData.coreRule}
+          </div>
+        </div>
+      )}
 
       <ScenarioDisplay
         scenario={scenario}
@@ -118,6 +149,8 @@ export default function LeakDrill({ leakId, onBack }) {
           userAction={userAnswer.action}
           onNext={handleNext}
           isLast={isLast}
+          scenario={scenario}
+          decision={decision}
         />
       )}
     </div>

@@ -2,6 +2,7 @@
   "leak": "broadway_chase",
   "title": "Broadway Chase",
   "description": "Learn to fold marginal broadway vs serious aggression",
+  "coreRule": "KJ/AT/AJ/KT против 4-bet, limp-raise shove, или big multi-street aggression = FOLD. Villain range почти никогда не блефует.",
   "scenarios": [
     {
       "id": "bc_01",
