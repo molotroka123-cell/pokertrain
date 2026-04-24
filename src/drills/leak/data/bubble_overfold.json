@@ -1,0 +1,186 @@
+{
+  "leak": "bubble_overfold",
+  "title": "Bubble Over-fold (ICM)",
+  "description": "ICM pressure — too tight on bubble loses EV (but over-call loses more)",
+  "coreRule": "Bubble — средний стек folds wider чем chip EV, но короткий стек shoves wider. Не путать свою роль.",
+  "scenarios": [
+    {
+      "id": "bub_01",
+      "title": "Mid-stack fold vs short shove — 99",
+      "stack_bb": 25,
+      "format": "MTT",
+      "hero": { "position": "BTN", "cards": "9h9s", "stack_bb": 25 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 8, "note": "Short stack" },
+        { "position": "SB", "stack_bb": 25 },
+        { "position": "BB", "stack_bb": 25 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "shove", "amount_bb": 8 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 9.5,
+          "toCall_bb": 8,
+          "description": "Bubble. UTG short (8BB) shoves. Hero BTN 99 (25BB). Call?",
+          "gto": { "call": 0.9, "fold": 0.1 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ 99 vs short shove = easy call. You have ICM pressure but pot odds + equity justify.",
+            "fold": "Over-fold. 99 beats short shove range (~50%), getting 2-1.",
+            "default": "Mid-stack vs short shove: call wide. Fold только marginal broadways."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bub_02",
+      "title": "Big stack vs mid shove — AJs",
+      "stack_bb": 60,
+      "format": "MTT",
+      "hero": { "position": "BB", "cards": "AhJh", "stack_bb": 60 },
+      "villains": [
+        { "position": "CO", "stack_bb": 20, "note": "Mid stack" },
+        { "position": "BTN", "stack_bb": 60 },
+        { "position": "SB", "stack_bb": 60 }
+      ],
+      "actions_before_hero": [
+        { "position": "CO", "action": "shove", "amount_bb": 20 }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 21.5,
+          "toCall_bb": 19,
+          "description": "Bubble. CO mid stack shoves 20BB. Hero BB AJs (60BB). Call?",
+          "gto": { "call": 0.5, "fold": 0.5 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ AJs close call even with ICM. Big stack not under pressure, mid-stack shoving wide.",
+            "fold": "ICM tight fold OK — mid stacks shove JJ+/AQ+ on bubble.",
+            "default": "Mixed spot. ICM aware — leaning fold vs tight mid-stack, call vs aggressive."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bub_03",
+      "title": "Short stack vs tight — KTo shove",
+      "stack_bb": 10,
+      "format": "MTT",
+      "hero": { "position": "BTN", "cards": "KhTs", "stack_bb": 10 },
+      "villains": [
+        { "position": "SB", "stack_bb": 50, "note": "Big stack" },
+        { "position": "BB", "stack_bb": 25 }
+      ],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 1.5,
+          "toCall_bb": 0,
+          "description": "Bubble. Hero BTN KTo, 10BB. Big stack SB + mid BB. Action?",
+          "gto": { "shove": 0.75, "fold": 0.25 },
+          "gtoPrimary": "shove",
+          "explanation": {
+            "shove": "✓ 10BB KTo on bubble — still shove. Blinds matter, FE high (они tight by ICM).",
+            "fold": "ICM fold OK — BTN shove with marginal = risk elimination.",
+            "default": "Short stack bubble = shove slightly tighter. KTo marginal, but +EV."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bub_04",
+      "title": "Over-tight fold — AQo",
+      "stack_bb": 30,
+      "format": "MTT",
+      "hero": { "position": "BB", "cards": "AcQd", "stack_bb": 30 },
+      "villains": [
+        { "position": "BTN", "stack_bb": 12, "note": "Short" },
+        { "position": "SB", "stack_bb": 30 }
+      ],
+      "actions_before_hero": [{ "position": "BTN", "action": "shove", "amount_bb": 12 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 13.5,
+          "toCall_bb": 11,
+          "description": "Bubble. BTN short shoves 12BB. Hero BB AQo (30BB). Call?",
+          "gto": { "call": 0.95, "fold": 0.05 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ AQo vs BTN short shove = snap call. Even with ICM — equity huge.",
+            "fold": "CLASSIC BUBBLE OVER-FOLD. You're paying ICM tax for no reason.",
+            "default": "AQo vs short shove BTN — always call. Fold = −EV даже under ICM."
+          },
+          "leakTag": "BUBBLE_OVERFOLD"
+        }
+      ]
+    },
+    {
+      "id": "bub_05",
+      "title": "Chip leader opens wide",
+      "stack_bb": 20,
+      "format": "MTT",
+      "hero": { "position": "CO", "cards": "JdJc", "stack_bb": 20 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 80, "note": "Chip leader, opens wide" },
+        { "position": "BTN", "stack_bb": 20 },
+        { "position": "SB", "stack_bb": 20 },
+        { "position": "BB", "stack_bb": 20 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "raise", "amount_bb": 2.5 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4,
+          "toCall_bb": 2.5,
+          "description": "Bubble. Chip leader UTG opens 2.5x wide. Hero CO JJ 20BB. Action?",
+          "gto": { "shove": 0.9, "raise": 0.1 },
+          "gtoPrimary": "shove",
+          "explanation": {
+            "shove": "✓ JJ 20BB vs big-stack open = shove. Leverage ICM on BTN/SB/BB.",
+            "raise": "3-bet non-allin is exploitable.",
+            "default": "20BB JJ + bubble + chip leader opener = shove for max FE + value."
+          }
+        }
+      ]
+    },
+    {
+      "id": "bub_06",
+      "title": "Mid stack fold — ATs vs UTG",
+      "stack_bb": 30,
+      "format": "MTT",
+      "hero": { "position": "HJ", "cards": "AdTd", "stack_bb": 30 },
+      "villains": [
+        { "position": "UTG", "stack_bb": 30, "note": "Mid" },
+        { "position": "CO", "stack_bb": 30 },
+        { "position": "BTN", "stack_bb": 8, "note": "Short" },
+        { "position": "SB", "stack_bb": 30 },
+        { "position": "BB", "stack_bb": 30 }
+      ],
+      "actions_before_hero": [{ "position": "UTG", "action": "raise", "amount_bb": 2.2 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 3.7,
+          "toCall_bb": 2.2,
+          "description": "Bubble. UTG opens 2.2x. Short BTN behind. Hero HJ ATs (30BB). Action?",
+          "gto": { "fold": 0.7, "call": 0.2, "3bet": 0.1 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ ATs vs UTG + short behind = ICM fold. Don't play marginal spots.",
+            "call": "Risky vs UTG range OOP + short behind activates.",
+            "default": "Bubble + mid stack + UTG open = tight. ATs marginal, fold OK."
+          }
+        }
+      ]
+    }
+  ]
+}

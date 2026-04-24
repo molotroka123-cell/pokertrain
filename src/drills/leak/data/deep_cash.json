@@ -1,0 +1,168 @@
+{
+  "leak": "deep_cash",
+  "title": "Deep Stack Cash Play (200BB+)",
+  "description": "Implied odds, 4-bet/5-bet lines, deep stack speculation",
+  "coreRule": "Deep 200BB+: suited connectors/small pairs win through implied odds. Broadway dominated OOP. 4-bet bluffs grow, 5-bet ranges narrow.",
+  "scenarios": [
+    {
+      "id": "ds_01",
+      "title": "Small pair deep call",
+      "stack_bb": 200,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "4d4s", "stack_bb": 200 },
+      "villains": [{ "position": "CO", "stack_bb": 200 }],
+      "actions_before_hero": [{ "position": "CO", "action": "raise", "amount_bb": 3 }],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 4.5,
+          "toCall_bb": 3,
+          "description": "Deep 200BB. CO opens 3x. Hero BTN 44. Action?",
+          "gto": { "call": 0.95, "fold": 0.05 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ Set mine — deep implied odds 65-1. Auto-call BTN IP.",
+            "fold": "Too tight. Deep stacks love small pairs.",
+            "default": "200BB+ small pair IP = always call. Implied odds massive."
+          }
+        }
+      ]
+    },
+    {
+      "id": "ds_02",
+      "title": "Suited connector 3-bet vs squeeze",
+      "stack_bb": 250,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "9h8h", "stack_bb": 250 },
+      "villains": [
+        { "position": "CO", "stack_bb": 250 },
+        { "position": "BTN", "stack_bb": 250 }
+      ],
+      "actions_before_hero": [
+        { "position": "CO", "action": "raise", "amount_bb": 3 },
+        { "position": "BTN", "action": "raise", "amount_bb": 11 }
+      ],
+      "decisions": [
+        {
+          "id": "pf1",
+          "street": "preflop",
+          "pot_bb": 15,
+          "toCall_bb": 10,
+          "description": "250BB deep. CO open, BTN squeeze to 11bb. Hero BB 98s. Action?",
+          "gto": { "fold": 0.6, "call": 0.35, "4bet": 0.05 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ BB OOP vs squeeze — realization суффers. Fold default.",
+            "call": "Close call если implied odds (deep + suited). Mixed OK.",
+            "4bet": "Rare bluff combo — 98s has SC equity.",
+            "default": "Deep BB vs squeeze OOP — fold marginal. 98s on bubble of GTO."
+          }
+        }
+      ]
+    },
+    {
+      "id": "ds_03",
+      "title": "Broadway deep fold OOP",
+      "stack_bb": 300,
+      "format": "cash",
+      "hero": { "position": "HJ", "cards": "AdJs", "stack_bb": 300 },
+      "villains": [{ "position": "CO", "stack_bb": 300 }],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf2",
+          "street": "preflop",
+          "pot_bb": 15,
+          "toCall_bb": 9,
+          "description": "300BB. Hero HJ opened 3x with AJo. CO 3-bets to 11bb. Action?",
+          "gto": { "fold": 0.75, "call": 0.2, "4bet": 0.05 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ 300BB AJo OOP vs 3-bet = dominated. Realization terrible.",
+            "call": "Bad leak. Deep OOP dominated = lose stacks fast.",
+            "default": "Deeper = tighter defense OOP vs 3-bet с broadway."
+          }
+        }
+      ]
+    },
+    {
+      "id": "ds_04",
+      "title": "4-bet bluff combo deep",
+      "stack_bb": 200,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "Ah4h", "stack_bb": 200 },
+      "villains": [{ "position": "CO", "stack_bb": 200 }],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf2",
+          "street": "preflop",
+          "pot_bb": 14,
+          "toCall_bb": 8,
+          "description": "200BB. Hero BTN opened 2.5x A4s. CO 3-bets to 11bb. Action?",
+          "gto": { "fold": 0.1, "call": 0.5, "4bet": 0.4 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ A4s deep IP = great call. Plays well postflop, nut FD, implied odds.",
+            "4bet": "Primary 4-bet bluff — blocker A + wheel draws. Mixed strategy.",
+            "fold": "Never fold A4s deep BTN.",
+            "default": "Deep A4s-A5s — call or 4-bet bluff. IP realization high."
+          }
+        }
+      ]
+    },
+    {
+      "id": "ds_05",
+      "title": "5-bet range tight deep",
+      "stack_bb": 200,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "KdKc", "stack_bb": 200 },
+      "villains": [{ "position": "CO", "stack_bb": 200 }],
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "pf3",
+          "street": "preflop",
+          "pot_bb": 44,
+          "toCall_bb": 23,
+          "description": "200BB. Hero BTN 4-bet KK to 26bb. CO 5-bets to 60bb. Action?",
+          "gto": { "call": 0.7, "shove": 0.3 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ 200BB KK vs 5-bet — call to see flop. Avoid variance vs AA.",
+            "shove": "Some freq — KK is close to top of 4-bet range.",
+            "default": "Deep 5-bet pot — KK call, evaluate flop. АА narrow range шансы high."
+          }
+        }
+      ]
+    },
+    {
+      "id": "ds_06",
+      "title": "Deep c-bet sizing",
+      "stack_bb": 200,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "AsKh", "stack_bb": 200 },
+      "villains": [{ "position": "BB", "stack_bb": 200 }],
+      "board": { "flop": ["Kc", "7d", "4s"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 6,
+          "toCall_bb": 0,
+          "description": "200BB. BTN open AK, BB called. Flop K-7-4 rainbow. BB checks. Sizing?",
+          "gto": { "bet": 0.9, "check": 0.1 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 2,
+          "explanation": {
+            "bet": "✓ 33% cbet deep — keep SPR manageable, get thin value.",
+            "check": "Trap line vs passive BB.",
+            "default": "Deep stacks = smaller cbets. 33% default. Avoid building huge pots OOP villain."
+          }
+        }
+      ]
+    }
+  ]
+}

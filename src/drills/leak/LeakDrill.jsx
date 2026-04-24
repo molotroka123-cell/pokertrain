@@ -13,6 +13,12 @@ import multiwayCbet from './data/multiway_cbet.json';
 import isoSizing from './data/iso_sizing.json';
 import pushFoldNash from './data/push_fold_nash.json';
 import bbDefend from './data/bb_defend.json';
+import threebetPotOop from './data/threebet_pot_oop.json';
+import bubbleOverfold from './data/bubble_overfold.json';
+import setWetBoard from './data/set_wet_board.json';
+import pairedBoard from './data/paired_board.json';
+import riverSizing from './data/river_sizing.json';
+import deepCash from './data/deep_cash.json';
 
 const DRILL_DATA = {
   broadway_chase: broadwayChase,
@@ -21,6 +27,12 @@ const DRILL_DATA = {
   iso_sizing: isoSizing,
   push_fold_nash: pushFoldNash,
   bb_defend: bbDefend,
+  threebet_pot_oop: threebetPotOop,
+  bubble_overfold: bubbleOverfold,
+  set_wet_board: setWetBoard,
+  paired_board: pairedBoard,
+  river_sizing: riverSizing,
+  deep_cash: deepCash,
 };
 
 export default function LeakDrill({ leakId, onBack }) {

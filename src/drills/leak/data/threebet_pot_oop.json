@@ -1,0 +1,169 @@
+{
+  "leak": "threebet_pot_oop",
+  "title": "3-Bet Pot OOP Cbet",
+  "description": "Range advantage confusion in 3-bet pots OOP",
+  "coreRule": "3BP OOP: на low/dry boards ты range advantage = small cbet 33%. На wet/high board = check range.",
+  "scenarios": [
+    {
+      "id": "3bp_01",
+      "title": "SB 3BP vs BTN — A-high dry",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "KsKd", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "board": { "flop": ["Ah", "4d", "2s"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 24,
+          "toCall_bb": 0,
+          "description": "3BP OOP SB vs BTN. Flop A-4-2 rainbow. Hero KK. Action?",
+          "gto": { "check": 0.7, "bet": 0.3 },
+          "gtoPrimary": "check",
+          "gtoSizing": 8,
+          "explanation": {
+            "check": "✓ A-high flop BTN has range advantage (more Ax). Check-call KK.",
+            "bet": "Valid small bet — thin value + protect from overcards.",
+            "default": "KK on A-high 3BP OOP — check is GTO default."
+          }
+        }
+      ]
+    },
+    {
+      "id": "3bp_02",
+      "title": "SB 3BP — low dry cbet",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "AsAh", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "board": { "flop": ["6c", "3d", "2h"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 24,
+          "toCall_bb": 0,
+          "description": "3BP OOP SB. Flop 6-3-2 rainbow. Hero AA. Action?",
+          "gto": { "bet": 0.9, "check": 0.1 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 8,
+          "explanation": {
+            "bet": "✓ Low dry 3BP OOP = range cbet 33%. AA = top of range.",
+            "check": "Slowplay rare — misses value from broadway.",
+            "default": "Rule #29: low dry 3BP OOP = 33% range bet."
+          }
+        }
+      ]
+    },
+    {
+      "id": "3bp_03",
+      "title": "BB 3BP — wet board check",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "AhKs", "stack_bb": 100 },
+      "villains": [{ "position": "CO", "stack_bb": 100 }],
+      "board": { "flop": ["Jh", "Th", "9c"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 24,
+          "toCall_bb": 0,
+          "description": "3BP OOP BB vs CO. Flop J-T-9 (wet, straight possible). Hero AK. Action?",
+          "gto": { "check": 0.95, "bet": 0.05 },
+          "gtoPrimary": "check",
+          "explanation": {
+            "check": "✓ Wet connected board = check entire range OOP. CO has more straights/draws.",
+            "bet": "Rare bluff — gutshot + overcards.",
+            "default": "3BP OOP на J-T-9 = check. Nuts и air оба check."
+          }
+        }
+      ]
+    },
+    {
+      "id": "3bp_04",
+      "title": "SB 3BP — 2-tone board",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "QcQd", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "board": { "flop": ["8s", "5s", "2d"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 24,
+          "toCall_bb": 0,
+          "description": "3BP OOP SB. Flop 8-5-2 two-tone (spades). Hero QQ. Action?",
+          "gto": { "bet": 0.8, "check": 0.2 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 8,
+          "explanation": {
+            "bet": "✓ QQ strong overpair. Small cbet deny flush draw equity.",
+            "check": "Mixed OK — trap line.",
+            "default": "Overpair на 2-tone dry = small cbet для защиты от draws."
+          }
+        }
+      ]
+    },
+    {
+      "id": "3bp_05",
+      "title": "BB 3BP turn barrel decision",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "AsAd", "stack_bb": 100 },
+      "villains": [{ "position": "CO", "stack_bb": 100 }],
+      "board": { "flop": ["7c", "4s", "2h"], "turn": "Kd" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "turn",
+          "street": "turn",
+          "pot_bb": 40,
+          "toCall_bb": 0,
+          "description": "3BP BB. Flop 7-4-2 hero cbet 33%, CO called. Turn Kd. Action?",
+          "gto": { "bet": 0.55, "check": 0.45 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 20,
+          "explanation": {
+            "bet": "✓ Double barrel AA on K turn — card favors range. Size 50%.",
+            "check": "Mixed OK — pot control, induce bluff.",
+            "default": "AA на K turn в 3BP — barrel ~55%, check ~45%."
+          }
+        }
+      ]
+    },
+    {
+      "id": "3bp_06",
+      "title": "SB 3BP paired board",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "SB", "cards": "AdKd", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "board": { "flop": ["7h", "7c", "3d"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 24,
+          "toCall_bb": 0,
+          "description": "3BP OOP SB. Flop 7-7-3. Hero AK no pair. Action?",
+          "gto": { "bet": 0.8, "check": 0.2 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 8,
+          "explanation": {
+            "bet": "✓ Paired low board 3BP OOP = range cbet 33%. Villain has no 7x in flatting range.",
+            "check": "Some check freq OK.",
+            "default": "Paired low в 3BP OOP — small cbet frequent."
+          }
+        }
+      ]
+    }
+  ]
+}

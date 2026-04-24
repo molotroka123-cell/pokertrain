@@ -1,0 +1,168 @@
+{
+  "leak": "river_sizing",
+  "title": "River Sizing (Value/Bluff)",
+  "description": "Correct sizing on river for value vs bluff — polar vs merged",
+  "coreRule": "River: thin value = 33-50%, strong value = 75%+, nuts = overbet. Bluff sizing matches value sizing для balance.",
+  "scenarios": [
+    {
+      "id": "rs_01",
+      "title": "Thin value bet river",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "AhJs", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["Ad", "7c", "3h"], "turn": "2s", "river": "5d" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "river",
+          "street": "river",
+          "pot_bb": 30,
+          "toCall_bb": 0,
+          "description": "BTN open, BB called. A-7-3-2-5 board. Hero TPTK. Checked to hero on river. Action?",
+          "gto": { "bet": 0.85, "check": 0.15 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 12,
+          "explanation": {
+            "bet": "✓ Thin value 40% pot. Get called by Ax worse kicker + middle pairs.",
+            "check": "Some check OK — bluff catcher for BB.",
+            "default": "Thin value = small sizing 33-50%. Не overbet AJ."
+          }
+        }
+      ]
+    },
+    {
+      "id": "rs_02",
+      "title": "Nuts overbet",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "8h7h", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["9h", "6h", "5c"], "turn": "2h", "river": "Kd" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "river",
+          "street": "river",
+          "pot_bb": 40,
+          "toCall_bb": 0,
+          "description": "9-6-5-2h-K. Hero has straight flush! BB checks river. Action?",
+          "gto": { "bet": 1.0 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 60,
+          "explanation": {
+            "bet": "✓ Absolute nuts = overbet 150% pot. Extract max from sets/flushes/straights.",
+            "default": "Straight flush на WET board — overbet for max value. Polarize."
+          }
+        }
+      ]
+    },
+    {
+      "id": "rs_03",
+      "title": "Bluff size matching value",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "AdKh", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["Qs", "7d", "3c"], "turn": "5h", "river": "2s" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "river",
+          "street": "river",
+          "pot_bb": 30,
+          "toCall_bb": 0,
+          "description": "Q-7-3-5-2 bricked. Hero AK missed. BB checks river. Action?",
+          "gto": { "bet": 0.55, "check": 0.45 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 22,
+          "explanation": {
+            "bet": "✓ Bluff overbet matching value range (QQ/AA would overbet). 75% pot.",
+            "check": "Give up also viable with blockers.",
+            "default": "Polar river bluff = same sizing as nuts. Blockers (AK) ideal."
+          }
+        }
+      ]
+    },
+    {
+      "id": "rs_04",
+      "title": "Merged value flat sizing",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "QsQh", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["Jc", "7h", "2d"], "turn": "4s", "river": "9d" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "river",
+          "street": "river",
+          "pot_bb": 30,
+          "toCall_bb": 0,
+          "description": "J-7-2-4-9 dry run-out. Hero QQ. BB checks river. Action?",
+          "gto": { "bet": 0.8, "check": 0.2 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 15,
+          "explanation": {
+            "bet": "✓ Merged value 50% — get called by Jx, worse overpairs.",
+            "check": "Showdown value line.",
+            "default": "Overpair с уязвимостью = 50% sizing (merged). Не overbet."
+          }
+        }
+      ]
+    },
+    {
+      "id": "rs_05",
+      "title": "Value bet protection sizing",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "KsKd", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["Th", "7s", "2c"], "turn": "9h", "river": "Jh" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "river",
+          "street": "river",
+          "pot_bb": 30,
+          "toCall_bb": 0,
+          "description": "T-7-2-9-J (straight possible 8x, FD completes). Hero KK. BB checks. Action?",
+          "gto": { "bet": 0.5, "check": 0.5 },
+          "gtoPrimary": "check",
+          "gtoSizing": 10,
+          "explanation": {
+            "check": "✓ KK loses to straight/flush/two pair. Bluff catcher — check behind.",
+            "bet": "Thin value OK if small (33%). Never overbet — folds out worse.",
+            "default": "KK на scary river = often check behind."
+          }
+        }
+      ]
+    },
+    {
+      "id": "rs_06",
+      "title": "River bluff sizing air",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "7d6d", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["Ah", "5d", "3c"], "turn": "Qs", "river": "9h" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "river",
+          "street": "river",
+          "pot_bb": 30,
+          "toCall_bb": 0,
+          "description": "A-5-3-Q-9. Hero missed 76 air. BB checks. Action?",
+          "gto": { "check": 0.7, "bet": 0.3 },
+          "gtoPrimary": "check",
+          "explanation": {
+            "check": "✓ No blockers to value, no good bluff representation. Give up.",
+            "bet": "Occasional bluff — match value sizing if going.",
+            "default": "Air без blockers river = mostly give up."
+          }
+        }
+      ]
+    }
+  ]
+}

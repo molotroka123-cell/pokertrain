@@ -1,0 +1,168 @@
+{
+  "leak": "paired_board",
+  "title": "Paired Board Navigation",
+  "description": "Trips slowplay, overpair defense, correct fold on double-paired",
+  "coreRule": "Paired board — ranges сильно changed. Trips = slowplay rarely. Overpair = bluff catcher. Double-paired = fold everything kроме boats/trips.",
+  "scenarios": [
+    {
+      "id": "pb_01",
+      "title": "Overpair vs paired board donk",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "AhAd", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["9h", "9c", "3d"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 6,
+          "toCall_bb": 4,
+          "description": "BTN open 2.5x, BB called. Flop 9-9-3. BB donks 70% (4bb). Hero AA. Action?",
+          "gto": { "call": 0.7, "raise": 0.2, "fold": 0.1 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ AA bluff catcher на paired. BB range polarized (9x/boat/bluff).",
+            "raise": "Some raise freq — thin value vs air.",
+            "fold": "Too weak — AA beats most of donk range.",
+            "default": "Overpair vs paired donk = call, re-evaluate turn."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pb_02",
+      "title": "Trips slowplay flop",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "Kc5h", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["Kh", "Ks", "2c"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 5,
+          "toCall_bb": 0,
+          "description": "BTN open, BB called. Flop K-K-2. Hero trips (bad kicker). BB checks. Action?",
+          "gto": { "check": 0.8, "bet": 0.2 },
+          "gtoPrimary": "check",
+          "explanation": {
+            "check": "✓ Slowplay trips — BB range has very few Kx or pairs. Let them bluff.",
+            "bet": "Thin value — but checks preferred на dry paired.",
+            "default": "Trips на dry paired = check. Range protect."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pb_03",
+      "title": "Bluff fold on paired flop",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "CO", "cards": "QsJd", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["8h", "8c", "3d"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 6,
+          "toCall_bb": 0,
+          "description": "CO open, BB called. Flop 8-8-3. Hero QJ air. Action?",
+          "gto": { "bet": 0.75, "check": 0.25 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 2,
+          "explanation": {
+            "bet": "✓ Paired board cbet frequently с IP range advantage. Small 33%.",
+            "check": "Some check freq — trap with overpairs.",
+            "default": "Dry paired IP heads-up = small cbet range."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pb_04",
+      "title": "Double-paired turn",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "AcKd", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["Js", "7h", "7c"], "turn": "Jc" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "turn",
+          "street": "turn",
+          "pot_bb": 14,
+          "toCall_bb": 10,
+          "description": "BTN open, BB called. Flop J-7-7 cbet called. Turn J = double-paired. BB leads 10bb. Hero AK high. Action?",
+          "gto": { "fold": 0.95, "call": 0.05 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ Double-paired board + BB lead = boats/trips. A-high = 0 equity.",
+            "call": "Pure bleed.",
+            "default": "Double-paired lead = fold without boat/trips."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pb_05",
+      "title": "Trips on wet turn",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "Ah6h", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["6c", "6d", "8s"], "turn": "7s" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "turn",
+          "street": "turn",
+          "pot_bb": 14,
+          "toCall_bb": 0,
+          "description": "Flop 6-6-8, cbet called. Turn 7 (straight possible 9Tx, 45x). Hero trips + nut kicker. BB checks. Action?",
+          "gto": { "bet": 0.9, "check": 0.1 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 10,
+          "explanation": {
+            "bet": "✓ Trips top kicker + straight draw card = bet for value + protection.",
+            "check": "Rare — lose value from random 8x.",
+            "default": "Trips top kicker on wet turn = large bet."
+          }
+        }
+      ]
+    },
+    {
+      "id": "pb_06",
+      "title": "TT on paired 7-7 board",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "ThTd", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["7h", "7s", "4c"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 6,
+          "toCall_bb": 0,
+          "description": "BTN open, BB called. Flop 7-7-4. Hero TT. BB checks. Action?",
+          "gto": { "bet": 0.85, "check": 0.15 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 2,
+          "explanation": {
+            "bet": "✓ TT overpair paired low = small cbet range. Value from weak pairs.",
+            "check": "Mix OK slowplay.",
+            "default": "Overpair paired low = small cbet, rarely slowplay."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -36,6 +36,7 @@ import CustomDrillBuilder from './drills/CustomDrillBuilder.jsx';
 import DrillHistory from './drills/DrillHistory.jsx';
 import LeakDrill from './drills/leak/LeakDrill.jsx';
 import LeakDrillHome from './drills/leak/LeakDrillHome.jsx';
+import HandHistoryScreen from './drills/leak/HandHistoryScreen.jsx';
 import StatsScreen from './stats/Dashboard.jsx';
 import GTOAnalyzer from './stats/GTOAnalyzer.jsx';
 import LeakFinder from './stats/LeakFinder.jsx';
@@ -2156,7 +2157,11 @@ function AppInner() {
   if (screen === 'leakhome') {
     return <div style={appBg}><LeakDrillHome
       onSelect={(id) => { setActiveDrill(id); setScreen('leakdrill'); }}
+      onOpenHH={() => setScreen('handhistory')}
       onBack={() => setScreen('drills')} /></div>;
+  }
+  if (screen === 'handhistory') {
+    return <div style={appBg}><HandHistoryScreen onBack={() => setScreen('leakhome')} /></div>;
   }
   if (screen === 'drills') {
     return <div style={appBg}><DrillMenu

@@ -1,0 +1,168 @@
+{
+  "leak": "set_wet_board",
+  "title": "Set on Wet Board",
+  "description": "Fold-error when draw completes — keep value but protect against straight/flush",
+  "coreRule": "Set на wet board = fast-play. Не slowplay sets когда draws live. На completed draws = assess, sometimes fold.",
+  "scenarios": [
+    {
+      "id": "set_01",
+      "title": "Set vs flush on turn",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "7s7c", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["Ts", "7h", "2s"], "turn": "5s" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "turn",
+          "street": "turn",
+          "pot_bb": 30,
+          "toCall_bb": 25,
+          "description": "You flopped set of 7s. Flop T-7-2 (2 spades), BB c/r, you called. Turn 5s = flush completes. BB leads pot. Hero set of 7s?",
+          "gto": { "fold": 0.4, "call": 0.5, "raise": 0.1 },
+          "gtoPrimary": "call",
+          "explanation": {
+            "call": "✓ Still have redraw to boat (10 outs). Call for implied odds.",
+            "fold": "Defensive OK vs aggressive OOP lead. Set becomes bluff catcher.",
+            "raise": "Bad — fold out worse, called by flushes only.",
+            "default": "Set vs completed flush = call w/ redraw, evaluate river."
+          }
+        }
+      ]
+    },
+    {
+      "id": "set_02",
+      "title": "Set fast-play wet flop",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "CO", "cards": "9d9s", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["9h", "Th", "Jh"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 7,
+          "toCall_bb": 0,
+          "description": "Hero CO opened, BB called. Flop 9-T-J all hearts + straight possible. Hero set of 9s. BB checks. Action?",
+          "gto": { "bet": 1.0 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 5,
+          "explanation": {
+            "bet": "✓ FAST-PLAY. Board crazy wet, set vulnerable. Big bet for value + protection.",
+            "default": "Wet board + set = pot build. Slowplay = лишаешь value."
+          }
+        }
+      ]
+    },
+    {
+      "id": "set_03",
+      "title": "Set vs OESD on flop",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "5h5c", "stack_bb": 100 },
+      "villains": [{ "position": "BTN", "stack_bb": 100 }],
+      "board": { "flop": ["5s", "6d", "7c"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 6,
+          "toCall_bb": 0,
+          "description": "BTN opened, BB called. Flop 5-6-7 (OESD possible). Hero set of 5s. Action?",
+          "gto": { "check": 0.6, "bet": 0.4 },
+          "gtoPrimary": "check",
+          "gtoSizing": 4,
+          "explanation": {
+            "check": "✓ Check-raise line preferred OOP — maximize fold equity.",
+            "bet": "Donk for protection OK.",
+            "default": "Set на straight-heavy = always raise eventually. Начни с check-raise."
+          }
+        }
+      ]
+    },
+    {
+      "id": "set_04",
+      "title": "Set fold on river",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "4d4c", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["4h", "6h", "9h"], "turn": "Jh", "river": "Qh" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "river",
+          "street": "river",
+          "pot_bb": 80,
+          "toCall_bb": 100,
+          "description": "You flopped set 4s. Board 4-6-9-J-Q all hearts by river. BB overbets all-in. Hero set (no heart). Action?",
+          "gto": { "fold": 0.95, "call": 0.05 },
+          "gtoPrimary": "fold",
+          "explanation": {
+            "fold": "✓ 5-flush board, OB shove — fold. Every heart is a winner for them.",
+            "call": "Crying call territory vs maniac — но GTO fold.",
+            "default": "Set на monotone с overbet по river = fold. Не лечи curiosity."
+          }
+        }
+      ]
+    },
+    {
+      "id": "set_05",
+      "title": "Turned set value bet",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BTN", "cards": "8d8s", "stack_bb": 100 },
+      "villains": [{ "position": "BB", "stack_bb": 100 }],
+      "board": { "flop": ["Kc", "5d", "2h"], "turn": "8h" },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "turn",
+          "street": "turn",
+          "pot_bb": 18,
+          "toCall_bb": 0,
+          "description": "Flop K-5-2, cbet called. Turn 8 = set. BB checks. Action?",
+          "gto": { "bet": 0.95, "check": 0.05 },
+          "gtoPrimary": "bet",
+          "gtoSizing": 12,
+          "explanation": {
+            "bet": "✓ Turned set on mostly dry board = value bet 60-75%. Kx will call, air picks up.",
+            "check": "Rare trap — BB rarely bets into hero.",
+            "default": "Turned set IP on dry = bet large for stacks by river."
+          }
+        }
+      ]
+    },
+    {
+      "id": "set_06",
+      "title": "Set check-raise flop",
+      "stack_bb": 100,
+      "format": "cash",
+      "hero": { "position": "BB", "cards": "6d6s", "stack_bb": 100 },
+      "villains": [{ "position": "CO", "stack_bb": 100 }],
+      "board": { "flop": ["6h", "9s", "Ts"] },
+      "actions_before_hero": [],
+      "decisions": [
+        {
+          "id": "flop",
+          "street": "flop",
+          "pot_bb": 7,
+          "toCall_bb": 5,
+          "description": "CO opened 2.5x, Hero BB called. Flop 6-9-T (straight + FD live). Hero set. CO cbets 70% pot (5bb). Action?",
+          "gto": { "raise": 0.85, "call": 0.15 },
+          "gtoPrimary": "raise",
+          "gtoSizing": 16,
+          "explanation": {
+            "raise": "✓ Check-raise на wet board. Set vulnerable — get stacks in or fold weak.",
+            "call": "Mixed OK — let villain barrel.",
+            "default": "Set на wet с bet facing = x/r big. Никогда slowplay."
+          }
+        }
+      ]
+    }
+  ]
+}
