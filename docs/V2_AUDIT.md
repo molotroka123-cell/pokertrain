@@ -68,10 +68,23 @@ Problem: V1 shipped a single ~745 KB chunk. Change: `build.rollupOptions.output.
 | `drilldata` | `src/drills/leak/data/**` | 12 static JSON scenario packs — pure data, changes independently of code |
 | default | everything else (App, screens, drills UI) | The churn-heavy remainder |
 
-Actual build output (2026-07-09): `vendor` 141.7 KB (45.5 gz), `engine` 132.3 KB
-(37.5 gz), `drilldata` 42.7 KB (9.4 gz), main `index` chunk 704.5 KB (154.6 gz).
-No chunk exceeds the 900 KB warning limit. Next win: the `index` chunk shrinks
+Actual build output (2026-07-09, `vite build`, 126 modules, clean):
+
+| Asset | Size | Gzip |
+|---|---|---|
+| `vendor` | 142.93 kB | 45.78 kB |
+| `index` (default) | 458.19 kB | 121.85 kB |
+| `engine` | 76.00 kB | 23.78 kB |
+| `drilldata` | 70.29 kB | 16.88 kB |
+| `cfrWorker` (worker entry) | 4.43 kB | — |
+
+No chunk exceeds the 900 kB warning limit. Next win: the `index` chunk shrinks
 further once V2 scene-level `React.lazy` splitting lands (Agent D's SceneRouter).
+
+Note on build scope: `src/v2/**` files present at build time were not yet imported
+from `main.jsx`/`App.jsx`, so they are outside the module graph and neither compiled
+nor bundled. Any compile errors in them will only surface once AppV2 is wired in —
+that integration build is the coordinator's step, not this audit's.
 
 ## 5. index.html changes
 

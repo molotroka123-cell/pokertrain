@@ -109,12 +109,12 @@ function ActionBadge({ action }) {
 
 // ─── single seat ───
 
-function Seat({ seat, layout, showdown, isHeroSeat }) {
+function Seat({ seat, layout, showdown, isHeroSeat, handLive }) {
   const avatarSize = isHeroSeat ? 48 : 42;
   const folded = !!seat.folded;
   const eliminated = !!seat.eliminated;
   const isTurn = !!seat.isTurn && !eliminated;
-  const showCards = !eliminated && !folded && (isHeroSeat ? !!seat.cards : true);
+  const showCards = !eliminated && !folded && (handLive || !!seat.cards);
   const faceUp = isHeroSeat ? !!seat.cards : !!(showdown && seat.cards);
   const cards = Array.isArray(seat.cards) && seat.cards.length ? seat.cards : [null, null];
 
@@ -266,6 +266,11 @@ export default function TableViewV2({
   if (heroIdx < 0) heroIdx = Math.min(Math.max(0, heroSeatIdx || 0), Math.max(0, safeSeats.length - 1));
 
   const layout = computeSeats(n, heroIdx);
+
+  // A hand is "live" if we're on a real street — gates opponent card backs
+  // so idle tables don't show phantom holdings.
+  const st = String(stage || '').toUpperCase();
+  const handLive = ['PREFLOP', 'FLOP', 'TURN', 'RIVER', 'SHOWDOWN'].includes(st) || !!showdown;
 
   // ── chip flight: when stage changes, previous street's bets fly to the pot ──
   const prevStageRef = useRef(stage);
@@ -459,6 +464,7 @@ export default function TableViewV2({
           layout={layout[i]}
           showdown={!!showdown}
           isHeroSeat={i === heroIdx}
+          handLive={handLive}
         />
       ))}
 
