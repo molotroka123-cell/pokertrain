@@ -2255,3 +2255,6 @@ function AppInner() {
 export default function App() {
   return React.createElement(ErrorBoundary, null, React.createElement(AppInner));
 }
+
+// Named export for IceCrown Engine 2.0 (AppV2 mounts the legacy Game flow as a scene)
+export { Game };

@@ -1,6 +1,9 @@
 // ScenarioDisplay.jsx — Shows hero cards, board, stacks, and action history
+// V2: renders the IceCrown Engine 2.0 cinematic table for the scenario.
 import React from 'react';
 import Card from '../../../components/Card.jsx';
+import TableViewV2 from '../../../v2/table/TableViewV2.jsx';
+import { scenarioToTableProps } from './scenarioToTable.js';
 
 const POS_ORDER = ['UTG', 'UTG+1', 'MP', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
 
@@ -62,41 +65,23 @@ export default function ScenarioDisplay({ scenario, visibleBoard, decision, scen
         </div>
       )}
 
-      {/* Hero position + stack */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '8px 10px', borderRadius: 8,
-        background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.3)',
-        marginBottom: 10,
-      }}>
-        <div style={{ fontSize: 11, color: '#8a9aaa' }}>
-          Hero: <span style={{ color: '#d4af37', fontWeight: 700, fontSize: 14 }}>{scenario.hero.position}</span>
-        </div>
-        <div style={{ fontSize: 11, color: '#8a9aaa' }}>
-          Stack: <span style={{ color: '#e0e8f0', fontWeight: 700 }}>{scenario.hero.stack_bb}BB</span>
-        </div>
-      </div>
-
-      {/* Hero cards */}
-      <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
-        {heroCards.map((c, i) => <Card key={c + i} card={c} hero={true} delay={i * 120} />)}
-      </div>
-
-      {/* Board (if any) */}
-      {(visibleBoard.flop || visibleBoard.turn || visibleBoard.river) && (
-        <div style={{
-          marginTop: 8, padding: 10, borderRadius: 10,
-          background: 'radial-gradient(ellipse at center, rgba(22,60,40,0.4), rgba(8,16,28,0.6))',
-          border: '1px solid rgba(39,174,96,0.2)',
-        }}>
-          <div style={{ fontSize: 9, letterSpacing: 1, color: '#4a6a5a', marginBottom: 4, fontWeight: 700 }}>BOARD</div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-            {(visibleBoard.flop || []).map((c, i) => <Card key={'f' + c + i} card={c} delay={i * 80} />)}
-            {visibleBoard.turn && <Card key={'t' + visibleBoard.turn} card={visibleBoard.turn} delay={400} />}
-            {visibleBoard.river && <Card key={'r' + visibleBoard.river} card={visibleBoard.river} delay={550} />}
+      {/* IceCrown Engine 2.0 cinematic table (fallback to classic cards if adapter fails) */}
+      {(() => {
+        let tableProps = null;
+        try { tableProps = scenarioToTableProps(scenario, visibleBoard, decision); } catch (e) {}
+        if (tableProps) {
+          return (
+            <div style={{ margin: '4px -6px 6px' }} key={scenario.id + '_' + (decision?.id || '')}>
+              <TableViewV2 {...tableProps} />
+            </div>
+          );
+        }
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
+            {heroCards.map((c, i) => <Card key={c + i} card={c} hero={true} delay={i * 120} />)}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Decision description */}
       {decision && (
