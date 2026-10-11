@@ -2,6 +2,7 @@
 // Converts text hand histories to internal record format for analysis
 
 import { evaluateHand, compareHands } from '../engine/evaluator.js';
+import { getPositions } from '../engine/positions.js';
 
 export function parseHandHistory(text) {
   const hands = text.split(/(?=Poker Hand #)/g).filter(h => h.trim().length > 20);
@@ -90,11 +91,13 @@ function parseOneHand(text) {
     if (line.includes('*** SHOWDOWN ***')) currentStreet = 'showdown';
 
     // Action parsing
-    const actionMatch = line.match(/^(.+?): (folds|checks|calls|raises|bets) ?\$?([0-9,.]*)/);
+    // "X: raises 200 to 600" -> amount is the TOTAL (raise-to) 600, matching the engine's semantics.
+    const actionMatch = line.match(/^(.+?): (folds|checks|calls|raises|bets) ?\$?([0-9,.]*)(?: to \$?([0-9,.]+))?/);
     if (actionMatch) {
       const name = actionMatch[1];
       let action = actionMatch[2];
-      const amount = actionMatch[3] ? parseFloat(actionMatch[3].replace(/,/g, '')) : 0;
+      const rawAmount = actionMatch[4] || actionMatch[3];
+      const amount = rawAmount ? parseFloat(rawAmount.replace(/,/g, '')) : 0;
       if (action === 'bets') action = 'raises'; // normalize
       const isHero = name === heroName;
       actions.push({ name, action, amount, isHero, street: currentStreet });
@@ -130,17 +133,12 @@ function parseOneHand(text) {
   const btnMatch = text.match(/Seat #(\d+) is the button/);
   if (btnMatch && heroSeat) {
     const btnSeat = parseInt(btnMatch[1]);
-    // Simple position inference
-    const seatNums = seats.map(s => s.seat).sort((a, b) => a - b);
-    const btnIdx = seatNums.indexOf(btnSeat);
+    // Same labels as the training engine (positions.js): seats in ascending order, button = dealer index
+    const seatNums = seats.map(s => s.seat).sort((x, y) => x - y);
+    const btnIdx = seatNums.indexOf(parseInt(btnMatch[1]));
     const heroIdx = seatNums.indexOf(heroSeat.seat);
-    const n = seatNums.length;
-    const relPos = ((heroIdx - btnIdx - 1) + n) % n;
-    if (n <= 3) {
-      heroPosition = relPos === 0 ? 'BTN' : relPos === 1 ? 'SB' : 'BB';
-    } else {
-      const posMap = ['BTN', 'SB', 'BB', 'UTG', 'UTG+1', 'MP', 'HJ', 'CO'];
-      heroPosition = posMap[relPos] || 'MP';
+    if (btnIdx >= 0 && heroIdx >= 0) {
+      heroPosition = getPositions(seatNums.length, btnIdx)[heroIdx] || '?';
     }
   }
 

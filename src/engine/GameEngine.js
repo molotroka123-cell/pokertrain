@@ -5,6 +5,8 @@ import { freshDeck, deal, cryptoRandomFloat } from './deck.js';
 import { evaluateHand, compareHands } from './evaluator.js';
 import { getHandValue } from './ranges.js';
 import { BaseAI } from './ai.js';
+import { getPositions } from './positions.js';
+import { settlePots, contestedTotal, computeRake } from './potSettlement.js';
 
 // Hand phases
 const PHASE = {
@@ -16,30 +18,6 @@ const PHASE = {
   SHOWDOWN: 'showdown',
   HAND_OVER: 'hand_over',
 };
-
-// Get position labels for N players relative to dealer
-function getPositions(numPlayers, dealerIdx) {
-  const pos = new Array(numPlayers).fill('');
-  if (numPlayers === 2) {
-    pos[dealerIdx] = 'BTN';
-    pos[(dealerIdx + 1) % 2] = 'BB';
-    return pos;
-  }
-  pos[dealerIdx] = 'BTN';
-  pos[(dealerIdx + 1) % numPlayers] = 'SB';
-  pos[(dealerIdx + 2) % numPlayers] = 'BB';
-  const rem = numPlayers - 3;
-  for (let i = 0; i < rem; i++) {
-    const seat = (dealerIdx + 3 + i) % numPlayers;
-    if (rem === 1) { pos[seat] = 'UTG'; }
-    else if (i === 0) pos[seat] = 'UTG';
-    else if (i === rem - 1) pos[seat] = 'CO';
-    else if (i === rem - 2 && rem > 2) pos[seat] = 'HJ';
-    else if (i === 1 && rem > 3) pos[seat] = 'UTG+1';
-    else pos[seat] = 'MP';
-  }
-  return pos;
-}
 
 export class GameEngine {
   constructor() {
@@ -88,8 +66,11 @@ export class GameEngine {
     this._isBubble = isBubble || false;
   }
 
-  startHand(players, dealerIdx, blinds, aiBots) {
+  startHand(players, dealerIdx, blinds, aiBots, options = {}) {
     this.reset();
+    // options.rake = { pct, cap, noFlopNoDrop } - cash-game rake (omit for tournaments)
+    this.rakeConfig = options.rake || null;
+    this.rakeTaken = 0;
     this.players = players.filter(p => !p.eliminated && p.chips > 0);
     if (this.players.length < 2) return false;
 
@@ -160,6 +141,7 @@ export class GameEngine {
     }
 
     this.currentBet = blinds.bb;
+    this._lastRaiseInc = blinds.bb; // size of the last full raise (min-raise rule)
     this.phase = PHASE.PREFLOP;
 
     this._log(`--- New Hand --- Blinds: ${blinds.sb}/${blinds.bb}`);
@@ -257,6 +239,7 @@ export class GameEngine {
   _resetStreetBets() {
     for (const p of this.players) this.bets[p.id] = 0;
     this.currentBet = 0;
+    this._lastRaiseInc = this.blinds.bb;
   }
 
   _handEnded() {
@@ -276,7 +259,7 @@ export class GameEngine {
     let acted = new Set();
     let idx = startIdx;
 
-    for (let loop = 0; loop < n * 4; loop++) { // safety limit
+    for (let loop = 0; loop < n * 200; loop++) { // safety limit only; legal raise wars can exceed n*4 steps
       if (this._activePlayers().length <= 1) break;
       if (this._canAct().length === 0) break;
 
@@ -286,7 +269,9 @@ export class GameEngine {
       if (this.folded.has(p.id) || p.eliminated || this.allIn.has(p.id) || p.chips <= 0) continue;
 
       // Safety: if only 1 non-folded non-allin player left, no more action needed
-      if (this._canAct().length <= 1 && this._activePlayers().every(ap => ap.id === p.id || this.allIn.has(ap.id))) break;
+      // (only when this player has nothing left to call - a live player facing a shove must still act)
+      if ((this.currentBet - (this.bets[p.id] || 0)) <= 0 && this._canAct().length <= 1 &&
+          this._activePlayers().every(ap => ap.id === p.id || this.allIn.has(ap.id))) break;
 
       // If everyone has acted and matched the current bet, street is done
       if (acted.has(p.id) && this.bets[p.id] >= this.currentBet) break;
@@ -573,7 +558,8 @@ export class GameEngine {
 
       case 'raise': {
         let raiseTotal = action.amount || this.currentBet * 2 || this.blinds.bb * 2;
-        raiseTotal = Math.max(raiseTotal, this.currentBet + this.blinds.bb); // min raise
+        const minInc = Math.max(this._lastRaiseInc || 0, this.blinds.bb);
+        raiseTotal = Math.max(raiseTotal, this.currentBet + minInc); // min raise = size of the last raise
         raiseTotal = Math.min(raiseTotal, player.chips + (this.bets[player.id] || 0)); // max = all-in
 
         const alreadyIn = this.bets[player.id] || 0;
@@ -583,6 +569,8 @@ export class GameEngine {
         player.chips -= actualAdd;
         this.bets[player.id] = alreadyIn + actualAdd;
         this.pot += actualAdd;
+        const increment = this.bets[player.id] - this.currentBet;
+        if (increment >= minInc) this._lastRaiseInc = increment; // a short all-in does not change the min raise
         this.currentBet = this.bets[player.id];
 
         if (player.chips <= 0) this.allIn.add(player.id);
@@ -621,134 +609,80 @@ export class GameEngine {
     const active = this._activePlayers();
     this.phase = PHASE.SHOWDOWN;
 
-    if (active.length === 1) {
-      // Everyone folded — winner takes pot
-      this.winner = active[0];
-      this.winner.chips += this.pot;
-      this.potWon = this.pot;
-      this.showdownResults = [{
-        player: this.winner,
-        cards: this.holeCards[this.winner.id],
-        hand: null,
-        won: this.pot,
-      }];
-      this._log(`${this.winner.isHero ? 'Hero' : this.winner.name} wins ${this.pot}`, this.winner, this.pot);
-    } else {
-      // Showdown — deal remaining community cards if needed
-      while (this.community.length < 5) {
-        deal(this.deck, 1); // burn
-        this.community.push(...deal(this.deck, 1));
-      }
+    // Total invested per player this hand (blinds + antes + bets)
+    const contributions = {};
+    for (const p of this.players) contributions[p.id] = Math.max(0, (this._startChips?.[p.id] ?? p.chips) - p.chips);
+    const folded = new Set(this.players.filter(p => this.folded.has(p.id) || p.eliminated).map(p => p.id));
+    const showdown = active.length > 1;
 
-      // Evaluate all hands
-      const results = [];
+    const scores = {};
+    const results = [];
+    if (showdown) {
+      // Deal the remaining community cards with the normal structure (burn, flop x3 / turn / river)
+      while (this.community.length < 5 && this.deck.length > 1) {
+        deal(this.deck, 1); // burn
+        this.community.push(...deal(this.deck, this.community.length === 0 ? 3 : 1));
+      }
       for (const p of active) {
         const cards = this.holeCards[p.id];
         const hand = evaluateHand(cards, this.community);
+        scores[p.id] = hand ? hand.value : 0;
         results.push({ player: p, cards, hand, won: 0 });
       }
+      results.sort((a, b) => (b.hand?.value || 0) - (a.hand?.value || 0));
+    } else {
+      scores[active[0].id] = 1;
+    }
 
-      // Sort by hand value (best first)
-      results.sort((a, b) => {
-        if (!a.hand && !b.hand) return 0;
-        if (!a.hand) return 1;
-        if (!b.hand) return -1;
-        return compareHands(b.hand, a.hand);
-      });
+    // Rake (cash games only): % of the contested pot with a cap; no flop, no drop.
+    const sawFlop = this.community.length >= 3 || showdown;
+    const rake = this.rakeConfig ? computeRake(contestedTotal(contributions), this.rakeConfig, sawFlop) : 0;
 
-      // Side-pot aware pot distribution
-      // Track total invested per player this hand (bets + antes + blinds)
-      const invested = {};
-      for (const p of this.players) {
-        // Total invested = startChips - currentChips (if they lost chips) or from pot contribution
-        invested[p.id] = this._startChips?.[p.id] != null
-          ? this._startChips[p.id] - p.chips
-          : 0;
-      }
+    // Award order: first seat left of the button first (odd chip rule)
+    const nSeats = this.players.length;
+    const order = [];
+    for (let i = 1; i <= nSeats; i++) order.push(this.players[(this.dealerIdx + i) % nSeats].id);
+    const settled = settlePots({ contributions, folded, scores, order, rake });
+    this.rakeTaken = settled.rake;
+    this.sidePots = settled.pots;
+    for (const p of this.players) p.chips += settled.awards[p.id] || 0;
 
-      // Simple side-pot: winner can only win from each player up to their own investment
-      let totalAwarded = 0;
+    const contested = settled.pots.filter(x => !x.uncalled);
+    if (!showdown) {
+      this.winner = active[0];
+      this.potWon = settled.awards[this.winner.id] || 0;
+      this.showdownResults = [{ player: this.winner, cards: this.holeCards[this.winner.id], hand: null, won: this.potWon }];
+      this._log(`${this.winner.isHero ? 'Hero' : this.winner.name} wins ${this.potWon}`, this.winner, this.potWon);
+    } else {
+      for (const r of results) r.won = settled.awards[r.player.id] || 0;
       const bestValue = results[0].hand?.value || 0;
       const winners = results.filter(r => r.hand?.value === bestValue);
-
-      if (winners.length === 1) {
-        const w = winners[0];
-        const winnerInvested = invested[w.player.id] || 0;
-
-        // Winner can only win from each player up to their own investment
-        let winnings = 0;
-        for (const p of this.players) {
-          winnings += Math.min(winnerInvested, invested[p.id] || 0);
-        }
-        winnings = Math.min(winnings, this.pot);
-        w.won = winnings;
-        w.player.chips += winnings;
-
-        // Side pot: return excess to players who invested more than winner
-        const excess = this.pot - winnings;
-        if (excess > 0) {
-          const eligibleOthers = results.filter(r => r.player.id !== w.player.id && (invested[r.player.id] || 0) > winnerInvested);
-          if (eligibleOthers.length > 0) {
-            // Next best hand gets the side pot
-            const sidePotWinner = eligibleOthers[0]; // Already sorted by hand strength
-            sidePotWinner.won += excess;
-            sidePotWinner.player.chips += excess;
-          } else {
-            // No eligible side pot winner — return to others proportionally
-            const nonWinners = this.players.filter(p => p.id !== w.player.id && (invested[p.id] || 0) > winnerInvested);
-            if (nonWinners.length > 0) {
-              const share = Math.floor(excess / nonWinners.length);
-              for (const o of nonWinners) o.chips += share;
-            }
-            // Any remaining fractional chips stay (rounding)
-          }
-        }
-      } else {
-        // Split pot — each winner gets own money back + equal share of dead money
-        // Dead money = pot contributions from folded players + any excess
-        const winnersInvested = winners.reduce((a, w) => a + (invested[w.player.id] || 0), 0);
-        const deadMoney = Math.max(0, this.pot - winnersInvested);
-        const deadShare = Math.floor(deadMoney / winners.length);
-
-        for (const w of winners) {
-          const myInvested = invested[w.player.id] || 0;
-          w.won = myInvested + deadShare;
-          w.player.chips += w.won;
-        }
-
-        // Remainder chip to first winner (rounding)
-        const totalGiven = winners.reduce((a, w) => a + w.won, 0);
-        const remainder = this.pot - totalGiven;
-        if (remainder > 0) { winners[0].player.chips += remainder; winners[0].won += remainder; }
-      }
-
       this.winner = winners.length === 1 ? winners[0].player : winners.find(w => w.player.isHero)?.player || winners[0].player;
-      this.potWon = winners.find(w => w.player.isHero)?.won || winners[0].won;
-      this.isSplitPot = winners.length > 1;
-      // Include folded players' cards too (for AI debrief)
+      const heroRes = results.find(r => r.player.isHero);
+      this.potWon = (heroRes && heroRes.won > 0 ? heroRes.won : winners[0].won);
+      this.isSplitPot = contested.some(x => x.winners.length > 1);
       const foldedResults = this.players
         .filter(p => this.folded.has(p.id) && this.holeCards[p.id])
         .map(p => ({ player: p, cards: this.holeCards[p.id], hand: null, won: 0, folded: true }));
       this.showdownResults = [...results, ...foldedResults];
-
-      const isSplit = winners.length > 1;
       for (const r of results) {
         const name = r.player.isHero ? 'Hero' : r.player.name;
         const cardStr = r.cards ? r.cards.join(' ') : '??';
         if (r.won > 0) {
-          const verb = isSplit ? 'SPLITS' : 'WINS';
-          this._log(`${name} shows ${cardStr} — ${r.hand?.name || '?'} — ${verb} ${r.won}`, r.player, r.won);
+          const verb = this.isSplitPot ? 'SPLITS' : 'WINS';
+          this._log(`${name} shows ${cardStr} - ${r.hand?.name || '?'} - ${verb} ${r.won}`, r.player, r.won);
         } else {
-          this._log(`${name} shows ${cardStr} — ${r.hand?.name || '?'}`, r.player);
+          this._log(`${name} shows ${cardStr} - ${r.hand?.name || '?'}`, r.player);
         }
       }
     }
+    if (this.rakeTaken > 0) this._log(`Rake ${this.rakeTaken}`, null, this.rakeTaken);
 
     // Sanity check: total chips must be conserved
     const totalAfter = this.players.reduce((a, p) => a + p.chips, 0);
     const totalBefore = Object.values(this._startChips || {}).reduce((a, c) => a + c, 0);
-    if (totalBefore > 0 && Math.abs(totalAfter - totalBefore) > 1) {
-      console.error('CHIP LEAK DETECTED!', { totalBefore, totalAfter, diff: totalAfter - totalBefore });
+    if (totalBefore > 0 && Math.abs(totalAfter + this.rakeTaken - totalBefore) > 0) {
+      console.error('CHIP LEAK DETECTED!', { totalBefore, totalAfter, rake: this.rakeTaken, diff: totalAfter + this.rakeTaken - totalBefore });
     }
 
     this.phase = PHASE.SHOWDOWN;
@@ -795,11 +729,12 @@ export class GameEngine {
       heroChips: hero ? hero.chips : 0,
       heroPosition: hero ? this.positions[heroIdx] : '',
       handStrength: hero && this._waitingForHero ? this._getHandStrength(hero.id) : null,
-      minRaise: Math.min(this.currentBet + this.blinds.bb, hero ? hero.chips + (this.bets[hero.id] || 0) : 0),
+      minRaise: Math.min(this.currentBet + Math.max(this._lastRaiseInc || 0, this.blinds.bb), hero ? hero.chips + (this.bets[hero.id] || 0) : 0),
       maxRaise: hero ? hero.chips + (this.bets[hero.id] || 0) : 0,
       showdownResults: this.showdownResults,
       winner: this.winner,
       potWon: this.potWon,
+      rake: this.rakeTaken || 0,
       isSplitPot: this.isSplitPot || false,
       actionLog: [...this.actionLog],
       blinds: this.blinds,

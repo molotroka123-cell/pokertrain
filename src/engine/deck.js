@@ -58,20 +58,45 @@ export function suitColor(suit) {
   return suit === 'h' || suit === 'd' ? '#e74c3c' : '#e0e0e0';
 }
 
-// Crypto-secure random int [0, max) — rejection sampling to avoid modulo bias
-export function cryptoRandom(max) {
-  if (max <= 1) return 0;
-  const arr = new Uint32Array(1);
-  const limit = Math.floor(4294967296 / max) * max; // Largest multiple of max that fits in uint32
-  do {
-    crypto.getRandomValues(arr);
-  } while (arr[0] >= limit); // Reject values that would cause bias
-  return arr[0] % max;
-}
+// ---- Randomness source -------------------------------------------------
+// Default: crypto.getRandomValues (unpredictable, used for real play).
+// For reproducible simulations/tests: seedRng(seed) switches every cryptoRandom*/shuffle call to a
+// deterministic PRNG (mulberry32); useCryptoRng() switches back. A seeded stream is NOT secure.
+let _seeded = null;
 
-// Crypto-secure random float [0, 1)
-export function cryptoRandomFloat() {
+export function makeRng(seed) {
+  let a = (Number(seed) >>> 0) || 0x9e3779b9;
+  return function next32() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0);
+  };
+}
+export function seedRng(seed) { _seeded = makeRng(seed); }
+export function useCryptoRng() { _seeded = null; }
+export function isSeededRng() { return _seeded !== null; }
+
+function nextUint32() {
+  if (_seeded) return _seeded();
   const arr = new Uint32Array(1);
   crypto.getRandomValues(arr);
-  return arr[0] / 4294967296;
+  return arr[0];
+}
+
+// Random int [0, max) — rejection sampling to avoid modulo bias
+export function cryptoRandom(max) {
+  if (max <= 1) return 0;
+  const limit = Math.floor(4294967296 / max) * max; // Largest multiple of max that fits in uint32
+  let v;
+  do {
+    v = nextUint32();
+  } while (v >= limit); // Reject values that would cause bias
+  return v % max;
+}
+
+// Random float [0, 1)
+export function cryptoRandomFloat() {
+  return nextUint32() / 4294967296;
 }

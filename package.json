@@ -9,6 +9,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "node --test test/",
     "desktop": "electron desktop/main.js --dev",
     "desktop:build": "vite build && electron-builder",
     "cap:sync": "npx cap sync"

@@ -1,57 +1,74 @@
 // equity.js — Monte Carlo equity calculator
 
-import { createDeck, shuffle } from './deck.js';
+import { createDeck, cryptoRandom, makeRng } from './deck.js';
 import { evaluateHand, compareHands } from './evaluator.js';
 
-// Calculate equity of holeCards vs numOpponents via Monte Carlo
+// Calculate equity of holeCards vs numOpponents RANDOM hands via Monte Carlo.
 // holeCards: ['Ah','Kd'], community: ['Js','Ts','4c'] or [], iterations: number
-export function calculateEquity(holeCards, community = [], numOpponents = 1, iterations = 5000) {
+// opts.seed: makes the estimate reproducible (local PRNG, independent of the global RNG).
+// Ties are split pro-rata (1/k for a k-way tie), and the result carries a standard error and
+// 95% confidence interval: this is an ESTIMATE against random hands, not against a realistic range.
+export function calculateEquity(holeCards, community = [], numOpponents = 1, iterations = 5000, opts = {}) {
+  const next32 = opts.seed != null ? makeRng(opts.seed) : null;
+  const rnd = (n) => {
+    if (!next32) return cryptoRandom(n);
+    const limit = Math.floor(4294967296 / n) * n;
+    let v;
+    do { v = next32(); } while (v >= limit);
+    return v % n;
+  };
+
   let wins = 0;
   let ties = 0;
+  let share = 0;      // sum of pot shares
+  let shareSq = 0;    // for the variance
 
-  // Cards already in play
   const used = new Set([...holeCards, ...community]);
   const remaining = createDeck().filter(c => !used.has(c));
   const boardCardsNeeded = 5 - community.length;
+  const need = boardCardsNeeded + 2 * numOpponents;
+  if (need > remaining.length) throw new Error('not enough cards for this many opponents');
 
   for (let i = 0; i < iterations; i++) {
-    const shuffled = shuffle(remaining);
+    // partial Fisher-Yates: only the cards we need
+    const deck = remaining.slice();
+    for (let k = 0; k < need; k++) {
+      const j = k + rnd(deck.length - k);
+      const t = deck[k]; deck[k] = deck[j]; deck[j] = t;
+    }
     let idx = 0;
-
-    // Complete the board
     const board = [...community];
-    for (let b = 0; b < boardCardsNeeded; b++) {
-      board.push(shuffled[idx++]);
-    }
+    for (let b = 0; b < boardCardsNeeded; b++) board.push(deck[idx++]);
 
-    // Evaluate hero
     const heroHand = evaluateHand(holeCards, board);
-
-    // Evaluate opponents (random hands)
     let heroBest = true;
-    let isTie = false;
+    let tied = 0;
     for (let o = 0; o < numOpponents; o++) {
-      const oppCards = [shuffled[idx++], shuffled[idx++]];
-      const oppHand = evaluateHand(oppCards, board);
+      const oppHand = evaluateHand([deck[idx++], deck[idx++]], board);
       const cmp = compareHands(heroHand, oppHand);
-      if (cmp < 0) {
-        heroBest = false;
-        break;
-      } else if (cmp === 0) {
-        isTie = true;
-      }
+      if (cmp < 0) { heroBest = false; break; }
+      if (cmp === 0) tied++;
     }
-
-    if (heroBest && !isTie) wins++;
-    else if (heroBest && isTie) ties++;
+    let s = 0;
+    if (heroBest) {
+      if (tied === 0) { wins++; s = 1; } else { ties++; s = 1 / (tied + 1); }
+    }
+    share += s;
+    shareSq += s * s;
   }
 
+  const mean = share / iterations;
+  const variance = iterations > 1 ? Math.max(0, (shareSq - iterations * mean * mean) / (iterations - 1)) : 0;
+  const stdErr = Math.sqrt(variance / iterations);
   return {
-    equity: (wins + ties * 0.5) / iterations,
+    equity: mean,
     wins,
     ties,
     losses: iterations - wins - ties,
     iterations,
+    stdErr,
+    ci95: [Math.max(0, mean - 1.96 * stdErr), Math.min(1, mean + 1.96 * stdErr)],
+    assumption: 'opponents hold uniformly random hands',
   };
 }
 

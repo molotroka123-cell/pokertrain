@@ -1287,7 +1287,10 @@ function Game({ director, onExit }) {
       }
     }
     engine.setTournamentContext(tState.stage, tState.isFinalTable, tState.isBubble);
-    if (!engine.startHand(tablePlayers, dealer, blinds, aiBotsRef.current)) { setHandActive(false); return; }
+    // Cash formats declare rake/rakeCap: apply it (5%-ish of the contested pot, capped, no flop no drop)
+    const _fmt = dirRef.current.format || {};
+    const handOptions = _fmt.isCash && _fmt.rake > 0 ? { rake: { pct: _fmt.rake, cap: _fmt.rakeCap, noFlopNoDrop: true } } : {};
+    if (!engine.startHand(tablePlayers, dealer, blinds, aiBotsRef.current, handOptions)) { setHandActive(false); return; }
     Sounds.deal(); // Deal sound on new hand
     setGs(engine.getState());
     await engine.runHand((state) => setGs({ ...state }));

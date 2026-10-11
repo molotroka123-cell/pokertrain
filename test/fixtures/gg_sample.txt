@@ -1,0 +1,22 @@
+Poker Hand #TM100001: Tournament #7001, Hold'em No Limit - Level5(100/200) - 2026/01/01 12:00:00
+Table '7' 6-max Seat #4 is the button
+Seat 1: Hero (5,000 in chips)
+Seat 2: VillainA (4,000 in chips)
+Seat 3: VillainB (6,000 in chips)
+Seat 4: VillainC (3,000 in chips)
+Seat 5: VillainD (8,000 in chips)
+Seat 6: VillainE (2,500 in chips)
+VillainD: posts small blind 100
+VillainE: posts big blind 200
+*** HOLE CARDS ***
+Dealt to Hero [Ah Kd]
+Hero: raises 400 to 600
+VillainA: folds
+VillainB: folds
+VillainC: calls 600
+VillainD: folds
+VillainE: folds
+*** FLOP *** [Ks 7d 2c]
+Hero: bets 700
+VillainC: folds
+Hero collected 1,500 from pot
