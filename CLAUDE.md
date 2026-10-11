@@ -24,7 +24,7 @@ npm run build     # Production build → dist/
 npm run preview   # Serve production build locally
 ```
 
-There are **no tests**, **no linter**, and **no formatter** configured.
+Engine/stat tests: `npm test` (node:test, `test/`). There is **no linter** and **no formatter** configured. Seeded session simulation: `node tools/simulate-session.mjs` (see `docs/RUN_LOCAL_RU.md`).
 
 ## Repository Structure
 
