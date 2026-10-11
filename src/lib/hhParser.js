@@ -3,6 +3,7 @@
 
 import { evaluateHand, compareHands } from '../engine/evaluator.js';
 import { getPositions } from '../engine/positions.js';
+import { isVpipAction } from './statDefs.js';
 
 export function parseHandHistory(text) {
   const hands = text.split(/(?=Poker Hand #)/g).filter(h => h.trim().length > 20);
@@ -255,7 +256,7 @@ export function analyzeRealHands(hands) {
   const pfHands = hands.filter(h => h.actions.some(a => a.stage === 'preflop'));
   const vpipHands = pfHands.filter(h => {
     const pf = h.actions.find(a => a.stage === 'preflop');
-    return pf && pf.action !== 'fold';
+    return pf && isVpipAction(pf.action);
   });
   const pfrHands = pfHands.filter(h => {
     const pf = h.actions.find(a => a.stage === 'preflop');
@@ -272,7 +273,7 @@ export function analyzeRealHands(hands) {
     posStat[pos].hands++;
     if (h.result === 'won') posStat[pos].won++;
     const pf = h.actions.find(a => a.stage === 'preflop');
-    if (pf && pf.action !== 'fold') posStat[pos].vpip++;
+    if (pf && isVpipAction(pf.action)) posStat[pos].vpip++;
     if (pf && pf.action === 'raises') posStat[pos].pfr++;
   }
 
@@ -336,7 +337,7 @@ export function saveRealSession(hands, analysis) {
       const lastHand = sorted[sorted.length - 1];
       // Compute basic stats
       const pfHands = sorted.filter(h => h.actions.some(a => a.stage === 'preflop'));
-      const vpipCount = pfHands.filter(h => { const pf = h.actions.find(a => a.stage === 'preflop'); return pf && pf.action !== 'fold'; }).length;
+      const vpipCount = pfHands.filter(h => { const pf = h.actions.find(a => a.stage === 'preflop'); return pf && isVpipAction(pf.action); }).length;
       const pfrCount = pfHands.filter(h => { const pf = h.actions.find(a => a.stage === 'preflop'); return pf && pf.action === 'raises'; }).length;
       const vpip = pfHands.length > 0 ? Math.round(vpipCount / pfHands.length * 100) : 0;
       const pfr = pfHands.length > 0 ? Math.round(pfrCount / pfHands.length * 100) : 0;

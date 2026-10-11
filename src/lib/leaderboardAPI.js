@@ -1,3 +1,4 @@
+import { isVpipAction } from './statDefs.js';
 // leaderboardAPI.js — Client-side leaderboard service
 // Connects to /api/leaderboard Edge Function
 
@@ -51,7 +52,7 @@ export function computeHeroStats() {
       for (const r of recs) { if (r.stage === 'preflop' && !pfMap.has(r.handNumber)) pfMap.set(r.handNumber, r); }
       const pf = [...pfMap.values()];
       pfHands += pf.length;
-      totalVpip += pf.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length;
+      totalVpip += pf.filter(r => isVpipAction(r.action)).length;
       totalPfr += pf.filter(r => r.action === 'raise').length;
 
       totalBuyIn += s.buyIn || 0;

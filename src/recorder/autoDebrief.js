@@ -1,3 +1,4 @@
+import { isVpipAction } from '../lib/statDefs.js';
 // autoDebrief.js — Auto tournament debrief with 6-layer mistake explanations
 // Uses exact GTO ranges for preflop mistake detection
 
@@ -722,7 +723,7 @@ function computeTiltIndicator(records) {
     const hasMistake = recs.some(r => r.mistakeType);
     // VPIP for this hand (did hero voluntarily put money in?)
     const pfRec = recs.find(r => r.stage === 'preflop');
-    const didVpip = pfRec && pfRec.action !== 'fold' && pfRec.action !== 'bb_walk';
+    const didVpip = pfRec && isVpipAction(pfRec.action);
     return { handNumber: hn, avgDecisionMs: Math.round(avgTime), result, hasMistake, didVpip };
   });
 

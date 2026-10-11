@@ -3,6 +3,7 @@
 
 import { BaseAI } from './ai.js';
 import { cryptoRandomFloat } from './deck.js';
+import { isVpipAction } from '../lib/statDefs.js';
 
 export class AdaptiveAI extends BaseAI {
   constructor(profile) {
@@ -73,7 +74,7 @@ export class AdaptiveAI extends BaseAI {
         }
         for (const r of pfByHand.values()) {
           totalHands++;
-          if (r.action !== 'fold' && r.action !== 'bb_walk') vpipHands++;
+          if (isVpipAction(r.action)) vpipHands++;
           if (r.action === 'raise') pfrHands++;
         }
         for (const r of records) {
@@ -199,7 +200,7 @@ export class AdaptiveAI extends BaseAI {
         const pos = h.byPosition[a.position];
         if (a.stage === 'preflop') {
           pos.hands++;
-          if (a.action !== 'fold') pos.vpip++;
+          if (isVpipAction(a.action)) pos.vpip++;
           if (a.action === 'raise') pos.pfr++;
           if (a.action === 'fold') pos.folds++;
         }

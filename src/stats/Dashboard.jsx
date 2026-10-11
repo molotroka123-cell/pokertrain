@@ -2,6 +2,7 @@
 import React from 'react';
 import { loadSessions } from '../recorder/ActionRecorder.js';
 import { getAchievements, getLeaderboard, getBankroll } from '../lib/achievements.js';
+import { isVpipAction } from '../lib/statDefs.js';
 
 const s = {
   container: { padding: '16px', maxWidth: '520px', margin: '0 auto', minHeight: '100vh', background: '#050b18' },
@@ -46,7 +47,7 @@ export default function StatsScreen({ onBack }) {
     for (const r of recs) { if (r.stage === 'preflop' && !pfMap.has(r.handNumber)) pfMap.set(r.handNumber, r); }
     const pf = [...pfMap.values()];
     totalPfHands += pf.length;
-    totalVpip += pf.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length;
+    totalVpip += pf.filter(r => isVpipAction(r.action)).length;
     totalPfr += pf.filter(r => r.action === 'raise').length;
   }
   const vpip = totalPfHands > 0 ? (totalVpip / totalPfHands * 100).toFixed(1) : '0';

@@ -1,6 +1,7 @@
 // LeakFinder.jsx — Ranked money leaks by spot family + Session Autopilot + Daily Missions
 import React, { useState, useMemo } from 'react';
 import { loadSessions } from '../recorder/ActionRecorder.js';
+import { isVpipAction } from '../lib/statDefs.js';
 
 // Normalize hand for grouping
 function normHand(hc) {
@@ -141,7 +142,7 @@ function getBaseline(sessions) {
       const pf = [...pfMap.values()];
       hands += pf.length;
       vpipT += pf.length;
-      vpipN += pf.filter(r => r.action !== 'fold' && r.action !== 'bb_walk' && !(r.action === 'check' && r.position === 'BB')).length;
+      vpipN += pf.filter(r => isVpipAction(r.action)).length;
       pfrT += pf.length;
       pfrN += pf.filter(r => r.action === 'raise').length;
     }

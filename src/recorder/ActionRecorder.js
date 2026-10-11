@@ -6,6 +6,7 @@ import { potOdds, mRatio, calculateEquity } from '../engine/equity.js';
 import { classifyTexture, calculateQuickEV, calculateTournamentEV } from '../engine/evEngine.js';
 import { evaluateHand } from '../engine/evaluator.js';
 import { rankValue } from '../engine/deck.js';
+import { isVpipAction } from '../lib/statDefs.js';
 
 // Draw detection: flush draw, OESD, gutshot, combo, backdoor
 function detectDraws(hCards, board) {
@@ -715,7 +716,7 @@ function generateQuickSummary() {
     }
   }
   const pfUnique = [...pfByHand.values()];
-  const vpip = pfUnique.filter(r => r.action !== 'fold' && r.action !== 'bb_walk').length / Math.max(1, pfUnique.length);
+  const vpip = pfUnique.filter(r => isVpipAction(r.action)).length / Math.max(1, pfUnique.length);
   const pfr = pfUnique.filter(r => r.action === 'raise').length / Math.max(1, pfUnique.length);
   const mistakes = records.filter(r => r.mistakeType);
   const totalEVLost = mistakes.reduce((a, m) => a + (m.evLost || 0), 0);

@@ -1,3 +1,4 @@
+import { isVpipAction } from './statDefs.js';
 // learningPath.js — Leak detection, priority, personalized drill plans, progress tracking
 
 const LEAK_PATTERNS = {
@@ -38,7 +39,7 @@ const LEAK_PATTERNS = {
       for (const d of pf) {
         if (!byPos[d.position]) byPos[d.position] = { total: 0, vpip: 0 };
         byPos[d.position].total++;
-        if (d.action !== 'fold') byPos[d.position].vpip++;
+        if (isVpipAction(d.action)) byPos[d.position].vpip++;
       }
       const utg = byPos['UTG']?.total > 5 ? byPos['UTG'].vpip / byPos['UTG'].total : null;
       const btn = byPos['BTN']?.total > 5 ? byPos['BTN'].vpip / byPos['BTN'].total : null;
