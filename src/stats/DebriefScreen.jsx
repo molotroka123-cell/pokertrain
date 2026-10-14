@@ -56,7 +56,20 @@ const s = {
   },
 };
 
-export default function DebriefScreen({ debrief, finish, records, onClose, onExport, aiExploit, onDrill }) {
+// Telegram only: send the whole session (every hand) to Jeff; the debrief arrives in the player's Jeff chat.
+function SendToJeffButton({ onSendJeff, style }) {
+  const [state, setState] = useState('idle');
+  const label = { idle: '📨 Отправить сессию Jeff на разбор', sending: 'Отправляю…',
+    sent: '✓ Отправлено — разбор придёт в чат Jeff', error: 'Не отправилось — попробуйте ещё раз',
+    busy: 'Jeff уже разбирает вашу сессию — подождите пару минут' }[state];
+  return <button disabled={state === 'sending' || state === 'sent'} style={style} onClick={async () => {
+    setState('sending');
+    const r = await onSendJeff();
+    setState(r?.ok ? 'sent' : (r?.error === 'too_often' ? 'busy' : 'error'));
+  }}>{label}</button>;
+}
+
+export default function DebriefScreen({ debrief, finish, records, onClose, onExport, onSendJeff, aiExploit, onDrill }) {
   const [selectedMistake, setSelectedMistake] = useState(null);
 
   if (!debrief) return null;
@@ -544,6 +557,7 @@ export default function DebriefScreen({ debrief, finish, records, onClose, onExp
       {onExport && (
         <button onClick={onExport} style={s.exportBtn}>Export Session JSON (for Claude analysis)</button>
       )}
+      {onSendJeff && <SendToJeffButton onSendJeff={onSendJeff} style={s.exportBtn} />}
       <button onClick={() => {
         if (!records?.length) return;
         const hands = new Map();

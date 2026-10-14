@@ -28,6 +28,28 @@ export async function submitStats(stats) {
   } catch { return null; }
 }
 
+// Send one finished session (every hand + every decision) to the host; Jeff replies in Telegram with a debrief.
+const RECORD_KEYS = ['handNumber', 'stage', 'position', 'holeCards', 'community', 'action', 'raiseAmount', 'potSize',
+  'toCall', 'chipsBeforeHand', 'chipsAfter', 'handResult', 'mistakeType', 'evLost', 'madeHand', 'playersRemaining'];
+export function canSendToJeff() { return !!window.Telegram?.WebApp?.initData; }
+export async function sendSessionToJeff(session) {
+  try {
+    const records = (session?.records || []).map(r => {
+      const o = {}; for (const k of RECORD_KEYS) if (r[k] !== undefined) o[k] = r[k];
+      if (r.solverResult?.bestAction) o.solverBest = r.solverResult.bestAction;
+      return o;
+    });
+    const res = await fetch('/api/session', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData: window.Telegram?.WebApp?.initData || '', session: {
+        sessionId: session?.sessionId, exportDate: session?.exportDate, totalHands: session?.totalHands,
+        summary: session?.summary, handSummaries: session?.handSummaries || [], records } }),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, ...data };
+  } catch { return { ok: false, error: 'network' }; }
+}
+
 export async function fetchLeaderboard(period = 'all', limit = 50) {
   try {
     const res = await fetch(`${API_URL}?period=${period}&limit=${limit}`);

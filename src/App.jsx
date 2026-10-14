@@ -16,7 +16,7 @@ import TournamentDashboard from './tournament/TournamentDashboard.jsx';
 import DebriefScreen from './stats/DebriefScreen.jsx';
 import { startSession, recordDecision, recordHandHistory, saveSession, exportSession, getRecords } from './recorder/ActionRecorder.js';
 import { generateDebrief } from './recorder/autoDebrief.js';
-import { submitCurrentStats } from './lib/leaderboardAPI.js';
+import { submitCurrentStats, canSendToJeff, sendSessionToJeff } from './lib/leaderboardAPI.js';
 import DrillMenu from './drills/DrillMenu.jsx';
 import RFIDrill from './drills/RFIDrill.jsx';
 import ThreeBetDrill from './drills/ThreeBetDrill.jsx';
@@ -2169,6 +2169,7 @@ function AppInner() {
         setActiveDrill(drillId);
         setScreen('drill');
       }}
+      onSendJeff={canSendToJeff() ? () => sendSessionToJeff(exportSession()) : undefined}
       onExport={() => {
         const data = exportSession();
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
