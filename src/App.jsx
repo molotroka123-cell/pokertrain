@@ -545,13 +545,14 @@ const SEATS_9 = [
   { x: 90, y: 22 },  // 6
   { x: 98, y: 48 },  // 7
   { x: 90, y: 75 },  // 8
-  { x: 50, y: 11 },  // 9: top centre (odd opponent counts)
+  { x: 50, y: 16 },  // 9: top centre (odd opponent counts); 11% clipped the avatar under the header on 375px phones
 ];
 
 // Which SEATS_9 slot the k-th opponent (clockwise from the hero's left) takes, by how many opponents there are.
 // Before: opponent k always sat at slot k, so a 6-max table put 3 opponents in one column on the left.
 const SEAT_LAYOUTS = {
-  1: [9], 2: [3, 6], 3: [2, 9, 7], 4: [2, 4, 5, 7], 5: [2, 3, 9, 6, 7], 6: [1, 3, 4, 5, 6, 8],
+  // 5 (6-max): slots 2+3 / 6+7 were 26% apart and the side seats overlapped on a 375px phone -> 1+3 / 6+8.
+  1: [9], 2: [3, 6], 3: [2, 9, 7], 4: [2, 4, 5, 7], 5: [1, 3, 9, 6, 8], 6: [1, 3, 4, 5, 6, 8],
   7: [1, 2, 3, 9, 6, 7, 8], 8: [1, 2, 3, 4, 5, 6, 7, 8],
 };
 function seatIndexFor(k, n) {
