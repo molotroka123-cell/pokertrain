@@ -20,7 +20,8 @@ export async function submitStats(stats) {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ playerId, name, ...stats }),
+      // Inside Telegram the host identifies the player by the signed initData, not by this local id.
+      body: JSON.stringify({ playerId, name, ...stats, initData: window.Telegram?.WebApp?.initData || '' }),
     });
     if (!res.ok) return null;
     return await res.json();
