@@ -78,6 +78,16 @@ export function quickPreflopEquity(holeCards, numOpponents = 1) {
 }
 
 // Calculate pot odds
+// EV of calling vs folding (fold = 0). `pot` ALREADY contains the opponent's bet (GameEngine adds every bet to
+// this.pot at once), so a won call wins `pot` and a lost call loses `toCall`:
+//   EV = equity * pot - (1 - equity) * toCall   -> break-even equity = toCall / (pot + toCall) = potOdds().
+// The old copies used equity * (pot + toCall) - (1 - equity) * toCall, which counted the hero's own call as a win
+// and overstated every call by equity * toCall (pot 2300 / call 2000: break-even 31.7% instead of 46.5%).
+export function callEV(equity, pot, toCall) {
+  if (!(toCall > 0)) return 0;
+  return equity * pot - (1 - equity) * toCall;
+}
+
 export function potOdds(toCall, potSize) {
   if (toCall <= 0) return 1;
   return toCall / (potSize + toCall);

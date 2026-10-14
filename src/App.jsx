@@ -4,7 +4,7 @@ import { FORMATS } from './data/tournamentFormats.js';
 import { CASH_FORMATS } from './data/cashFormats.js';
 import { GameEngine } from './engine/GameEngine.js';
 import { AdaptiveAI } from './engine/adaptiveAI.js';
-import { mRatio } from './engine/equity.js';
+import { mRatio, callEV } from './engine/equity.js';
 import { evaluateHand, compareHands } from './engine/evaluator.js';
 import Card from './components/Card.jsx';
 import Controls from './tournament/Controls.jsx';
@@ -1861,7 +1861,7 @@ function Game({ director, onExit }) {
       {showTrainer && gs?.waitingForHero && (() => {
         const equity = gs.handStrength || 0;
         const potOddsNeeded = gs.toCall > 0 ? gs.toCall / (gs.pot + gs.toCall) : 0;
-        const evOfCall = gs.toCall > 0 ? equity * (gs.pot + gs.toCall) - (1 - equity) * gs.toCall : 0;
+        const evOfCall = callEV(equity, gs.pot, gs.toCall);   // gs.pot already holds the bet (see equity.js)
         const commitPct = gs.heroChips > 0 ? Math.round((gs.toCall / gs.heroChips) * 100) : 0;
         const sprVal = gs.pot > 0 ? Math.round((gs.heroChips / gs.pot) * 10) / 10 : 99;
 

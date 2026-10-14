@@ -6,6 +6,7 @@ import { createDeck, shuffle } from './deck.js';
 import { evaluateHand, compareHands } from './evaluator.js';
 import { WeightedRange, RV } from './WeightedRange.js';
 import { SOLVER_SPOTS } from '../data/solverDB.js';
+import { callEV as callEVOf } from './equity.js';
 
 // ═══════════════════════════════════════════
 // TIER 1: QUICK EV (~5ms, during gameplay)
@@ -31,7 +32,7 @@ export function calculateQuickEV(heroCards, board, pot, toCall, villainProfile, 
 
   // CALL
   if (toCall > 0) {
-    const callEV = equity * (pot + toCall) - (1 - equity) * toCall;
+    const callEV = callEVOf(equity, pot, toCall);   // pot already holds the bet (see equity.js)
     actions.call = {
       ev: Math.round(callEV),
       confidence: getConfidence('call', board, range),

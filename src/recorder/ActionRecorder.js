@@ -2,7 +2,7 @@
 // Per MASTER spec: every user action creates a complete record for AI analysis
 
 import { getHandValue, handString, isInOpenRange, isIn3BetRange } from '../engine/ranges.js';
-import { potOdds, mRatio, calculateEquity } from '../engine/equity.js';
+import { potOdds, mRatio, calculateEquity, callEV } from '../engine/equity.js';
 import { classifyTexture, calculateQuickEV, calculateTournamentEV } from '../engine/evEngine.js';
 import { evaluateHand } from '../engine/evaluator.js';
 import { rankValue } from '../engine/deck.js';
@@ -352,7 +352,7 @@ export function recordDecision({
   // 3. EV of call (adjusted for position + implied odds)
   const adjustedEquity = Math.min(0.98, equity * positionAdj);
   const evOfCall = toCall > 0
-    ? (adjustedEquity * (potSize + toCall)) - ((1 - adjustedEquity) * toCall) + impliedOddsAdj
+    ? callEV(adjustedEquity, potSize, toCall) + impliedOddsAdj   // potSize already holds the bet (see equity.js)
     : 0;
 
   // 4. EV of raise (includes fold equity)

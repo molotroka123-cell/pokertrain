@@ -2,7 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDeck, seedRng, useCryptoRng, shuffle, cryptoRandom } from '../src/engine/deck.js';
 import { evaluate5, evaluateHand } from '../src/engine/evaluator.js';
-import { calculateEquity, potOdds, mRatio, spr } from '../src/engine/equity.js';
+import { calculateEquity, potOdds, mRatio, spr, callEV } from '../src/engine/equity.js';
+
+test('callEV: pot already holds the bet, break-even equity equals pot odds (no counting the own call as a win)', () => {
+  // the table shot: blinds 100/200, raise to 2000 -> pot 2300, to call 2000
+  assert.ok(Math.abs(potOdds(2000, 2300) - 2000 / 4300) < 1e-12);
+  assert.ok(Math.abs(callEV(2000 / 4300, 2300, 2000)) < 1e-9);      // exactly 0 at 46.5%
+  assert.ok(callEV(0.317, 2300, 2000) < -600);                       // the old formula called this break-even
+  for (const [pot, call] of [[300, 100], [1000, 1000], [55, 5], [12000, 3470]]) {
+    const be = potOdds(call, pot);
+    assert.ok(Math.abs(callEV(be, pot, call)) < 1e-9, `${pot}/${call}`);
+    assert.ok(callEV(be + 0.01, pot, call) > 0 && callEV(be - 0.01, pot, call) < 0);
+  }
+  assert.equal(callEV(0.9, 500, 0), 0);                              // nothing to call -> no call EV
+});
 import { calculateICM } from '../src/engine/icm.js';
 
 test('evaluator: exhaustive 5-card category counts match the known distribution', () => {

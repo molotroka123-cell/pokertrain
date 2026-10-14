@@ -4,7 +4,7 @@
 // IP/OOP awareness, SPR-based commitment, BB defense, ICM
 
 import { getHandValue, isInOpenRange, isIn3BetRange, handCategory } from './ranges.js';
-import { potOdds, mRatio as calcMRatio } from './equity.js';
+import { potOdds, mRatio as calcMRatio, callEV } from './equity.js';
 import { cryptoRandomFloat } from './deck.js';
 import { icmPressure } from './icm.js';
 import { isCashRfi, getCashThreeBetAction, getCashBBDefenseAction } from '../data/gtoRanges.js';
@@ -688,7 +688,7 @@ export class BaseAI {
     const hi = gs.handInfo || {};
 
     // EV calculation with draw equity included
-    const evOfCall = totalEquity * (pot + toCall) - (1 - totalEquity) * toCall;
+    const evOfCall = callEV(totalEquity, pot, toCall);   // pot already holds the bet (see equity.js)
 
     // Implied odds multiplier (can win more on later streets)
     const impliedOdds = stage === 'river' ? 1.0 : stage === 'turn' ? 1.15 : 1.30;
