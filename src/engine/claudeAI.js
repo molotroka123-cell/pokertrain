@@ -5,7 +5,7 @@
 export class ClaudeBossBot {
   // Shared call counter across all bots in game
   static totalCalls = 0;
-  static maxTotalCalls = 30;
+  static maxTotalCalls = 300;   // Jeff runs locally (free); the host still serves one decision at a time
   static resetCalls() { ClaudeBossBot.totalCalls = 0; }
 
   constructor(localAI) {
@@ -17,7 +17,7 @@ export class ClaudeBossBot {
     // Budget check
     if (ClaudeBossBot.totalCalls >= ClaudeBossBot.maxTotalCalls) return false;
     // Cooldown: min 3 hands between API calls per bot
-    if (Date.now() - this.lastAPICall < 15000) return false;
+    if (Date.now() - this.lastAPICall < 3000) return false;
 
     const potBBs = gs.pot / Math.max(gs.bigBlind, 1);
     const triggers =
@@ -64,22 +64,23 @@ Your local AI suggests: ${localDecision.action}${localDecision.amount ? ' ' + lo
 
 Reply ONLY JSON: {"action":"fold|check|call|raise","amount":NUMBER_OR_NULL}`;
 
-      const res = await fetch('/api/claude', {
+      // Owner 15.10: in HARDCORE Jeff plays — the local model on the owner's PC via the Telegram host.
+      // Only cards and numbers are sent; the host checks the Telegram signature. Off Telegram -> local AI.
+      void prompt;
+      const initData = typeof window !== 'undefined' ? window.Telegram?.WebApp?.initData : '';
+      if (!initData) return localDecision;
+      const res = await fetch('/api/jeff', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: prompt }],
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 100,
-        }),
+        body: JSON.stringify({ initData, spot: {
+          holeCards: gs.holeCards, community: gs.community || [], stage: gs.stage, position: gs.position,
+          pot: gs.pot, toCall: gs.toCall, myChips: gs.myChips, bigBlind: gs.bigBlind,
+          playersInHand: gs.playersInHand, currentBet: gs.currentBet || 0, suggest: localDecision.action } }),
       });
 
       if (!res.ok) return localDecision;
 
-      const data = await res.json();
-      const text = data.content?.[0]?.text || '';
-      const clean = text.replace(/```json?|```/g, '').trim();
-      const parsed = JSON.parse(clean);
+      const parsed = await res.json();
 
       if (parsed.action && ['fold', 'check', 'call', 'raise'].includes(parsed.action)) {
         parsed._isAI = true; // Mark for UI

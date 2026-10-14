@@ -1259,6 +1259,8 @@ function Game({ director, onExit }) {
       }
       // AI PRO bots in HARDCORE: all get photo avatar
       if (isHardcore) {
+        const jeffSeat = botPlayers.find(p => p._isBoss);
+        if (jeffSeat) jeffSeat.name = 'Jeff';      // owner 15.10: Jeff (local Bossman model) plays you in HARDCORE
         for (const p of botPlayers) {
           if (p._isBoss) {
             p._isEasterEgg = true; // Use photo avatar for all AI PRO
