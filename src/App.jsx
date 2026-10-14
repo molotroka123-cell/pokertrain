@@ -545,7 +545,19 @@ const SEATS_9 = [
   { x: 90, y: 22 },  // 6
   { x: 98, y: 48 },  // 7
   { x: 90, y: 75 },  // 8
+  { x: 50, y: 11 },  // 9: top centre (odd opponent counts)
 ];
+
+// Which SEATS_9 slot the k-th opponent (clockwise from the hero's left) takes, by how many opponents there are.
+// Before: opponent k always sat at slot k, so a 6-max table put 3 opponents in one column on the left.
+const SEAT_LAYOUTS = {
+  1: [9], 2: [3, 6], 3: [2, 9, 7], 4: [2, 4, 5, 7], 5: [2, 3, 9, 6, 7], 6: [1, 3, 4, 5, 6, 8],
+  7: [1, 2, 3, 9, 6, 7, 8], 8: [1, 2, 3, 4, 5, 6, 7, 8],
+};
+function seatIndexFor(k, n) {
+  const layout = SEAT_LAYOUTS[n];
+  return layout ? layout[k] : k + 1;
+}
 
 // Chip stack visual component
 function ChipStack({ amount, x, y, animate = false }) {
@@ -590,6 +602,7 @@ const BET_OFFSETS = [
   { dx: -35, dy: 20 },  // 6
   { dx: -40, dy: 0 },   // 7
   { dx: -35, dy: -25 }, // 8
+  { dx: 48, dy: 0 },    // 9: top centre → to the right of the avatar (below it covered the stack/pot)
 ];
 
 function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
@@ -611,10 +624,13 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
   const opponents = seated.slice(1);
 
   return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: '100vw', margin: '0 auto' }}>
+    <div style={{ position: 'relative', width: '100%', maxWidth: '100vw', margin: '0 auto', flex: 1, minHeight: 0,
+      display: 'flex', flexDirection: 'column' }}>
       {/* ═══ TABLE AREA ═══ */}
       <div style={{
-        position: 'relative', width: '100%', height: 'min(340px, 44dvh)',
+        // the felt takes what is left after the hero area (cards + stack never shrink): in Telegram's shorter
+        // viewport the hero's cards were cut off by the action bar at 800px and gone at 700px
+        position: 'relative', width: '100%', flex: '1 1 0', minHeight: 0, maxHeight: 'min(340px, 44dvh)',
         overflow: 'visible', contain: 'layout style',
         marginTop: '4px',
       }}>
@@ -747,7 +763,7 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
         {/* ═══ Pot + To Call ═══ */}
         {gs.pot > 0 && (
           <div style={{
-            position: 'absolute', top: '33%', left: '50%', transform: 'translate(-50%,-50%)',
+            position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%,-50%)',
             textAlign: 'center', zIndex: 20,
           }}>
             <div style={{ fontSize: '14px', color: '#a0a890', letterSpacing: '1px' }}>
@@ -767,7 +783,7 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
         {/* ═══ Community cards — larger with shadow ═══ */}
         {gs.community.length > 0 && (
           <div style={{
-            position: 'absolute', top: '51%', left: '50%', transform: 'translate(-50%,-50%)',
+            position: 'absolute', top: '63%', left: '50%', transform: 'translate(-50%,-50%)',
             display: 'flex', gap: '4px', zIndex: 15,
             filter: 'drop-shadow(0 3px 6px rgba(0,0,0,0.5))',
           }}>
@@ -778,7 +794,7 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
         {/* ═══ Opponent Seats (no hero — hero is below table) ═══ */}
         {opponents.map((p, oi) => {
           if (!p || (p.folded && gs.phase !== 'showdown')) return null;
-          const si = oi + 1; // seat index (1-8)
+          const si = seatIndexFor(oi, opponents.length);   // spread round the felt (6-max: no left-side pile-up)
           const pos = SEATS_9[si % SEATS_9.length];
           const sd = sdMap[p.id];
           const isWinner = gs.winner?.id === p.id;
@@ -849,7 +865,8 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
                   position: 'relative', overflow: 'hidden',
                 }}>
                   {p._isEasterEgg
-                    ? <img src="https://i.postimg.cc/TPxfxLx5/IMG-7466.jpg" alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}/>
+                    // was an external postimg photo — removed by the host ("image not found"); local crown instead
+                    ? <span style={{ fontSize: '24px', lineHeight: 1, color: '#d4af37', textShadow: '0 0 10px rgba(212,175,55,0.6)' }}>♛</span>
                     : T.isIcecrown ? ['🇩🇰','🇬🇧','🇨🇴','🇧🇷','🇺🇸','🇩🇪','🇫🇷','🇯🇵','🇰🇷','🇷🇺','🇨🇳','🇪🇸','🇮🇹','🇸🇪','🇳🇴'][(p.id || i) % 15]
                     : (p.emoji || (p.name || 'P')[0].toUpperCase())}
                   {/* Glossy top highlight */}
@@ -947,7 +964,7 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
 
       {/* ═══ HERO AREA — below table ═══ */}
       <div style={{
-        textAlign: 'center', padding: '8px 0 4px', position: 'relative',
+        textAlign: 'center', padding: '8px 0 4px', position: 'relative', flexShrink: 0,
       }}>
         {/* Hero bet chips */}
         {seated[0]?.bet > 0 && (
@@ -1077,7 +1094,7 @@ function HandLog({ entries }) {
   return (
     <div style={{
       background: '#0a0d14', borderRadius: '10px', padding: '6px 12px', margin: '4px 14px 6px',
-      border: '1px solid #1a2230', maxHeight: '80px', overflowY: 'auto',
+      border: '1px solid #1a2230', maxHeight: 'clamp(0px, calc(100dvh - 700px), 80px)', overflowY: 'auto',
     }}>
       <div style={{ fontSize: '9px', color: '#3a4a5a', fontWeight: 700, letterSpacing: '1px', marginBottom: '3px' }}>HAND LOG</div>
       {entries.slice(-12).reverse().map((e, i) => (
@@ -1106,10 +1123,15 @@ const PF_RANGES = {
 function _pfParse(s) { const r = new Set(); (s||'').split(',').forEach(h => r.add(h.trim())); return r; }
 function _pfHand(ri,ci) { if(ri===ci) return PF_RANKS[ri]+PF_RANKS[ci]; return ri<ci ? PF_RANKS[ri]+PF_RANKS[ci]+'s' : PF_RANKS[ci]+PF_RANKS[ri]+'o'; }
 
-function PushFoldFAB() {
-  const [open, setOpen] = useState(false);
+// Controlled (open/setOpen from the table's button row) on the table screen: no floating circle over RAISE.
+function PushFoldFAB({ open: openProp, setOpen: setOpenProp } = {}) {
+  const [openState, setOpenState] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : openState;
+  const setOpen = controlled ? setOpenProp : setOpenState;
   const [pos, setPos] = useState('SB');
   const [m, setM] = useState(5);
+  if (!open && controlled) return null;
   if (!open) return (
     <div onClick={() => setOpen(true)} style={{
       // above the action bar (at 80px it covered RAISE and the hint line on phones)
@@ -1179,6 +1201,7 @@ function Game({ director, onExit }) {
   const [handActive, setHandActive] = useState(false);
   const [handCount, setHandCount] = useState(0);
   const [showRange, setShowRange] = useState(false);
+  const [showPF, setShowPF] = useState(false);       // push/fold chart, opened from the button row
   const [selectedOpponent, setSelectedOpponent] = useState(null);
   const [postHandTip, setPostHandTip] = useState(null);
   const [botChat, setBotChat] = useState(null);
@@ -1784,7 +1807,7 @@ function Game({ director, onExit }) {
       )}
 
       {/* Table — fills remaining space */}
-      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <PremiumTable chipsBeforeHand={chipsBeforeHandRef.current} theme={getTheme(tournState.isFinalTable ? 'FINAL_TABLE' : tournState.formatKey)} gs={{ ...(gs || {
         players: tournState.heroTable?.players.filter(p => !p.eliminated).map(p => ({ ...p, position: '', bet: 0, folded: false, allIn: false })) || [],
         community: [], pot: 0, heroCards: [], heroIndex: tournState.heroTable?.players.findIndex(p => p.isHero) || 0,
@@ -1942,6 +1965,10 @@ function Game({ director, onExit }) {
               padding: '6px 12px', background: liveMode ? '#2a1a40' : '#0d1118', border: `1px solid ${liveMode ? '#8b5cf644' : '#1a2230'}`,
               borderRadius: '8px', color: liveMode ? '#c4b5fd' : '#6b7b8d', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
             }}>Live</button>
+            <button onClick={() => setShowPF(true)} style={{
+              padding: '6px 12px', background: '#2a2208', border: '1px solid #fbbf2455',
+              borderRadius: '8px', color: '#fbbf24', fontSize: '11px', fontWeight: 800, cursor: 'pointer',
+            }}>P/F</button>
           </div>
           <Controls canCheck={gs.canCheck} canCall={gs.toCall > 0} toCall={gs.toCall}
             pot={gs.pot} myChips={gs.heroChips} minRaise={gs.minRaise} maxRaise={gs.maxRaise}
@@ -2042,8 +2069,8 @@ function Game({ director, onExit }) {
       {/* Hand Log */}
       <HandLog entries={gs?.actionLog} />
 
-      {/* Push/Fold Calculator FAB */}
-      <PushFoldFAB />
+      {/* Push/Fold chart — opened by the «P/F» button in the row above the actions */}
+      <PushFoldFAB open={showPF} setOpen={setShowPF} />
 
       {/* Bottom Navigation — ICECROWN only */}
       <BottomNav
