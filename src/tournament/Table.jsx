@@ -195,7 +195,8 @@ export default function Table({
             key={player.id}
             style={{
               ...styles.seat,
-              left: pos.left,
+              // keep the whole 68px seat card on screen: side seats at 5%/95% were half cut off on phones
+              left: `clamp(38px, ${pos.left}, calc(100% - 38px))`,
               top: pos.top,
               ...(isHero ? styles.heroGlow : {}),
             }}

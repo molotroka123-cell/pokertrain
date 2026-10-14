@@ -585,8 +585,8 @@ const BET_OFFSETS = [
   { dx: 35, dy: -25 },  // 1
   { dx: 40, dy: 0 },    // 2
   { dx: 35, dy: 20 },   // 3
-  { dx: 20, dy: 30 },   // 4
-  { dx: -20, dy: 30 },  // 5
+  { dx: 20, dy: 52 },   // 4 (below the stack pill: at 30 the chips covered the stack on phones)
+  { dx: -20, dy: 52 },  // 5
   { dx: -35, dy: 20 },  // 6
   { dx: -40, dy: 0 },   // 7
   { dx: -35, dy: -25 }, // 8
@@ -798,7 +798,8 @@ function PremiumTable({ gs, theme: T, chipsBeforeHand }) {
               )}
 
               <div style={{
-                position: 'absolute', left: pos.x + '%', top: pos.y + '%',
+                // clamp: side seats at x=2%/98% were half off-screen on phones (stack read "0.0K")
+                position: 'absolute', left: `clamp(40px, ${pos.x}%, calc(100% - 40px))`, top: pos.y + '%',
                 transform: 'translate(-50%,-50%)', textAlign: 'center', zIndex: 10,
                 width: '72px', transition: 'opacity 0.4s ease',
                 opacity: p.folded ? 0.3 : 1,
@@ -1111,8 +1112,9 @@ function PushFoldFAB() {
   const [m, setM] = useState(5);
   if (!open) return (
     <div onClick={() => setOpen(true)} style={{
-      position: 'fixed', bottom: '80px', right: '14px', zIndex: 200,
-      width: '48px', height: '48px', borderRadius: '50%', cursor: 'pointer',
+      // above the action bar (at 80px it covered RAISE and the hint line on phones)
+      position: 'fixed', bottom: 'calc(200px + env(safe-area-inset-bottom, 0px))', right: '12px', zIndex: 200,
+      width: '44px', height: '44px', borderRadius: '50%', cursor: 'pointer',
       background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', color: '#000',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: '11px', fontWeight: 900, lineHeight: 1.1, textAlign: 'center',
